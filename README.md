@@ -18,7 +18,7 @@ The research should incorporate analytics for different time windows (weekdays, 
 	* How realistic are the CTA schedules (are time estimates in the GTFS faulty)?
 	* How significant is bus bunching as a source of delays? 
 	
-## Methodological and data overview
+## Methodology and data overview
 
 ### CTA bus data engineering
 * **Download all data from Ghost Buses S3 bucket:** Daily snapshots of the CTA vehicles feed is available from S3 from 2022-10-01 to current. Please refer to the [ChiHackNight Ghost Buses repo](https://github.com/chihacknight/chn-ghost-buses/blob/main/data_analysis/README.md#accessing-data-in-s3) for more information about accessing the files. When developing the workflow be sure to make the process repeatable since future collaborators may want to periodically run the pipeline to update the analysis with more recent data. To combine and store the daily snapshots use Python `polars` [scan_csv()](https://docs.pola.rs/py-polars/html/reference/api/polars.scan_csv.html) and [sink_parquet](https://docs.pola.rs/py-polars/html/reference/api/polars.LazyFrame.sink_parquet.html) operations to write the files. The original source of the S3 is the [CTA Bus Tracker API feed](https://www.transitchicago.com/developers/bustracker/).
