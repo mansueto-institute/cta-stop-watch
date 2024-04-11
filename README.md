@@ -94,13 +94,13 @@ style W fill:#00C2A8
 ## Caveats and disclaimers
 
 #### **Ghost Buses background:** 
-[project website](https://ghostbuses.com/methods) and background on methods, the [repo](https://github.com/chihacknight/chn-ghost-buses), and see this [Git Issue](https://github.com/chihacknight/breakout-groups/issues/217) about the state of development on the project. ChiHackNight presentations on Jan 16, 2024  and on Nov 13, 2022. 
+[Project website](https://ghostbuses.com/methods) and background on methods, the [repo](https://github.com/chihacknight/chn-ghost-buses), and see this [Git Issue](https://github.com/chihacknight/breakout-groups/issues/217) about the state of development on the project. ChiHackNight presentations on Jan 16, 2024  and on Nov 13, 2022. 
 #### **Caveats from the developers of Ghost Buses:**
 * Universe of routes was last updated in Spring 2022 so new route IDs might not be in the data.
 * Data for the 74 Fullerton route is unreliable and should be dropped.
 * Recommend dropping data for days when the schedule changes (so the day a new GTFS feed is switched over).
 * Because the data is based on GPS devices, which can fail or break, consider adding data checks to exclude unrealistic results that do not comport with expectations.
 * Develop automated checks to reconcile that all bus IDs are accounted for, for instance,  the trip ID was missing for a small number of trips on the 66 Chicago Bus. This was only listed as a series of asterisks like ********. 
-#### **CTA 'L' data from Brian McFadden:**
+#### **CTA 'L' data:**
 A separate project that tracks the CTA ‘L’ data is from Brian McFadden. Here is his [API](https://brandonmcfadden.com/transit-api) and [dashboard](https://brandonmcfadden.com/cta-reliability). 
 
