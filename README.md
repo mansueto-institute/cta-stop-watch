@@ -18,7 +18,7 @@ The research should incorporate analytics for different time windows (weekdays, 
 	* How realistic are the CTA schedules (are time estimates in the GTFS too optimistic)?
 	* How significant is bus bunching as a source of delays?
  	* Does [Uber and Lyft traffic](https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Trips-2023-/n26f-ihde/about_data) correlate with slower bus times?
-  	* Some research shows that CTA is among the worst in [spacing between bus stops](https://findingspress.org/article/27373-distributions-of-bus-stop-spacings-in-the-united-states). Does the distance between bus stops correlate with reduced bus service quality?
+  	* Some research shows that CTA has shorter [bus stop spacing](https://findingspress.org/article/27373-distributions-of-bus-stop-spacings-in-the-united-states) compared to most other cities. Does the shorter distance between bus stops correlate with reduced bus service quality?
 	
 ## Methodology and data overview
 
