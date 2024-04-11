@@ -5,20 +5,20 @@
 
 The goal for this project is to inform reporting on the quality of bus service across Chicago's neighborhoods over time in a way that is intuitive and captures the lived reality of people who regularly rely on the CTA. The ideal analysis will measure service quality at the bus-stop level and report the number of buses that pass within a 5 minute time frame as well as the amount of time that passed between each bus. 
 
-The research should incorporate analytics for different time windows (weekdays, weekends, rush hour, month, day of week, month, season, year) and geographic groupings (community area, ward, Census tract / block group, citywide, groupings based on demographics (i.e, plurality race / ethnicity, median household income buckets, fraction of residents who commute to work on public transit). 
+The research should incorporate analytics for different time windows (weekdays, weekends, rush hour, month, day of week, month, season, year) and geographic groupings such as community area, ward, Census tract / block group, citywide, and groupings based on demographics (i.e, plurality race / ethnicity, median household income buckets, fraction of residents who commute to work on public transit). 
 
 ### Potential research questions
-* How does bus service vary across community areas, demographic groupings, and socioeconomic levels? Do more well-off neighborhoods get better service? Are neighborhoods most reliant on the CTA most likely to get lower quality service?
+* How does bus service vary across community areas, demographic groupings, and socioeconomic levels? Do more well-off neighborhoods get better service? Are neighborhoods most reliant on the CTA most likely to get lower quality service (use Census ACS commuter data)?
 * Has service improved or worsened in different parts of the city? What is the most reliable and least reliable area for CTA service? When CTA is needed most (during rush hour), does it deliver?
-* How does actual service compare to the scheduled level of service available in the GTFS? Have service cuts (reflected in newer versions of the GTFS) created the appearance of improved performance? Where does the CTA over or under-perform relative to the scheduled times.
+* How does actual service compare to the scheduled level of service available in the GTFS? Have service cuts (reflected in newer versions of the GTFS) created the appearance of improved performance? Where does the CTA over or under-perform relative to the scheduled times?
 * Some other questions:
 	* What is the effect of dedicated bus lanes on CTA bus reliability? 
-	* What does bus service look like when we adjust for ridership? 
+	* Is there a relationship between bus service quality and ridership level? How well does supply of buses align with demand in terms of [daily route ridership](https://data.cityofchicago.org/Transportation/CTA-Ridership-Bus-Routes-Daily-Totals-by-Route/jyb9-n7fm/about_data)?
 	* Are traffic conditions to blame for suboptimal CTA performance? 
-	* How realistic are the CTA schedules (are time estimates in the GTFS faulty)?
+	* How realistic are the CTA schedules (are time estimates in the GTFS too optimistic)?
 	* How significant is bus bunching as a source of delays?
  	* Does [Uber and Lyft traffic](https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Trips-2023-/n26f-ihde/about_data) correlate with slower bus times?
-  	* How well does supply of buses align with demand in terms of [daily route ridership](https://data.cityofchicago.org/Transportation/CTA-Ridership-Bus-Routes-Daily-Totals-by-Route/jyb9-n7fm/about_data)?
+  	* Some research shows that CTA is among the worst in [spacing between bus stops](https://findingspress.org/article/27373-distributions-of-bus-stop-spacings-in-the-united-states). Does the distance between bus stops correlate with reduced bus service quality?
 	
 ## Methodology and data overview
 
