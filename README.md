@@ -105,6 +105,7 @@ style W fill:#00C2A8
 A separate project that tracks the CTA ‘L’ data is from Brian McFadden. Here is his [API](https://brandonmcfadden.com/transit-api) and [dashboard](https://brandonmcfadden.com/cta-reliability). 
 
 ## Prior articles
+* [CTA FOIA Archive](https://github.com/nikhunder/CTA-FOIA)
 * [CTA said more train service would be coming. Most riders will have to wait longer for that to happen.](https://web.archive.org/web/20240410014605/https://www.chicagotribune.com/2024/04/08/cta-new-train-schedules/)
 * [After pandemic cuts, CTA will start running more buses on some routes](https://web.archive.org/web/20240410171716/https://www.chicagotribune.com/2024/03/20/cta-bus-service/)
 * [CTA unveils $2 billion budget that aims to draw back riders, address employee shortages](https://web.archive.org/web/20240307171109/https://www.chicagotribune.com/2023/10/19/cta-unveils-2-billion-budget-that-aims-to-draw-back-riders-address-employee-shortages/)
