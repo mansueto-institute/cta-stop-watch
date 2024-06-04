@@ -15,7 +15,12 @@ duckdb = "^1.0.0"
 pandas = "^2.2.2"
 geopandas = "^0.14.4"
 requests = "^2.32.3"
+pyarrow = "^16.1.0"
+folium = "^0.16.0"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
 
 [build-system]
 requires = ["poetry-core"]
