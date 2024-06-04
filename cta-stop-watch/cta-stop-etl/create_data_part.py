@@ -51,6 +51,7 @@ def download_full_day_csv_to_parquet(
 def save_partitioned_parquet(out_file: str):
     cmd_number = f"""COPY
     (SELECT
+        ROW_NUMBER() OVER() AS id,
         *,
         CONCAT(
             rt, pid, origtatripno, tatripid, vid, data_date

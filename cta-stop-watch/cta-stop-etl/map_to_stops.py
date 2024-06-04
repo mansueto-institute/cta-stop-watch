@@ -14,8 +14,14 @@ load_dotenv()
 M_TO_FT = 3.280839895
 BUFFER_DIST = 50.0
 
+
 def buffer_wgs84_m(geometry: GeoSeries, metres: float):
     return
+
+
+## pattern prev_seq, seq, xy, poly,
+## join to this sjoin left join ping xy,=
+# inner join, avg for the segments to get the segments, then add back in the points
 
 
 def save_pattern_api(pid: str):
@@ -32,11 +38,13 @@ def save_pattern_api(pid: str):
         ),
     )
     pattern_df = pattern_df.sort_values(by="seq")
+    # change from stop to point to point
     pattern_df.loc[:, "segment"] = (pattern_df.loc[:, "typ"] == "S").shift(1).cumsum()
     pattern_df.loc[0, "segment"] = 0.0
 
     segments = []
     geometries = []
+    # window of 2 for segment
     for segment, grp in pattern_df.groupby("segment"):
         last_index = grp.index[-1]
         if last_index < (pattern_df.shape[0] - 1):
@@ -59,6 +67,7 @@ def save_pattern_api(pid: str):
         segment_df.loc[i, "geometry"] = segment_df.iloc[i].geometry.difference(
             segment_df.iloc[0:i].geometry.union_all()
         )
+        # ignore
     segment_df.loc[:, "time_spent_in_segment"] = pd.to_timedelta(0)
     segment_df.loc[:, "occurences_in_segment"] = 0
 
@@ -121,6 +130,7 @@ def append_skipped_pids(pid: str):
 
 
 def process_pattern(pid: str, pid_df: GeoDataFrame):
+    # is pattern available from the api
     if not save_pattern_api(pid):
         print(f"skipping {pid=}")
         print(pid_df.iloc[-1].tmstmp)
@@ -132,13 +142,14 @@ def process_pattern(pid: str, pid_df: GeoDataFrame):
     max_seg = pattern_segments.segments.max()
 
     print(f"{pid_df.shape=}")
-    # Exlcude pings that are far away
+    # Exclude pings that are far away
     pid_df = pid_df.sjoin(pattern_segments, how="inner", predicate="within")
     print(f"{pid_df.shape=}")
     t = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     print(pid_df.loc[:, "unique_trip_vehicle_day"].unique().shape[0])
     tcnt = 0
     scnt = 0
+    # sort by start seq, then by time, then merge
     return True
     for tno, (uid, tripdf) in enumerate(pid_df.groupby("unique_trip_vehicle_day")):
         start = time()
