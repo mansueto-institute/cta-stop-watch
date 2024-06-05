@@ -18,6 +18,8 @@ requests = "^2.32.3"
 python-dotenv = "^1.0.1"
 pyarrow = "^16.1.0"
 folium = "^0.16.0"
+black = "^24.4.2"
+ruff = "^0.4.8"
 
 
 [tool.poetry.group.dev.dependencies]
