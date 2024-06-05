@@ -167,17 +167,21 @@ def process_all_patterns():
     """
     
     PID_DIR = "out/pids/patterns"
+    pids = []
     for pid_file in os.listdir(PID_DIR):
     
         numbers = re.findall(r'\d+', pid_file)
         pid = numbers[0]
+        pids.append(pid)
+
+    pids = set(pids)
+    for pid in pids:
         print(pid)
-
         result = process_pattern(pid)
-
-        return result
         # do something with the result
         #result.to_csv(f'out/full_trips/pid_{pid}_all_trips.csv', index=False)
+
+    
 
 if __name__ == "__main__":
     """
