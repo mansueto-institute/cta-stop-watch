@@ -1,3 +1,4 @@
 */cta-stop-etl/out/
 .env
 .DS_Store
+__pycache__/
