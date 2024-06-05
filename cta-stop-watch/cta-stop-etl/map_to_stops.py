@@ -14,113 +14,20 @@ load_dotenv()
 M_TO_FT = 3.280839895
 BUFFER_DIST = 50.0
 
+# Register CTA API key to scrape bus data 
+# os.environ['CTA_API_KEY'] = 'user_api_key'
+
+
 def buffer_wgs84_m(geometry: GeoSeries, metres: float):
     return
-
-
-def save_pattern_api(pid: str):
-    url = f"http://www.ctabustracker.com/bustime/api/v2/getpatterns?format=json&key={os.environ['CTA_API_KEY']}&pid={pid}"
-    response = requests.get(url)
-    pattern = json.loads(response.content)
-    if "error" in pattern["bustime-response"]:
-        return False
-    pattern_df = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
-    pattern_df = gpd.GeoDataFrame(
-        pattern_df,
-        geometry=gpd.GeoSeries.from_xy(
-            x=pattern_df.loc[:, "lon"], y=pattern_df.loc[:, "lat"], crs="EPSG:4326"
-        ),
-    )
-    pattern_df = pattern_df.sort_values(by="seq")
-    pattern_df.loc[:, "segment"] = (pattern_df.loc[:, "typ"] == "S").shift(1).cumsum()
-    pattern_df.loc[0, "segment"] = 0.0
-
-    segments = []
-    geometries = []
-    for segment, grp in pattern_df.groupby("segment"):
-        last_index = grp.index[-1]
-        if last_index < (pattern_df.shape[0] - 1):
-            grp = pd.concat((grp, pattern_df.loc[[last_index + 1]]))
-        grp_ls = LineString(grp.loc[:, "geometry"])
-        segments.append(segment)
-        geometries.append(grp_ls)
-
-    segment_df = gpd.GeoDataFrame(
-        data={"segments": segments}, geometry=geometries, crs="EPSG:4326"
-    ).sort_values("segments")
-    segment_df.loc[:, "length_ft"] = (
-        segment_df.geometry.to_crs("EPSG:26971").length * M_TO_FT
-    )
-    segment_df.loc[:, "ls_geometry"] = segment_df.geometry
-    segment_df.geometry = (
-        segment_df.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
-    )
-    for i in range(1, segment_df.shape[0]):
-        segment_df.loc[i, "geometry"] = segment_df.iloc[i].geometry.difference(
-            segment_df.iloc[0:i].geometry.union_all()
-        )
-    segment_df.loc[:, "time_spent_in_segment"] = pd.to_timedelta(0)
-    segment_df.loc[:, "occurences_in_segment"] = 0
-
-    pattern_df.to_parquet(f"out/pattern/pid_{pid}_stop.parquet")
-    segment_df.to_parquet(f"out/pattern/pid_{pid}_segment.parquet")
-    return True
-
-
-def prep_trip(tripdf: DataFrame, pattern_df: GeoDataFrame, max_seg: int | float):
-    tripdf = tripdf.sort_values(by="tmstmp")
-    tripdf.loc[:, "last_segment"] = tripdf.segments - 1
-    tripdf.loc[tripdf.last_segment < 0, "last_segment"] = pd.NA
-    tripdf.loc[:, "next_segment"] = tripdf.loc[:, "segments"] + 1
-    tripdf.loc[tripdf.next_segment > max_seg, "next_segment"] = pd.NA
-
-    # Drop all except last ping in first segment,
-    if (tripdf.loc[:, "segments"] == 0.0).sum() > 1:
-        tripdf = tripdf.drop(index=tripdf[tripdf.loc[:, "segments"] == 0.0].index[:-1])
-    # if (tripdf.loc[:, "segments"] == max_seg).sum() > 1:
-    #     tripdf = tripdf.drop(
-    #         index=tripdf[tripdf.loc[:, "segments"] == max_seg].index[1:]
-    #     )
-    cur_segment = tripdf.merge(
-        pattern_df.drop_duplicates(subset="segment", keep="last"),
-        how="inner",
-        left_on="segments",
-        right_on="segment",
-        # validate="1:1",
-    )
-    last_segment = tripdf.merge(
-        pattern_df.drop_duplicates(subset="segment", keep="last"),
-        how="inner",
-        left_on="last_segment",
-        right_on="segment",
-        # validate="1:1",
-    )
-    tripdf.loc[tripdf.loc[:, "segments"].notna(), "length_for_end_cur_segment"] = (
-        GeoSeries(cur_segment.geometry_x)
-        .to_crs("EPSG:26971")
-        .distance(GeoSeries(cur_segment.geometry_y).to_crs("EPSG:26971"))
-        * M_TO_FT
-    ).to_list()
-
-    tripdf.loc[tripdf.loc[:, "last_segment"].notna(), "length_to_last_segment"] = (
-        pd.Series(
-            GeoSeries(last_segment.geometry_x)
-            .to_crs("EPSG:26971")
-            .distance(GeoSeries(last_segment.geometry_y).to_crs("EPSG:26971"))
-            * M_TO_FT
-        ).to_list()
-    )
-    tripdf = tripdf.reset_index(drop=True)
-    return tripdf
-
 
 def append_skipped_pids(pid: str):
     with open("skipped_pids.txt", "+a") as f:
         f.write(pid)
         f.write("\n")
 
-
 def process_pattern(pid: str, pid_df: GeoDataFrame):
+
     if not save_pattern_api(pid):
         print(f"skipping {pid=}")
         print(pid_df.iloc[-1].tmstmp)
@@ -220,6 +127,7 @@ if __name__ == "__main__":
     #     process_pattern(pid, pattern_grp)
 
     PID_DIR = "out/pids"
+
     for pid_file in os.listdir(PID_DIR):
         # print(f"{PID_DIR}/{pid_file}")
         pid_df = pd.read_parquet(f"{PID_DIR}/{pid_file}")

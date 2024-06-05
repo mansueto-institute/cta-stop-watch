@@ -18,8 +18,7 @@ requests = "^2.32.3"
 python-dotenv = "^1.0.1"
 pyarrow = "^16.1.0"
 folium = "^0.16.0"
-matplotlib = "^3.9.0"
-mapclassify = "^2.6.1"
+
 
 
 [tool.poetry.group.dev.dependencies]
