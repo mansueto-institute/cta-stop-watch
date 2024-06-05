@@ -125,7 +125,7 @@ def process_one_trip(trip_id:str,
 
 
 
-def process_pattern(pid: str, tester:int = float("inf")):
+def process_pattern(pid: str, tester:str = float("inf")):
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
@@ -156,7 +156,7 @@ def process_pattern(pid: str, tester:int = float("inf")):
 
         # for testing
         count += 1
-        if count >= int(tester):
+        if count >= float(tester):
             break
 
     return all_trips_gdf
@@ -169,12 +169,13 @@ def process_all_patterns():
     PID_DIR = "out/pids/patterns"
     for pid_file in os.listdir(PID_DIR):
     
-        numbers = re.findall('\d+', pid_file)
+        numbers = re.findall(r'\d+', pid_file)
         pid = numbers[0]
         print(pid)
 
         result = process_pattern(pid)
 
+        return result
         # do something with the result
         #result.to_csv(f'out/full_trips/pid_{pid}_all_trips.csv', index=False)
 
@@ -182,18 +183,19 @@ if __name__ == "__main__":
     """
    adding in a test for one pattern
     """
-    if sys.argv[1] == 'process_pattern' and len(sys.argv) > 3:
-        print("Usage: python -m process_pattern <pid> <[optional] number of trips to process>")
+    if len(sys.argv) > 3:
+        print("Usage: python -m cta-stop-watch.cta-stop-etl.calculate_stop_time <pid> <[optional] number of trips to process>")
         sys.exit(1)
-    elif sys.argv[1] == 'process_pattern':
-        if sys.argv[3]:
-            result = process_pattern(sys.argv[2], sys.argv[3])
-        else:
-            result = process_pattern(sys.argv[2])
-
+    elif len(sys.argv) == 3:
+        # run in testing model with limited number of trips
+        result = process_pattern(sys.argv[1], sys.argv[2])
         result.to_csv('test_full_pattern.csv', index=False)
-    
-    if sys.argv[1] == 'process_all_patterns':
+    elif len(sys.argv) == 2:
+        # run for pattern for all trips
+        result = process_pattern(sys.argv[1])
+        result.to_csv('test_full_pattern.csv', index=False)
+    elif len(sys.argv) == 1:
+        # run for all patterns and all trips
         process_all_patterns()
         print("done")
 
