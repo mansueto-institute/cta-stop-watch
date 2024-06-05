@@ -146,20 +146,25 @@ def process_pattern(pid: str, tester:str = float("inf")):
     stops_df = prepare_stops(pid)
 
     # for each trip in the pattern, create df that has the bus location and the segment that it is in then interpolate
-    all_trips_gdf = gpd.GeoDataFrame()
+    all_trips = []
     count = 0
     for row, (trip_id, trip_gdf) in enumerate(trips_gdf.groupby("unique_trip_vehicle_day")):
         print(trip_id)
         processed_trip_df = process_one_trip(trip_id,trip_gdf, segments_gdf, stops_df)
 
-        all_trips_gdf = pd.concat([all_trips_gdf, processed_trip_df], axis=0).reset_index(drop=True)
+        # put in a dictionary then make a df is much faster
+        processed_trip_dict = processed_trip_df.to_dict(orient='records')
+        all_trips += processed_trip_dict
 
         # for testing
         count += 1
         if count >= float(tester):
             break
 
-    return all_trips_gdf
+
+    all_trips_df = pd.DataFrame(all_trips)
+
+    return all_trips_df
 
 def process_all_patterns():
     """
