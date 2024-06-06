@@ -21,6 +21,7 @@ folium = "^0.16.0"
 black = "^24.4.2"
 matplotlib = "^3.9.0"
 ruff = "^0.4.8"
+mapclassify = "^2.6.1"
 
 
 
