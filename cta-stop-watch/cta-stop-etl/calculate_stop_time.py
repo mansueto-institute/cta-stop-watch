@@ -15,12 +15,13 @@ def prepare_segment(pid: str):
     prepares the created segments from a pattern (pid) for use with the bus location. 
     """
     # load segment
-    segments_df = pd.read_parquet(
+    segments_gdf = gpd.read_parquet(
         f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
     )
 
-    segments_df["geometry"] = segments_df["geometry"].apply(wkt.loads)
-    segments_gdf = gpd.GeoDataFrame(segments_df, crs="epsg:4326")
+    # will need to convert crs
+    # segments_gdf[‘geometry’] = segments_gdf[‘geometry’].to_crs(“EPSG:26971”)
+
     segments_gdf["prev_segment"] = segments_gdf["segments"]
     segments_gdf["segment"] = segments_gdf["segments"] + 1
     segments_gdf = segments_gdf[["prev_segment", "segment", "geometry"]]
@@ -55,17 +56,17 @@ def prepare_stops(pid: str):
     Prepares the stops from a pattern (pid) for use with the bus location
     """
 
-    stops_df = pd.read_parquet(
+    stops_gdf = gpd.read_parquet(
         f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_stop.parquet"
     )
 
-    stops_df.rename(
+    stops_gdf.rename(
         columns={"segment": "seg_combined", "geometry": "location"}, inplace=True
     )
-    stops_df["data_time"] = None
-    stops_df = stops_df[["seg_combined", "typ", "location", "data_time"]]
+    stops_gdf["data_time"] = None
+    stops_gdf = stops_gdf[["seg_combined", "typ", "location", "data_time"]]
 
-    return stops_df
+    return stops_gdf
 
 
 def merge_segments_trip(trip_gdf, segments_gdf, stops_df):
