@@ -14,13 +14,20 @@ def prepare_segment(pid: str):
     """
     prepares the created segments from a pattern (pid) for use with the bus location. 
     """
-    # load segment
+    #load segment
+    #gpd.read_parquet
+    segments_df = pd.read_parquet(
+        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
+    )
     segments_df = pd.read_parquet(
         f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
     )
 
+    # this will go away
     segments_df["geometry"] = segments_df["geometry"].apply(wkt.loads)
     segments_gdf = gpd.GeoDataFrame(segments_df, crs="epsg:4326")
+
+
     segments_gdf["prev_segment"] = segments_gdf["segments"]
     segments_gdf["segment"] = segments_gdf["segments"] + 1
     segments_gdf = segments_gdf[["prev_segment", "segment", "geometry"]]
@@ -55,6 +62,7 @@ def prepare_stops(pid: str):
     Prepares the stops from a pattern (pid) for use with the bus location
     """
 
+    # gpd.read_parquet
     stops_df = pd.read_parquet(
         f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_stop.parquet"
     )
@@ -110,8 +118,11 @@ def interpolate_stoptime(trip_df):
     previous_time = None
     
     #creates 'geometry' column for wkt and crs converstion
-    trip_df['geometry'] = trip_df['location'].apply(wkt.loads)
+    # this should go away
+    trip_df['geometry'] = trip_df['location'].astype('str').apply(wkt.loads)
     trip_df = gpd.GeoDataFrame(trip_df, geometry='geometry', crs='epsg:26971')
+
+
     trip_df.loc[:,"data_time"] = pd.to_datetime(trip_df.data_time)
     
     for i, row in trip_df.iterrows():
@@ -176,7 +187,7 @@ def interpolate_stoptime(trip_df):
             #update the bus_stop_time in the dataframe
             trip_df.at[i, "bus_stop_time"] = bus_stop_time
 
-    trip_df = trip_df.loc[trip_df['typ'].isin(['S']), ['unique_trip_vehicle_day', 'seg_combined', 'typ', 'location', 'bus_stop_time']]
+    trip_df = trip_df.loc[trip_df['typ'].isin(['S','B']), ['unique_trip_vehicle_day', 'seg_combined', 'typ', 'location', 'bus_stop_time']]
 
     #convert the timestamp to timedelta
     #trip_df.loc[:,"bus_stop_time"] = pd.to_datetime(trip_df.bus_stop_time)
@@ -196,8 +207,7 @@ def process_one_trip(trip_id:str,
     df = merge_segments_trip(trip_df, segments_df, stops_df)
     df['unique_trip_vehicle_day'] = trip_id
 
-    # TODO
-    # df = interpolate_stoptime(df)
+    df = interpolate_stoptime(df)
 
     return df
 

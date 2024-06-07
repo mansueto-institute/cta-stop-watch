@@ -3,6 +3,30 @@ import pandas as pd
 import re
 
 
+# Negative times
+def negative_time_check(pid: str):
+    """
+    return number of trips and actual trips with a negative time
+    """
+
+    all_trips_df = pd.read_parquet(f"out/trips/trips_{pid}.parquet")
+
+    negative_times_df = all_trips_df[all_trips_df["time"] < 0]
+
+    # trips with negative times
+    negative_times_trips = set(
+        negative_times_df["unique_trip_vehicle_day"].unique().tolist()
+    )
+
+    return len(negative_times_trips), negative_times_trips
+
+
+# Avg speed too high
+
+
+# Variations for bus stop
+
+
 def stops_per_pattern():
     """
     return a df of the number of bus stops per pattern
