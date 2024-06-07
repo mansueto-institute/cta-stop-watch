@@ -99,16 +99,19 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_df):
 
     return final_df
 
-def interpolate_stoptime(trip_df, bus_location_index: str):
+def interpolate_stoptime(trip_df):
     """
     given a route df with stops and bus location, interpolate the time when the bus is at each stop
-    """
+    """ 
     b_val = 1 
     b_indices = [] 
     dist_next = [] 
     ping_times = []
     previous_time = None
-
+    
+    #creates 'geometry' column for wkt and crs converstion
+    trip_df['geometry'] = trip_df['location'].apply(wkt.loads)
+    trip_df = gpd.GeoDataFrame(trip_df, geometry='geometry', crs='epsg:26971')
     trip_df.loc[:,"data_time"] = pd.to_datetime(trip_df.data_time)
     
     for i, row in trip_df.iterrows():
@@ -173,7 +176,7 @@ def interpolate_stoptime(trip_df, bus_location_index: str):
             #update the bus_stop_time in the dataframe
             trip_df.at[i, "bus_stop_time"] = bus_stop_time
 
-    trip_df = trip_df.loc[trip_df['typ'].isin(['S', 'B']), ['data_time_x', 'bus_stop_time']]
+    trip_df = trip_df.loc[trip_df['typ'].isin(['S']), ['unique_trip_vehicle_day', 'seg_combined', 'typ', 'location', 'bus_stop_time']]
 
     #convert the timestamp to timedelta
     #trip_df.loc[:,"bus_stop_time"] = pd.to_datetime(trip_df.bus_stop_time)
