@@ -18,7 +18,7 @@ BUFFER_DIST = 50.0
 os.environ["CTA_API_KEY"] = "FMdePKG2y5dbVjy25RYUWMY2R"
 
 
-def query_cta_api(pid: str) -> pd.DataFrame:
+def query_cta_api(pid: str) ->  bool | pd.DataFrame:
     """
     Takes a route pattern ID and queries the CTA API to get the raw pattern
     data (in lat, lon format) and returns a standardized data frame for further
@@ -35,10 +35,11 @@ def query_cta_api(pid: str) -> pd.DataFrame:
     url = f"http://www.ctabustracker.com/bustime/api/v2/getpatterns?format=json&key={os.environ['CTA_API_KEY']}&pid={pid}"
     response = requests.get(url)
     pattern = json.loads(response.content)
-    df_pattern = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
 
     if "error" in pattern["bustime-response"]:
         return False
+
+    df_pattern = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
 
     return df_pattern
 
@@ -136,7 +137,9 @@ if __name__ == "__main__":
 
     for pid_file in pids:
         print(f"Reading {PID_DIR}/{pid_file}")
+        
         pid_df = pd.read_parquet(f"{PID_DIR}/{pid_file}")
+        
         pid_df.loc[:, "tmstmp"] = pd.to_datetime(
             pid_df.loc[:, "tmstmp"], format="%Y%m%d %H:%M"
         )
@@ -153,5 +156,9 @@ if __name__ == "__main__":
         # CTA API or the archival registry of GTFS
         if True:
             pattern = query_cta_api(pid)
+
+        # If there was not result from the API for given pid, skip to next pid    
+        if pattern is False:
+            continue
 
         convert_to_geometries(pattern)
