@@ -3,12 +3,9 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 from geopandas import GeoDataFrame
+from interpolate import interpolate_stoptime
 import sys
 import re
-
-## CONSTANTS
-M_TO_FT = 3.280839895
-
 
 def prepare_segment(pid: str):
     """
@@ -143,7 +140,6 @@ def process_one_trip(trip_id:str,
     return gdf
 
 
-
 def process_pattern(pid: str, tester:str = float("inf")):
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
@@ -208,12 +204,15 @@ def process_all_patterns():
         pids.append(pid)
 
     pids = set(pids)
+
+    if not os.path.exists("cta-stop-watch/cta-stop-etl/out/full_trips"):
+        os.makedirs("out/full_trips")
+
     for pid in pids:
         print(pid)
         result = process_pattern(pid)
         # do something with the result
-        #result.to_csv(f'out/full_trips/pid_{pid}_all_trips.csv', index=False)
-
+        result.to_parquet(f'out/full_trips/pid_{pid}_all_trips.to_parquet', index=False)
 
 if __name__ == "__main__":
     """
