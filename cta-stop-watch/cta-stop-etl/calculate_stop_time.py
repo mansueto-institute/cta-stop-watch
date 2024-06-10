@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 from geopandas import GeoDataFrame
-from interpolate import interpolate_stoptime
+from .Interpolation import interpolate_stoptime
 import sys
 import re
 
@@ -84,7 +84,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
     # TODO
     # write function to find pings not on route
-    
+
     processed_trips_gdf = segments_gdf.sjoin(
         trip_gdf, how="inner", predicate="contains"
     )
@@ -174,9 +174,11 @@ def process_pattern(pid: str, tester:str = float("inf")):
     # for each trip in the pattern, create df that has the bus location and the segment that it is in then interpolate
     all_trips = []
     count = 0
+    test_flag = False
 
+
+    print(f"Processing Trips for Pattern {pid}")
     for row, (trip_id, trip_gdf) in enumerate(trips_gdf.groupby("unique_trip_vehicle_day")):
-        print(trip_id)
         processed_trip_df = process_one_trip(trip_id,trip_gdf, segments_gdf, stops_gdf)
 
         # put in a dictionary then make a df is much faster
@@ -186,8 +188,12 @@ def process_pattern(pid: str, tester:str = float("inf")):
         # for testing
         count += 1
         if count >= float(tester):
+            print(f"Processed {count} Trips for Pattern {pid}")
+            test_flag = True
             break
-
+    
+    if not test_flag:
+        print(f"Processed {count} Trips for Pattern {pid}")
 
     all_trips_gdf = gpd.GeoDataFrame(all_trips, geometry='geometry', crs="EPSG:4326")
 

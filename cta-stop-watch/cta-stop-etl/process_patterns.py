@@ -32,8 +32,10 @@ def convert_to_geometries(pid: str) -> bool:
     """
 
     # load in raw pattern data
+    PID_DIR = pathlib.Path(__file__).parent / "out"
+
     try:
-        df_raw = pd.read_parquet(f"out/patterns_raw/pid_{pid}_raw.parquet")
+        df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
     except FileNotFoundError:
         print(f"Pattern {pid} not found")
         return False
@@ -90,8 +92,8 @@ def convert_to_geometries(pid: str) -> bool:
     print(
         f"Writing out/patterns/pid_{pid}_stop.parquet and out/patterns/pid_{pid}_segment.parquet"
     )
-    df_pattern.to_parquet(f"out/patterns/pid_{pid}_stop.parquet")
-    segment_df.to_parquet(f"out/patterns/pid_{pid}_segment.parquet")
+    df_pattern.to_parquet(f"{PID_DIR}/patterns/pid_{pid}_stop.parquet")
+    segment_df.to_parquet(f"{PID_DIR}/patterns/pid_{pid}_segment.parquet")
 
     return True
 
