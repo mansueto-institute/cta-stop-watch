@@ -107,15 +107,16 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
     processed_trips_gdf = processed_trips_gdf.sort_values('data_time')
 
-    for index, row in processed_trips_gdf.iterrows():
+    # i think itertuples is faster than iterrows. Could try to vectorize if slow
+    for row in processed_trips_gdf.itertuples():
         #if not assigned yet
-        if row['bus_location_id'] not in assigned_pings:
+        if row.bus_location_id not in assigned_pings:
             # if segment trying to assign is not before last segment assigned then assign
-            if row["seg_combined"] > last_segment:
-                good_indexes.append(index)
+            if row.seg_combined > last_segment:
+                good_indexes.append(row.Index)
 
-                last_segment = row["seg_combined"]
-                assigned_pings.append(row['bus_location_id'])
+                last_segment = row.seg_combined
+                assigned_pings.append(row.bus_location_id)
 
     processed_trips_gdf = processed_trips_gdf.loc[good_indexes]
 
