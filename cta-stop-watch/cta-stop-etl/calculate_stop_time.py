@@ -47,6 +47,9 @@ def prepare_trips(pid: str):
     trips_gdf['bus_location_id'] = trips_gdf.index
     trips_gdf = trips_gdf[['bus_location_id',"unique_trip_vehicle_day", "vid", "data_time", "geometry"]]
 
+    # TODO
+    # remove trips with only one ping
+
     return trips_gdf
 
 
@@ -77,6 +80,11 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     # merge the bus locations with the segments to find the segment that the bus is in
     trip_gdf["bus_location"] = trip_gdf.geometry
 
+
+
+    # TODO
+    # write function to find pings not on route
+    
     processed_trips_gdf = segments_gdf.sjoin(
         trip_gdf, how="inner", predicate="contains"
     )
@@ -219,7 +227,7 @@ if __name__ == "__main__":
    adding in a test for one pattern
     """
     if len(sys.argv) > 3:
-        print("Usage: python -m cta-stop-watch.cta-stop-etl.calculate_stop_time <pid> <[optional] number of trips to process>")
+        print("Usage: python -m cta-stop-watch.cta-stop-etl.calculate_stop_time <[optional] pid> <[optional] number of trips to process>")
         sys.exit(1)
     elif len(sys.argv) == 3:
         # run in testing model with limited number of trips

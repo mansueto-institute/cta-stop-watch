@@ -49,5 +49,5 @@ if __name__ == "__main__":
     for pid_file in all_pids:
         pid = pid_file.replace(".parquet", "")
 
-        print(f"Querying raw patter for PID: {pid}")
+        print(f"Querying raw pattern for PID: {pid}")
         pattern = query_cta_api(pid)
