@@ -147,7 +147,7 @@ def interpolate_stoptime(trip_df):
             if previous_time is not None:
                 time_diff = row['data_time'] - previous_time
                 ping_times.append(time_diff)
-            previos_time = row['data_time']
+            previous_time = row['data_time']
                     
     #assigns the 'b_value' column 
     trip_df['b_value'] = b_indices
