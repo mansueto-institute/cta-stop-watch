@@ -8,8 +8,8 @@ import pathlib
 load_dotenv()
 
 # Register CTA API key to scrape bus data
-
 os.environ["CTA_API_KEY"] = "user_api_key"
+DIR = pathlib.Path(__file__).parent / "out"
 
 
 def query_cta_api(pid: str) -> bool | pd.DataFrame:
@@ -40,12 +40,12 @@ def query_cta_api(pid: str) -> bool | pd.DataFrame:
 
 if __name__ == "__main__":
 
-    PID_DIR = pathlib.Path(__file__).parent / "out/pids"
+    PID_DIR = pathlib.Path(__file__).parent / "out"
 
-    all_pids = os.listdir(PID_DIR)
+    all_pids = os.listdir(f"{DIR}/pids")
 
-    if not os.path.exists("out/patterns_raw"):
-        os.makedirs("out/patterns_raw")
+    if not os.path.exists(f"{DIR}/patterns_raw"):
+        os.makedirs(f"{DIR}/patterns_raw")
 
     for pid_file in all_pids:
         pid = pid_file.replace(".parquet", "")

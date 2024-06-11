@@ -1,15 +1,17 @@
 import os
 import pandas as pd
 import warnings
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import numpy as np
 import geopandas as gpd
 from geopandas import GeoDataFrame
 #from .Interpolation import interpolate_stoptime
 import sys
 import re
+import pathlib
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
+DIR = pathlib.Path(__file__).parent / "out"
 
 def prepare_segment(pid: str):
     """
@@ -18,10 +20,10 @@ def prepare_segment(pid: str):
     #load segment
     #gpd.read_parquet
     segments_gdf = gpd.read_parquet(
-        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
+        f"{DIR}/patterns/pid_{pid}_segment.parquet"
     )
     segments_gdf = gpd.read_parquet(
-        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
+        f"{DIR}/patterns/pid_{pid}_segment.parquet"
     )
 
     segments_gdf["prev_segment"] = segments_gdf["segments"]
@@ -37,7 +39,7 @@ def prepare_trips(pid: str):
     """
 
     # load trips for a pattern
-    trips_df = pd.read_parquet(f"cta-stop-watch/cta-stop-etl/out/pids/{pid}.parquet")
+    trips_df = pd.read_parquet(f"{DIR}/pids/{pid}.parquet")
 
     trips_gdf = gpd.GeoDataFrame(
         trips_df,
@@ -64,7 +66,7 @@ def prepare_stops(pid: str):
 
     # gpd.read_parquet
     stops_gdf = gpd.read_parquet(
-        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_stop.parquet"
+        f"{DIR}/patterns/pid_{pid}_stop.parquet"
     )
 
     stops_gdf.rename(
@@ -83,8 +85,6 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
     # merge the bus locations with the segments to find the segment that the bus is in
     trip_gdf["bus_location"] = trip_gdf.geometry
-
-
 
     # TODO
     # write function to find pings not on route
@@ -315,8 +315,8 @@ def process_all_patterns():
     """
     Process all the trips for all patterns available. Export one file per pattern.
     """
-    
-    PID_DIR = "out/pids/patterns"
+    DIR = pathlib.Path(__file__).parent / "out"
+    PID_DIR = f"{DIR}/pids/patterns"
     pids = []
     for pid_file in os.listdir(PID_DIR):
     
@@ -326,14 +326,14 @@ def process_all_patterns():
 
     pids = set(pids)
 
-    if not os.path.exists("cta-stop-watch/cta-stop-etl/out/full_trips"):
-        os.makedirs("out/full_trips")
+    if not os.path.exists(f"{DIR}/full_trips"):
+        os.makedirs(f"{DIR}/full_trips")
 
     for pid in pids:
         print(pid)
         result = process_pattern(pid)
         # do something with the result
-        result.to_parquet(f'out/full_trips/pid_{pid}_all_trips.to_parquet', index=False)
+        result.to_parquet(f'{DIR}/full_trips/pid_{pid}_all_trips.to_parquet', index=False)
 
 if __name__ == "__main__":
     """

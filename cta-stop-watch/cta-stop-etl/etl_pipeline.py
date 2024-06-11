@@ -1,8 +1,8 @@
 import pathlib
 import os
-from .calculate_stop_time import process_all_patterns, process_pattern
-from .process_patterns import convert_to_geometries
-from .qc_pipeline import qc_pipeline
+from calculate_stop_time import process_all_patterns, process_pattern
+from process_patterns import convert_to_geometries
+from qc_pipeline import qc_pipeline
 import sys
 
 if __name__ == "__main__":
@@ -58,5 +58,3 @@ if __name__ == "__main__":
             qc_pipeline()
 
         print("ETL Pipeline Complete")
-
-        print(f"ETL Pipeline for {pid}")

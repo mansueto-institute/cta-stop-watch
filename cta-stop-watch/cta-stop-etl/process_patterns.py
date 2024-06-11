@@ -100,9 +100,9 @@ def convert_to_geometries(pid: str) -> bool:
 
 if __name__ == "__main__":
 
-    PID_DIR = pathlib.Path(__file__).parent / "out/pids"
+    DIR = pathlib.Path(__file__).parent / "out"
 
-    all_pids = os.listdir(PID_DIR)
+    all_pids = os.listdir(f"{DIR}/pids")
 
     # Run process for all of the files
     if len(sys.argv) == 1:
@@ -111,8 +111,8 @@ if __name__ == "__main__":
     else:
         pids = [sys.argv[1]]
 
-    if not os.path.exists("out/patterns"):
-        os.makedirs("out/patterns")
+    if not os.path.exists(f"{DIR}/patterns"):
+        os.makedirs(f"{DIR}/patterns")
 
     for pid_file in pids:
         pid = pid_file.replace(".parquet", "")
