@@ -8,7 +8,8 @@ import pathlib
 load_dotenv()
 
 # Register CTA API key to scrape bus data
-os.environ["CTA_API_KEY"] = "FMdePKG2y5dbVjy25RYUWMY2R"
+
+os.environ["CTA_API_KEY"] = "user_api_key"
 
 
 def query_cta_api(pid: str) -> bool | pd.DataFrame:
