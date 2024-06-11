@@ -73,7 +73,7 @@ def prepare_stops(pid: str):
         columns={"segment": "seg_combined"}, inplace=True
     )
     stops_gdf["data_time"] = None
-    stops_gdf = stops_gdf[["seg_combined", "typ", "geometry", "data_time"]]
+    stops_gdf = stops_gdf[["seg_combined", "typ", "stpid","p_stp_id", "geometry", "data_time"]]
 
     return stops_gdf
 
@@ -107,7 +107,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
     processed_trips_gdf = processed_trips_gdf.sort_values('data_time')
 
-    # i think itertuples is faster than iterrows. Could try to vectorize if slow
+    # i think itertuples is faster than iterrows.
     for row in processed_trips_gdf.itertuples():
         #if not assigned yet
         if row.bus_location_id not in assigned_pings:
@@ -226,11 +226,15 @@ def interpolate_stoptime(trip_df):
             "unique_trip_vehicle_day",
             "seg_combined",
             "typ",
+            "stpid",
+            "p_stp_id",
             "geometry",
             "bus_stop_time",
             "data_time_x",
         ],
     ]
+
+    trip_df.rename(columns={"data_time_x": "bus_location_time"}, inplace=True)
 
     # convert the timestamp to timedelta
     # trip_df.loc[:,"bus_stop_time"] = pd.to_datetime(trip_df.bus_stop_time)

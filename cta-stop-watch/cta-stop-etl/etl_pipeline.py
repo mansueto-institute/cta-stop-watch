@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
         all_patterns = os.listdir(PATTERN_DIR)
 
-        print(f"Full ETL Pipeline for all Patterns and Trips")
+        print("Full ETL Pipeline for all Patterns and Trips")
 
         for pattern in all_patterns:
             # depending on naming convention, remove the file extension
