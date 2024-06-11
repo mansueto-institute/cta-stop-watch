@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 4 or (len(sys.argv) == 2 and sys.argv[1] != "--qc"):
         print(
-            "Usage: python -m cta-stop-watch.cta-stop-etl.etl_pipeline <[optional]--test> <[optional] pid> <[optional]--qc>"
+            "Usage: python -m etl_pipeline <[optional]--test> <[optional] pid> <[optional]--qc>"
         )
         sys.exit(1)
 

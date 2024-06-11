@@ -344,7 +344,7 @@ if __name__ == "__main__":
    adding in a test for one pattern
     """
     if len(sys.argv) > 3:
-        print("Usage: python -m cta-stop-watch.cta-stop-etl.calculate_stop_time <[optional] pid> <[optional] number of trips to process>")
+        print("Usage: python -m calculate_stop_time <[optional] pid> <[optional] number of trips to process>")
         sys.exit(1)
     elif len(sys.argv) == 3:
         # run in testing model with limited number of trips
