@@ -39,7 +39,6 @@ def query_cta_api(pid: str) -> bool | pd.DataFrame:
 
 
 if __name__ == "__main__":
-
     PID_DIR = pathlib.Path(__file__).parent / "out"
 
     all_pids = os.listdir(f"{DIR}/pids")

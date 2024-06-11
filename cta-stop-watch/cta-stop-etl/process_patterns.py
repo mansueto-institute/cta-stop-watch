@@ -103,7 +103,6 @@ def convert_to_geometries(pid: str) -> bool:
 
 
 if __name__ == "__main__":
-
     DIR = pathlib.Path(__file__).parent / "out"
 
     all_pids = os.listdir(f"{DIR}/pids")
