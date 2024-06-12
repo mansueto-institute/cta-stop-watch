@@ -6,32 +6,33 @@ from qc_pipeline import qc_pipeline
 import sys
 
 if __name__ == "__main__":
-
     if len(sys.argv) > 4 or (len(sys.argv) == 2 and sys.argv[1] != "--qc"):
         print(
-            "Usage: python -m etl_pipeline <[optional]--test> <[optional] pid> <[optional]--qc>"
+            "Usage: python -m cta-stop-watch.cta-stop-etl.etl_pipeline <[optional]--test> <[optional] pid> <[optional]--qc>"
         )
         sys.exit(1)
 
     elif len(sys.argv) == 3 and sys.argv[1] == "--test":
         pid = sys.argv[2]
 
-        print(f"Test ETL Pipeline for 100 trips on Pattern {pid}")
+        print(f"Test ETL Pipeline for 1000 trips on Pattern {pid}")
 
         print(f"Process Pattern {pid}")
         convert_to_geometries(pid)
 
-        result = process_pattern(pid, 100)
+        result = process_pattern(pid, 1000)
 
         DIR = pathlib.Path(__file__).parent / "out"
 
-        if not os.path.exists(f"{DIR}/test"):
-            os.makedirs(f"{DIR}/test")
+        if not os.path.exists(f"{DIR}/trips"):
+            os.makedirs(f"{DIR}/trips")
 
-        result.to_parquet(f"{DIR}/test/pid_{pid}_test_trips.parquet", index=False)
+        result.to_parquet(f"{DIR}/trips/pid_{pid}_test_trips.parquet", index=False)
 
         print(f"Exported file to out/test/pid_{pid}_test_trips.parquet")
         print(f"Test ETL Pipeline for {pid} Complete")
+
+        qc_pipeline(pid)
 
     elif len(sys.argv) <= 2:
         # pull in raw pattern data, process and write it out
