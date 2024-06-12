@@ -78,7 +78,6 @@ mapview(sf_chicago) +
 
 ## STOPS BY COMMUNITY AREA -----------------------------------------------------
 
-
 # Count stops by Census Tract 
 sf_communities$stops_count <- lengths(st_intersects(sf_communities, sf_stops))
 
@@ -91,46 +90,124 @@ mapview(sf_chicago) +
             col.regions = "grey")
 
 
-# # 2. ACS preprocessing ---------------------------------------------------------
-# 
-# ## 2.1. Identify ACS variables of interest -------------------------------------
-# 
-# # Explore available variables for ACS
-# df_vars <- load_variables(2022, "acs5", cache = TRUE)
-# View(df_vars)
-# 
-# ## 1.2. Query ACS --------------------------------------------------------------
-# 
-# # All ACS population variables for every Illinois Census Tract
+# 2. ACS preprocessing ---------------------------------------------------------
+
+## 2.1. Identify ACS variables of interest -------------------------------------
+
+# Explore available variables for ACS
+df_vars <- load_variables(2022, "acs5", cache = TRUE)
+View(df_vars)
+
+## 1.2. Query ACS --------------------------------------------------------------
+
+# All ACS population variables for every Illinois Census Tract
 # df_raw_pop  <- get_acs(
-#     geography   = "tract", 
+#     geography   = "tract",
 #     state       = "IL",
 #     table       = "B01001",
-#     year        = 2022, 
+#     year        = 2022,
 #     cache_table = TRUE
 # )
 # 
 # # glimpse(df_raw_pop)
-# 
-# # Only total population from ACS
-# df_tot_pop <- get_acs(
-#     geography = "tract", 
-#     state     = "IL",
-#     variables = c(
-#         total_pop = "B02001_003"
-#         # medincome = "B19013_001"
-#     ),
-#     year      = 2022, 
-#     geometry  = TRUE, 
-#     output    = "wide", 
-#     cache_table = FALSE
-# )
-# 
-# # glimpse(df_tot_pop)
-# View(df_tot_pop)
-# names(df_tot_pop)
-# 
-# # 2. Stops data + ACS ----------------------------------------------------------
+
+# Only total population from ACS
+sf_tot_pop_tract <- get_acs(
+    geography = "tract",
+    state     = "IL",
+    variables = c(
+        total_pop = "B02001_003"
+        # medincome = "B19013_001"
+    ),
+    year      = 2022,
+    geometry  = TRUE,
+    output    = "wide",
+    cache_table = FALSE) |> 
+    select(GEOID, pop = total_popE, geometry) |> 
+    glimpse()
+
+# 3. MAPS ----------------------------------------------------------------------
+
+# CENSUS TRACT -----------------------------------------------------------------
+
+# Add pop data by census tract 
+names(sf_chicago_tracts) 
+
+sf_chicago_tracts <- st_transform(sf_chicago_tracts, crs = "EPSG:4326")
+sf_tot_pop_tract <- st_transform(sf_tot_pop_tract, crs = "EPSG:4326")
+
+sf_chi_tracts_stops_acs <- sf_chicago_tracts |> 
+    left_join(sf_tot_pop_tract |> 
+                  as.data.frame() |> 
+                  select(-geometry), 
+              by = join_by(GEOID)) |>
+    mutate(
+        stops_percap = stops_count * 100/ pop, 
+        stops_percap = if_else(is.infinite(stops_percap), NA_integer_, stops_percap)
+        )
+
+
+summary(sf_chi_tracts_stops_acs$stops_count)
+summary(sf_chi_tracts_stops_acs$pop)
+summary(sf_chi_tracts_stops_acs$stops_percap)
+
+# Baseline, population by tract
+mapview(sf_chicago) + 
+    mapview(sf_chi_tracts_stops_acs, alpha=.05, 
+            zcol = "pop"
+            # col.regions=stops_count
+    ) +
+    mapview(sf_stops, alpha = 0, size = 1, cex = 1, 
+            col.regions = "grey")
+
+
+
+# COMMUNITY --------------------------------------------------------------------
+
+
+# Aggregate data at the community level 
+sf_tot_pop_tract <- st_transform(sf_tot_pop_tract, crs = "EPSG:4326")
+
+sf_tot_pop_comms <- sf_communities %>% 
+    st_join(sf_tot_pop_tract, join = st_intersects, left = TRUE) |> 
+    group_by(community, area, area_num_1, comarea_id, geometry, stops_count) |> 
+    summarise(pop = sum(pop)) |> 
+    mutate(stops_percap = stops_count * 1000/ pop)
+
+# Quality Checks 
+sum(sf_tot_pop_tract$pop) # 1,774,605
+sum(sf_tot_pop_comms$pop) # 1,714,806 # Just communitites in Chicago
+
+nrow(sf_stops) # All stops 
+sum(sf_communities$stops_count) # Stops in Chicago communities
+sum(sf_tot_pop_comms$stops_count) # When spatially aggregated from tracts
+
+# glimpse(df_tot_pop)
+View(sf_tot_pop_tract)
+names(sf_tot_pop_tract)
+
+
+mapview(sf_chicago) + 
+    mapview(sf_tot_pop_comms, alpha=.05, 
+            zcol = "pop"
+            # col.regions=stops_count
+    ) 
+
+mapview(sf_chicago) + 
+    mapview(sf_communities, alpha=.05, 
+            zcol = "stops_count"
+    )  +
+    mapview(sf_stops, alpha = 0, size = 1, cex = 1, 
+            col.regions = "grey")
+
+
+mapview(sf_chicago) + 
+    mapview(sf_tot_pop_comms, alpha=.05, 
+            zcol = "stops_percap"
+    ) 
+
+
+# # 2. Stops data + ACS --------------------------------------------------------
 # 
 # # 2.1. Merge total population with community areas -----------------------------
 # 
