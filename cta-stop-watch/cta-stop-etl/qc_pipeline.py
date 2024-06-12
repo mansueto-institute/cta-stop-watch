@@ -9,13 +9,13 @@ import sys
 
 # check for NA or negative times
 # check is the first and last stop are the min and max times. Ensure no very long trips (over 4 hours)
-# TODO check is avg speed is too high (over 80mph)
+# check is avg speed is too high (over 80mph)
 
 
 # Negative times or NA times
 def all_values_check(df: GeoDataFrame):
     """
-    return number of trips and actual trips with a negative time or an NA time for each pattern
+    return number of trips and actual trips with a bus stop with NA time or a max speed over 80mph for a pattern
     """
 
     # Avg speed too high
@@ -25,17 +25,10 @@ def all_values_check(df: GeoDataFrame):
         avg_speed_trips_df["unique_trip_vehicle_day"].unique().tolist()
     )
 
-    # negative_times_df = df[df["time"] < 0]
     na_times_df = df[df["time"].isna()]
-
-    # trips with negative times
-    # negative_times_trips = set(
-    #     negative_times_df["unique_trip_vehicle_day"].unique().tolist()
-    # )
 
     na_times_trips = set(na_times_df["unique_trip_vehicle_day"].unique().tolist())
 
-    # print(f"There are {len(negative_times_trips)} trips with negative times")
     print(f"There are {len(na_times_trips)} trips with bus stops with NA time")
 
     print(f"There are {len(avg_speed_trips)} trips with bus speeds over 80mph")
@@ -149,13 +142,13 @@ def qc_pipeline(pid: str = "all"):
         df = df[(df["typ"] == "S") & (df["time"].notna())]
 
         # negative_times_trips,
-        na_times_trips, avg_ = all_values_check(df)
+        na_times_trips, avg_speed_trips = all_values_check(df)
         same_time_trips, min_max_time_issue_trips, very_long_trips = time_issues(df)
 
         negative_times_trips = []
         row = {
             "pid": pid,
-            "negative_times_trips": len(negative_times_trips),
+            "avg_speed_trips": len(avg_speed_trips),
             "na_times_trips": len(na_times_trips),
             "same_time_trips": len(same_time_trips),
             "min_max_time_issue_trips": len(min_max_time_issue_trips),
@@ -166,7 +159,7 @@ def qc_pipeline(pid: str = "all"):
         # give 5 examples of each issue is available for the pattern
         examples = {
             "pid": pid,
-            "negative_times_trips": negative_times_trips[:5],
+            "avg_speed_trips": avg_speed_trips[:5],
             "na_times_trips": na_times_trips[:5],
             "same_time_trips": same_time_trips[:5],
             "min_max_time_issue_trips": min_max_time_issue_trips[:5],
