@@ -15,22 +15,24 @@ if __name__ == "__main__":
     elif len(sys.argv) == 3 and sys.argv[1] == "--test":
         pid = sys.argv[2]
 
-        print(f"Test ETL Pipeline for 100 trips on Pattern {pid}")
+        print(f"Test ETL Pipeline for 1000 trips on Pattern {pid}")
 
         print(f"Process Pattern {pid}")
         convert_to_geometries(pid)
 
-        result = process_pattern(pid, 100)
+        result = process_pattern(pid, 1000)
 
         DIR = pathlib.Path(__file__).parent / "out"
 
-        if not os.path.exists(f"{DIR}/test"):
-            os.makedirs(f"{DIR}/test")
+        if not os.path.exists(f"{DIR}/trips"):
+            os.makedirs(f"{DIR}/trips")
 
-        result.to_parquet(f"{DIR}/test/pid_{pid}_test_trips.parquet", index=False)
+        result.to_parquet(f"{DIR}/trips/pid_{pid}_test_trips.parquet", index=False)
 
         print(f"Exported file to out/test/pid_{pid}_test_trips.parquet")
         print(f"Test ETL Pipeline for {pid} Complete")
+
+        qc_pipeline(pid)
 
     elif len(sys.argv) <= 2:
         # pull in raw pattern data, process and write it out

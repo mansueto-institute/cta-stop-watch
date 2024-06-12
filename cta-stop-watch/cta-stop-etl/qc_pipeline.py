@@ -132,7 +132,10 @@ def qc_pipeline(pid: str = "all"):
         pid = re.findall(r"\d+", pids)[0]
         print(f"Running QC for pattern {pid}")
 
-        df = pd.read_parquet(f"{DIR}/trips/pid_{pid}_trips.parquet")
+        try:
+            df = pd.read_parquet(f"{DIR}/trips/pid_{pid}_trips.parquet")
+        except:
+            df = pd.read_parquet(f"{DIR}/trips/pid_{pid}_test_trips.parquet")
 
         # TODO add somewhere else
         df["time"] = df[["bus_stop_time", "bus_location_time"]].bfill(axis=1).iloc[:, 0]
@@ -168,20 +171,7 @@ def qc_pipeline(pid: str = "all"):
 
     qc_df = pd.DataFrame(qc_rows)
 
-    return qc_df, issue_examples
-
-
-if __name__ == "__main__":
-
     DIR = pathlib.Path(__file__).parent / "out"
-
-    if not os.path.exists(f"{DIR}/qc"):
-        os.makedirs(f"{DIR}/qc")
-
-    if len(sys.argv) > 1:
-        qc_df, issue_examples = qc_pipeline(sys.argv[1])
-    else:
-        qc_df, issue_examples = qc_pipeline()
 
     # save issue examples
     with open(f"{DIR}/qc/issue_examples.pickle", "wb") as f:
@@ -191,8 +181,10 @@ if __name__ == "__main__":
     # save qc summary df
     qc_df.to_parquet(f"{DIR}/qc/qc_summary_df.parquet")
 
-# to read
+    return True
 
+
+# to read pickle
 # with open("data.pickle", "rb") as f:
 #     # The protocol version used is detected automatically, so we do not
 #     # have to specify it.
