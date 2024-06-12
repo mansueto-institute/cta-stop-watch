@@ -14,10 +14,13 @@ logging.basicConfig(filename='spatial_join.log',
 
 # Define functions 
 def merge_communities_stops(gdf_areas: gdp.GeoDataFrame, gdf_stops: gdp.GeoDataFrame) -> gdp.GeoDataFrame: 
+
+    # 
     
     # Check projection for Chicago
     gdf_areas = gdp.GeoDataFrame(gdf_areas, crs = "EPSG:4326")
     gdf_stops = gdp.GeoDataFrame(gdf_stops, crs = "EPSG:4326")
+    gdf_stops["geoms_stops"] = gdf_stops["geometry"]
 
     # logging.info(f"Column names from AREAS {gdf_areas.columns = }")
     # logging.info(f"Column names from STOPS {gdf_stops.columns = }")
@@ -49,7 +52,10 @@ if __name__ == "__main__":
     gdf_merged = merge_communities_stops(gdf_communities, gdf_stops)
     
     # Write  
+    writing_path = SHAPEFILES_DIR + "/communities_stops.parquet"
+    logging.info(f"Writing to path {writing_path}")
+    
     print("Writing merged geodata frame")
-    gdf_merged.to_parquet(SHAPEFILES_DIR + "communities_stops.parquet")
+    gdf_merged.to_parquet(writing_path)
 
      
