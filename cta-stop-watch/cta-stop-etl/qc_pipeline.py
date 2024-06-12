@@ -183,6 +183,17 @@ def qc_pipeline(pid: str = "all"):
     return True
 
 
+if __name__ == "__main__":
+    if len(sys.argv) > 2:
+        print("Usage: python -m qc_pipeline <[optional] pid>")
+        sys.exit(1)
+
+    elif len(sys.argv) == 2:
+        pid = sys.argv[1]
+        qc_pipeline(pid)
+    else:
+        qc_pipeline()
+
 # to read pickle
 # with open("data.pickle", "rb") as f:
 #     # The protocol version used is detected automatically, so we do not
