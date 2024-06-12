@@ -1,19 +1,17 @@
 import os
 import pandas as pd
 import warnings
-import numpy as np
 import geopandas as gpd
 from geopandas import GeoDataFrame
-
-from interpolation import interpolate_stoptime
 import sys
 import re
 import pathlib
 
+from interpolation import interpolate_stoptime
+
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 DIR = pathlib.Path(__file__).parent / "out"
-
 
 def prepare_segment(pid: str):
     """
@@ -53,10 +51,10 @@ def prepare_trips(pid: str):
         ["bus_location_id", "unique_trip_vehicle_day", "vid", "data_time", "geometry"]
     ]
 
-    # TODO
     # remove trips with only one ping
+    filtered_trips_gdf = trips_gdf.groupby('unique_trip_vehicle_day').filter(lambda x: len(x) > 1)
 
-    return trips_gdf
+    return filtered_trips_gdf
 
 
 def prepare_stops(pid: str):
@@ -309,14 +307,6 @@ def process_pattern(pid: str, tester: str = float("inf")):
         print(f"Processed {count} Trips for Pattern {pid}")
 
     all_trips_gdf = gpd.GeoDataFrame(all_trips, geometry="geometry", crs="EPSG:4326")
-
-    # TODO
-    # some clean up that we can get rid of later
-    all_trips_gdf["bus_stop_time"] = np.where(
-        all_trips_gdf["bus_stop_time"] == pd.Timedelta("0 days 00:00:00"),
-        None,
-        all_trips_gdf["bus_stop_time"],
-    )
     all_trips_gdf["bus_stop_time"] = pd.to_datetime(all_trips_gdf["bus_stop_time"])
 
     return all_trips_gdf
@@ -336,15 +326,15 @@ def process_all_patterns():
 
     pids = set(pids)
 
-    if not os.path.exists(f"{DIR}/full_trips"):
-        os.makedirs(f"{DIR}/full_trips")
+    if not os.path.exists(f"{DIR}/trips"):
+        os.makedirs(f"{DIR}/trips")
 
     for pid in pids:
         print(pid)
         result = process_pattern(pid)
         # do something with the result
         result.to_parquet(
-            f"{DIR}/full_trips/pid_{pid}_all_trips.to_parquet", index=False
+            f"{DIR}/trips/test_trips_{pid}_full.parquet", index=False
         )
 
 
@@ -352,19 +342,24 @@ if __name__ == "__main__":
     """
    adding in a test for one pattern
     """
+    DIR = pathlib.Path(__file__).parent / "out"
+
+    if not os.path.exists(f"{DIR}/trips"):
+        os.makedirs(f"{DIR}/trips")
+
     if len(sys.argv) > 3:
         print(
-            "Usage: python -m cta-stop-watch.cta-stop-etl.calculate_stop_time <[optional] pid> <[optional] number of trips to process>"
+            "Usage: python -m calculate_stop_time <[optional] pid> <[optional] number of trips to process>"
         )
         sys.exit(1)
     elif len(sys.argv) == 3:
         # run in testing model with limited number of trips
         result = process_pattern(sys.argv[1], sys.argv[2])
-        result.to_parquet("test_full_pattern.parquet", index=False)
+        result.to_parquet(f"{DIR}/trips/test_trips_{sys.argv[1]}_small.parquet", index=False)
     elif len(sys.argv) == 2:
         # run for pattern for all trips
         result = process_pattern(sys.argv[1])
-        result.to_parquet("test_full_pattern.parquet", index=False)
+        result.to_parquet(f"{DIR}/trips/test_trips_{sys.argv[1]}_full.parquet", index=False)
     elif len(sys.argv) == 1:
         # run for all patterns and all trips
         process_all_patterns()
