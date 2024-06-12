@@ -18,6 +18,13 @@ def all_values_check(df: GeoDataFrame):
     return number of trips and actual trips with a negative time or an NA time for each pattern
     """
 
+    # Avg speed too high
+    avg_speed_trips_df = df[df["speed"] > 80]
+
+    avg_speed_trips = set(
+        avg_speed_trips_df["unique_trip_vehicle_day"].unique().tolist()
+    )
+
     # negative_times_df = df[df["time"] < 0]
     na_times_df = df[df["time"].isna()]
 
@@ -31,9 +38,11 @@ def all_values_check(df: GeoDataFrame):
     # print(f"There are {len(negative_times_trips)} trips with negative times")
     print(f"There are {len(na_times_trips)} trips with bus stops with NA time")
 
+    print(f"There are {len(avg_speed_trips)} trips with bus speeds over 80mph")
+
     # negative_times_trips
 
-    return list(na_times_trips)
+    return list(na_times_trips), list(avg_speed_trips)
 
 
 def time_issues(df: GeoDataFrame):
@@ -76,9 +85,6 @@ def time_issues(df: GeoDataFrame):
     )
 
     return same_time_trips, min_max_time_issue_trips, very_long_trips
-
-
-# Avg speed too high
 
 
 # Variations for bus stop
@@ -143,7 +149,7 @@ def qc_pipeline(pid: str = "all"):
         df = df[(df["typ"] == "S") & (df["time"].notna())]
 
         # negative_times_trips,
-        na_times_trips = all_values_check(df)
+        na_times_trips, avg_ = all_values_check(df)
         same_time_trips, min_max_time_issue_trips, very_long_trips = time_issues(df)
 
         negative_times_trips = []
