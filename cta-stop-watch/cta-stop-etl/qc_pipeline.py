@@ -19,7 +19,7 @@ def all_values_check(df: GeoDataFrame):
     """
 
     # Avg speed too high
-    avg_speed_trips_df = df[df["speed"] > 80]
+    avg_speed_trips_df = df[df["speed"] > 150]
 
     avg_speed_trips = set(
         avg_speed_trips_df["unique_trip_vehicle_day"].unique().tolist()
@@ -52,7 +52,7 @@ def time_issues(df: GeoDataFrame):
         very_long_trips = []
         same_time_trips = []
 
-        max_hours = 4
+        max_hours = 8
 
         trip_gdf.sort_values("seg_combined", inplace=True)
         # is first stop min
@@ -132,14 +132,14 @@ def qc_pipeline(pid: str = "all"):
         print(f"Running QC for pattern {pid}")
 
         try:
-            df = pd.read_parquet(f"{DIR}/trips/pid_{pid}_trips.parquet")
+            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}_small.parquet")
         except:
-            df = pd.read_parquet(f"{DIR}/trips/pid_{pid}_test_trips.parquet")
+            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}.parquet")
 
         # TODO add somewhere else
-        df["time"] = df[["bus_stop_time", "bus_location_time"]].bfill(axis=1).iloc[:, 0]
-        df.drop(columns=["bus_stop_time", "bus_location_time"], inplace=True)
-        df = df[(df["typ"] == "S") & (df["time"].notna())]
+        # df["time"] = df[["bus_stop_time", "bus_location_time"]].bfill(axis=1).iloc[:, 0]
+        # df.drop(columns=["bus_stop_time", "bus_location_time"], inplace=True)
+        df = df[df["typ"] == "S"]
 
         # negative_times_trips,
         na_times_trips, avg_speed_trips = all_values_check(df)
