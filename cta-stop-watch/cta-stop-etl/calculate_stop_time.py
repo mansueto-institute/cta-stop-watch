@@ -11,8 +11,6 @@ from interpolation import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-DIR = pathlib.Path(__file__).parent / "out"
-
 def prepare_segment(pid: str):
     """
     prepares the created segments from a pattern (pid) for use with the bus location.
@@ -316,7 +314,6 @@ def process_all_patterns():
     """
     Process all the trips for all patterns available. Export one file per pattern.
     """
-    DIR = pathlib.Path(__file__).parent / "out"
     PID_DIR = f"{DIR}/pids/patterns"
     pids = []
     for pid_file in os.listdir(PID_DIR):

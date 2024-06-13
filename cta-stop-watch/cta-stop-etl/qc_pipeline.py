@@ -12,25 +12,22 @@ import sys
 # check is avg speed is too high (over 80mph)
 
 
-# Negative times or NA times
+# NA times and avg sped too high
 def all_values_check(df: GeoDataFrame):
     """
     return number of trips and actual trips with a bus stop with NA time or a max speed over 80mph for a pattern
     """
 
     # Avg speed too high
-    avg_speed_trips_df = df[df["speed"] > 150]
-
+    avg_speed_trips_df = df[df["speed_mph"] > 150]
     avg_speed_trips = set(
         avg_speed_trips_df["unique_trip_vehicle_day"].unique().tolist()
     )
 
-    na_times_df = df[df["time"].isna()]
-
+    na_times_df = df[df["bus_stop_time"].isna()]
     na_times_trips = set(na_times_df["unique_trip_vehicle_day"].unique().tolist())
 
     print(f"There are {len(na_times_trips)} trips with bus stops with NA time")
-
     print(f"There are {len(avg_speed_trips)} trips with bus speeds over 80mph")
 
     # negative_times_trips
@@ -45,8 +42,8 @@ def time_issues(df: GeoDataFrame):
     """
 
     for row, (trip_id, trip_gdf) in enumerate(df.groupby("unique_trip_vehicle_day")):
-        min_time = pd.Timestamp(trip_gdf["time"].min())
-        max_time = pd.Timestamp(trip_gdf["time"].max())
+        min_time = pd.Timestamp(trip_gdf["bus_stop_time"].min())
+        max_time = pd.Timestamp(trip_gdf["bus_stop_time"].max())
 
         min_max_time_issue_trips = []
         very_long_trips = []
@@ -56,8 +53,8 @@ def time_issues(df: GeoDataFrame):
 
         trip_gdf.sort_values("seg_combined", inplace=True)
         # is first stop min
-        if (trip_gdf["time"].iloc[0] != min_time) or (
-            trip_gdf["time"].iloc[-1] != max_time
+        if (trip_gdf["bus_stop_time"].iloc[0] != min_time) or (
+            trip_gdf["bus_stop_time"].iloc[-1] != max_time
         ):
             min_max_time_issue_trips.append(trip_id)
 
@@ -66,7 +63,7 @@ def time_issues(df: GeoDataFrame):
             very_long_trips.append(trip_id)
 
         # check if there are any trips with the same time
-        if len(trip_gdf["time"].unique()) != len(trip_gdf["time"]):
+        if len(trip_gdf["bus_stop_time"].unique()) != len(trip_gdf["bus_stop_time"]):
             same_time_trips.append(trip_id)
 
     print(f"There are {len(same_time_trips)} trips with bus stops at the same time")
@@ -80,34 +77,8 @@ def time_issues(df: GeoDataFrame):
     return same_time_trips, min_max_time_issue_trips, very_long_trips
 
 
+# TODO
 # Variations for bus stop
-
-
-def stops_per_pattern():
-    """
-    return a df of the number of bus stops per pattern
-    """
-
-    PID_DIR = "out/patterns"
-    pids = []
-    for pid_file in os.listdir(PID_DIR):
-        numbers = re.findall(r"\d+", pid_file)
-        pid = numbers[0]
-        pids.append(pid)
-
-    pids = set(pids)
-
-    all_pids = []
-    for pid in pids:
-        # print(pid)
-        stops_df = pd.read_parquet(f"out/patterns/pid_{pid}_stop.parquet")
-        stops = len(stops_df[stops_df["typ"] == "S"].index)
-        dict = {"pid": pid, "stops": stops}
-        all_pids.append(dict)
-
-    all_pids_df = pd.DataFrame(all_pids)
-
-    return all_pids_df
 
 
 def qc_pipeline(pid: str = "all"):
@@ -145,7 +116,6 @@ def qc_pipeline(pid: str = "all"):
         na_times_trips, avg_speed_trips = all_values_check(df)
         same_time_trips, min_max_time_issue_trips, very_long_trips = time_issues(df)
 
-        negative_times_trips = []
         row = {
             "pid": pid,
             "avg_speed_trips": len(avg_speed_trips),
@@ -199,3 +169,30 @@ if __name__ == "__main__":
 #     # The protocol version used is detected automatically, so we do not
 #     # have to specify it.
 #     data = pickle.load(f)
+
+
+def stops_per_pattern():
+    """
+    return a df of the number of bus stops per pattern
+    """
+
+    PID_DIR = "out/patterns"
+    pids = []
+    for pid_file in os.listdir(PID_DIR):
+        numbers = re.findall(r"\d+", pid_file)
+        pid = numbers[0]
+        pids.append(pid)
+
+    pids = set(pids)
+
+    all_pids = []
+    for pid in pids:
+        # print(pid)
+        stops_df = pd.read_parquet(f"out/patterns/pid_{pid}_stop.parquet")
+        stops = len(stops_df[stops_df["typ"] == "S"].index)
+        dict = {"pid": pid, "stops": stops}
+        all_pids.append(dict)
+
+    all_pids_df = pd.DataFrame(all_pids)
+
+    return all_pids_df
