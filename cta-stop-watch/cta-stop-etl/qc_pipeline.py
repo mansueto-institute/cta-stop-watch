@@ -40,14 +40,13 @@ def time_issues(df: GeoDataFrame):
     Checks is the first stop is the min time and the last stop is the max time
     Checks if the total trip time is over 4 hours
     """
+    min_max_time_issue_trips = []
+    very_long_trips = []
+    same_time_trips = []
 
     for row, (trip_id, trip_gdf) in enumerate(df.groupby("unique_trip_vehicle_day")):
         min_time = pd.Timestamp(trip_gdf["bus_stop_time"].min())
         max_time = pd.Timestamp(trip_gdf["bus_stop_time"].max())
-
-        min_max_time_issue_trips = []
-        very_long_trips = []
-        same_time_trips = []
 
         max_hours = 8
 
@@ -59,7 +58,8 @@ def time_issues(df: GeoDataFrame):
             min_max_time_issue_trips.append(trip_id)
 
         max_trip_time = f"{max_hours} hours"
-        if max_time - min_time < pd.Timedelta(max_trip_time):
+
+        if (max_time - min_time) > pd.Timedelta(max_trip_time):
             very_long_trips.append(trip_id)
 
         # check if there are any trips with the same time
@@ -103,9 +103,9 @@ def qc_pipeline(pid: str = "all"):
         print(f"Running QC for pattern {pid}")
 
         try:
-            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}_small.parquet")
+            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}_full.parquet")
         except:
-            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}.parquet")
+            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}_small.parquet")
 
         # TODO add somewhere else
         # df["time"] = df[["bus_stop_time", "bus_location_time"]].bfill(axis=1).iloc[:, 0]

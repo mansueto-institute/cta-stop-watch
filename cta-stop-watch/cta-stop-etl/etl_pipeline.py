@@ -27,9 +27,9 @@ if __name__ == "__main__":
         if not os.path.exists(f"{DIR}/trips"):
             os.makedirs(f"{DIR}/trips")
 
-        result.to_parquet(f"{DIR}/trips/pid_{pid}_test_trips.parquet", index=False)
+        result.to_parquet(f"{DIR}/trips/test_trips_{pid}_full.parquet", index=False)
 
-        print(f"Exported file to out/test/pid_{pid}_test_trips.parquet")
+        print(f"Exported file to out/trips/test_trips_{pid}_full.parquet")
         print(f"Test ETL Pipeline for {pid} Complete")
 
         qc_pipeline(pid)

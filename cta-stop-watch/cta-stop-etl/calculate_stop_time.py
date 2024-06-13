@@ -6,10 +6,13 @@ from geopandas import GeoDataFrame
 import sys
 import re
 import pathlib
+from shapely import box
 
 from interpolation import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
+
+DIR = pathlib.Path(__file__).parent / "out"
 
 def prepare_segment(pid: str):
     """
@@ -17,7 +20,6 @@ def prepare_segment(pid: str):
     """
     # load segment
     # gpd.read_parquet
-    segments_gdf = gpd.read_parquet(f"{DIR}/patterns/pid_{pid}_segment.parquet")
     segments_gdf = gpd.read_parquet(f"{DIR}/patterns/pid_{pid}_segment.parquet")
 
     segments_gdf["prev_segment"] = segments_gdf["segments"]
@@ -51,6 +53,12 @@ def prepare_trips(pid: str):
 
     # remove trips with only one ping
     filtered_trips_gdf = trips_gdf.groupby('unique_trip_vehicle_day').filter(lambda x: len(x) > 1)
+
+    
+    # remove trips with all pings in the sameish location
+    filtered_trips_gdf.to_crs(epsg=26971, inplace=True)
+    filtered_trips_gdf = filtered_trips_gdf.groupby('unique_trip_vehicle_day').filter(lambda x: box(*x.geometry.total_bounds).area > 20)
+    filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
     return filtered_trips_gdf
 
@@ -99,7 +107,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     assigned_pings = []
     good_indexes = []
 
-    processed_trips_gdf = processed_trips_gdf.sort_values("data_time")
+    processed_trips_gdf = processed_trips_gdf.sort_values("data_time").reset_index(drop=True)
 
     # i think itertuples is faster than iterrows.
     for row in processed_trips_gdf.itertuples():
@@ -111,7 +119,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
                 last_segment = row.seg_combined
                 assigned_pings.append(row.bus_location_id)
-
+                
     processed_trips_gdf = processed_trips_gdf.loc[good_indexes]
 
     # merge with stops to get full processed df
@@ -261,11 +269,12 @@ def process_pattern(pid: str, tester: str = float("inf")):
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
     # is data for this pattern available?
-    try:
-        prepare_segment(pid)
-    except NameError:
-        print(f"Pattern {pid} not available")
-        return False
+    # TODO check if pattern is available
+    # try:
+    #     prepare_segment(pid)
+    # except NameError:
+    #     print(f"Pattern {pid} not available")
+    #     return False
 
     # prepare the segments
     segments_gdf = prepare_segment(pid)
@@ -274,6 +283,7 @@ def process_pattern(pid: str, tester: str = float("inf")):
     trips_gdf = prepare_trips(pid)
 
     # test
+    #trips_gdf = trips_gdf[trips_gdf['unique_trip_vehicle_day'] == '1523910.02353404888834757313912023-01-06']
     # trips_gdf = trips_gdf[trips_gdf["unique_trip_vehicle_day"]== '7295.0235318404101004820292023-01-01']
 
     # prepare the stops
