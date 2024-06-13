@@ -61,7 +61,7 @@ def interpolate_stoptime(trip_df):
     #calculates 'stop_dist' based on 's_value' groups
     trip_df['stop_dist'] = trip_df.groupby('s_value')['dist_next'].transform('sum')
 
-    ping_times_df = trip_df.loc[trip_df.data_time.notna(),['seg_combined', 'data_time', 'b_value', 'typ', 'geometry']]
+    ping_times_df = trip_df.loc[trip_df.data_time.notna(),['seg_combined', 'data_time', 'b_value', 'typ', 'geometry', 'unique_trip_vehicle_day']
     ping_times_df.loc[:,"ping_time_diff"] = -1*ping_times_df.data_time.diff(-1)
 
     #merge the two dataframes to include the 'ping_time_diff' column in trip_df
@@ -98,10 +98,10 @@ def interpolate_stoptime(trip_df):
     stops_df['time_diff_seconds'] = stops_df['time_diff_seconds'].replace(0, 1e-9)
     stops_df['speed_mph'] = (stops_df['stop_dist'] / 1609) / (stops_df['time_diff_seconds'] / 3600) 
 
-    stops_df = stops_df[['original_index', "seg_combined_x", 'typ_x', 'bus_stop_time', 'time_diff', 
-                         'time_diff_seconds', 'stop_dist', 'speed_mph', "unique_trip_vehicle_day","stpid","p_stp_id","geometry_x"]]
+    stops_df = stops_df[['original_index', "seg_combined_x", 'typ_x', 'bus_stop_time', 'time_diff', 'time_diff_seconds', 'stop_dist', 'speed_mph', 
+                         'unique_trip_vehicle_day_x','stpid','p_stp_id','geometry_x']]
     
-    new_names = {'seg_combined_x':'seg_combined', 'typ_x':'typ', 'geometry_x':'geometry'}
+    new_names = {'seg_combined_x':'seg_combined', 'typ_x':'typ', 'geometry_x':'geometry', 'unique_trip_vehicle_day_x':'unique_trip_vehicle_day'}
     
     stops_df.rename(columns = new_names, inplace=True)
 
@@ -142,7 +142,6 @@ def interpolate_stoptime(trip_df):
         new_trip_df.loc[i, 'bus_stop_time'] = new_trip_df.loc[i - 1, 'bus_stop_time'] + pd.Timedelta(seconds=new_trip_df.loc[i, 'time_diff_seconds'])
 
     #clean data table 
-    new_trip_df['bus_stop_time'] = new_trip_df['bus_stop_time'].dt.round('S')
     new_trip_df = new_trip_df.drop(columns=['time_diff', 'data_time', 'b_value', 'ping_time_diff'])
     new_trip_gdf = gpd.GeoDataFrame(new_trip_df, geometry="geometry", crs="EPSG:4326")
 
