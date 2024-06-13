@@ -1,5 +1,7 @@
 # 0. Imports -------------------------------------------------------------------
 
+# setwd("\\\\wsl.localhost/Ubuntu/home/rmedina/mansueto/cta-stop-watch/cta-stop-watch/acs")
+
 # Clean environment
 rm(list = ls())
 
@@ -50,6 +52,7 @@ sf_communities      <- st_transform(sf_communities, crs = "EPSG:4326")
 sf_ilcountysub      <- st_transform(sf_ilcountysub, crs = "EPSG:4326")
 sf_il_tracts        <- st_transform(sf_il_tracts  , crs = "EPSG:4326")
 
+# This data frames had missing CRS
 sf_chicago          <- sf_chicago |> st_set_crs("EPSG:4326")
 sf_cook_tracts      <- sf_cook_tracts |> st_set_crs("EPSG:4326")
 sf_chicago_tracts   <- sf_chicago_tracts |> st_set_crs("EPSG:4326")
@@ -65,28 +68,21 @@ sf_stops_tracts <- sf::st_join(sf_cook_tracts, sf_stops,
                                left = TRUE)
 
 # Count stops by Census Tract 
-sf_cook_tracts$stops_count      <- lengths(st_intersects(sf_cook_tracts, sf_stops))
-sf_chicago_tracts$stops_count   <- lengths(st_intersects(sf_chicago_tracts, sf_stops))
+sf_cook_tracts$n_stops    <- lengths(st_intersects(sf_cook_tracts, sf_stops))
+sf_chicago_tracts$n_stops <- lengths(st_intersects(sf_chicago_tracts, sf_stops))
 
 mapview(sf_chicago) + 
-    mapview(sf_chicago_tracts, alpha=.05, 
-            zcol = "stops_count"
-            # col.regions=stops_count
-            ) +
-    mapview(sf_stops, alpha = 0, size = 1, cex = 1, 
-            col.regions = "grey")
+    mapview(sf_chicago_tracts, alpha=.05, zcol = "n_stops") +
+    mapview(sf_stops, alpha = 0, size = 2, cex = 1, col.regions = "grey")
 
 ## STOPS BY COMMUNITY AREA -----------------------------------------------------
 
 # Count stops by Census Tract 
-sf_communities$stops_count <- lengths(st_intersects(sf_communities, sf_stops))
+sf_communities$n_stops <- lengths(st_intersects(sf_communities, sf_stops))
 
 mapview(sf_chicago) + 
-    mapview(sf_communities, alpha=.05, 
-            zcol = "stops_count"
-            # col.regions=stops_count
-    ) +
-    mapview(sf_stops, alpha = 0, size = 1, cex = 1, 
+    mapview(sf_communities, alpha=.05, zcol = "n_stops") +
+    mapview(sf_stops, alpha = 0, size = 2, cex = 1, 
             col.regions = "grey")
 
 
@@ -137,50 +133,48 @@ sf_chicago_tracts <- st_transform(sf_chicago_tracts, crs = "EPSG:4326")
 sf_tot_pop_tract <- st_transform(sf_tot_pop_tract, crs = "EPSG:4326")
 
 sf_chi_tracts_stops_acs <- sf_chicago_tracts |> 
-    left_join(sf_tot_pop_tract |> 
-                  as.data.frame() |> 
+    left_join(sf_tot_pop_tract               |> 
+                  as.data.frame()            |> 
                   select(-geometry), 
-              by = join_by(GEOID)) |>
+              by = join_by(GEOID))           |>
     mutate(
-        stops_percap = stops_count * 100/ pop, 
+        stops_percap = n_stops * 100/ pop, 
         stops_percap = if_else(is.infinite(stops_percap), NA_integer_, stops_percap)
         )
 
 
-summary(sf_chi_tracts_stops_acs$stops_count)
+summary(sf_chi_tracts_stops_acs$n_stops)
 summary(sf_chi_tracts_stops_acs$pop)
 summary(sf_chi_tracts_stops_acs$stops_percap)
 
 # Baseline, population by tract
 mapview(sf_chicago) + 
-    mapview(sf_chi_tracts_stops_acs, alpha=.05, 
-            zcol = "pop"
-            # col.regions=stops_count
-    ) +
-    mapview(sf_stops, alpha = 0, size = 1, cex = 1, 
-            col.regions = "grey")
+    mapview(sf_chi_tracts_stops_acs, alpha=.05, zcol = "pop") +
+    mapview(sf_stops, alpha = 0, size = 2, cex = 1, col.regions = "red")
 
 
 
 # COMMUNITY --------------------------------------------------------------------
 
 
+## SPATIAL JOIN -------------
+
 # Aggregate data at the community level 
 sf_tot_pop_tract <- st_transform(sf_tot_pop_tract, crs = "EPSG:4326")
 
 sf_tot_pop_comms <- sf_communities %>% 
     st_join(sf_tot_pop_tract, join = st_intersects, left = TRUE) |> 
-    group_by(community, area, area_num_1, comarea_id, geometry, stops_count) |> 
+    group_by(community, area, area_num_1, comarea_id, geometry, n_stops) |> 
     summarise(pop = sum(pop)) |> 
-    mutate(stops_percap = stops_count * 1000/ pop)
+    mutate(stops_percap = n_stops * 1000/ pop)
 
 # Quality Checks 
 sum(sf_tot_pop_tract$pop) # 1,774,605
 sum(sf_tot_pop_comms$pop) # 1,714,806 # Just communitites in Chicago
 
 nrow(sf_stops) # All stops 
-sum(sf_communities$stops_count) # Stops in Chicago communities
-sum(sf_tot_pop_comms$stops_count) # When spatially aggregated from tracts
+sum(sf_communities$n_stops) # Stops in Chicago communities
+sum(sf_tot_pop_comms$n_stops) # When spatially aggregated from tracts
 
 # glimpse(df_tot_pop)
 View(sf_tot_pop_tract)
@@ -188,23 +182,14 @@ names(sf_tot_pop_tract)
 
 
 mapview(sf_chicago) + 
-    mapview(sf_tot_pop_comms, alpha=.05, 
-            zcol = "pop"
-            # col.regions=stops_count
-    ) 
+    mapview(sf_tot_pop_comms, alpha=.05, zcol = "pop") 
 
 mapview(sf_chicago) + 
-    mapview(sf_communities, alpha=.05, 
-            zcol = "stops_count"
-    )  +
-    mapview(sf_stops, alpha = 0, size = 1, cex = 1, 
-            col.regions = "grey")
-
+    mapview(sf_communities, alpha=.05, zcol = "n_stops")  +
+    mapview(sf_stops, alpha = 0, size = 1, cex = 1, col.regions = "grey")
 
 mapview(sf_chicago) + 
-    mapview(sf_tot_pop_comms, alpha=.05, 
-            zcol = "stops_percap"
-    ) 
+    mapview(sf_tot_pop_comms, alpha=.05, zcol = "stops_percap") 
 
 
 # # 2. Stops data + ACS --------------------------------------------------------
