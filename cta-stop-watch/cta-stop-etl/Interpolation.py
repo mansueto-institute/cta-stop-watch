@@ -105,16 +105,12 @@ def interpolate_stoptime(trip_df):
     stops_df["bus_stop_time"] = bus_stop_times
 
     # calculate the time difference in seconds between consecutive bus stops
-    stops_df["time_diff"] = stops_df["bus_stop_time"].diff()
+    #stops_df["time_diff"] = stops_df["bus_stop_time"].diff()
 
     # calculate the speed in meters per second then to mph
-    stops_df["time_diff_seconds"] = stops_df["time_diff"].apply(
-        lambda x: x.total_seconds()
-    )
-    stops_df["time_diff_seconds"] = stops_df["time_diff_seconds"].replace(0, 1e-9)
-    stops_df["speed_mph"] = (stops_df["stop_dist"] / 1609) / (
-        stops_df["time_diff_seconds"] / 3600
-    )
+    stops_df['time_diff_seconds'] = stops_df['ping_time_diff'].apply(lambda x: x.total_seconds())
+    stops_df['time_diff_seconds'] = stops_df['time_diff_seconds'].replace(0, 1e-9)
+    stops_df['speed_mph'] = (stops_df['ping_dist'] / 1609) / (stops_df['time_diff_seconds'] / 3600) 
 
     stops_df = stops_df[
         [
@@ -122,7 +118,6 @@ def interpolate_stoptime(trip_df):
             "seg_combined_x",
             "typ_x",
             "bus_stop_time",
-            "time_diff",
             "time_diff_seconds",
             "stop_dist",
             "speed_mph",
