@@ -1,26 +1,53 @@
-import polars as pl
+import os
 import pathlib
+from zipfile import ZipFile
+import polars as pl
+
+DIR = pathlib.Path(__file__).parent
 
 
-def build_merged_shape_data(gtfs_path: str) -> pl.DataFrame:
+def extract_files_from_zip(path: pathlib.Path) -> tuple[pl.DataFrame]:
     """
-    Loads GTFS's "shape" data and returns a standardized data frame for further
-    cleaning.
+    Reads all GTFS text files required to build the pattern data with the
+    same format as the CTA API and returns them as data frames.
+
+    # Input
+        - path: full path of zip folder with all the raw GTFS text files
+    # Returns
+        - A tuple with the shapes, stops, and trips table from GTFS in
+        data frame format.
+    """
+
+    with ZipFile(path) as gtfs_zip:
+        with gtfs_zip.open("shapes.txt") as shapes:
+            df_shapes = pl.read_csv(shapes, infer_schema_length=0)
+
+        with gtfs_zip.open("stops.txt") as stops:
+            df_stops = pl.read_csv(stops, infer_schema_length=0)
+
+        with gtfs_zip.open("trips.txt") as trips:
+            df_trips = pl.read_csv(trips, infer_schema_length=0)
+
+    return df_shapes, df_stops, df_trips
+
+
+def build_merged_patterb_data(df_shapes, df_stops, df_trips) -> pl.DataFrame:
+    """
+    Takes data frames with GTFS data and reproduces the CTA API "pattern"
+    tables in a standardized data frame for further cleaning.
 
     Input:
-        - gtfs_path (str): Path were the gtfs files are stored
+        - df_shapes: Data frame with GTFS shapes info
+        - df_stops: Data frame with GTFS stops info
+        - df_trips: Data frame with GTFS trips info
 
     Outputs:
         - A data frame with "shape", "stops" and "trip" data in a format
         that resembles the pattern data from the CTA API. A single file is
         produced for all the pids.
     """
-    file_name = gtfs_path + "shapes.txt"
-    file_path = pathlib.Path(__file__).parent / file_name
 
-    # Load shapes an rename columns
-    df_shapes = pl.read_csv(file_path, infer_schema_length=0)
-
+    # Preprocess GTFS shapes file to have the same format as the CTA patterns
     df_shapes = df_shapes.rename(
         {
             "shape_pt_lat": "lat",
@@ -30,23 +57,18 @@ def build_merged_shape_data(gtfs_path: str) -> pl.DataFrame:
         }
     )
 
-    # Load stops
-    file_name = gtfs_path + "stops.txt"
-    file_path = pathlib.Path(__file__).parent / file_name
-
-    df_stops = pl.read_csv(file_path, infer_schema_length=0)
-
+    # Preprocess GTFS stops file to have the same format as the CTA patterns
     df_stops = df_stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]]
     df_stops = df_stops.rename(
         {"stop_id": "stpid", "stop_name": "stpnm", "stop_lat": "lat", "stop_lon": "lon"}
     )
-
     df_stops = df_stops.with_columns(pl.lit("S").alias("typ"))
 
-    # Merge
+    # Recreate the CTA API "patterns" file by merging GTFS shapes and stops
     df_patterns = df_shapes.join(df_stops, on=["lat", "lon"])
 
-    # Change values conditionally
+    # Since the stops data only includes stops points, all other values joined
+    # from the shapes data frame must be turns (which the CTA lables as W)
     df_patterns.with_columns(
         (pl.when(pl.col("typ") == "S").then(pl.lit("S")).otherwise(pl.lit("W"))).alias(
             "typ"
@@ -54,11 +76,6 @@ def build_merged_shape_data(gtfs_path: str) -> pl.DataFrame:
     )
 
     # Add ids from trips file
-    file_name = gtfs_path + "trips.txt"
-    file_path = pathlib.Path(__file__).parent / file_name
-
-    df_trips = pl.read_csv(file_path, infer_schema_length=0)
-
     df_patterns = df_patterns.join(df_trips, on=["shape_id"])
 
     # Standardize id format with pid
@@ -67,29 +84,48 @@ def build_merged_shape_data(gtfs_path: str) -> pl.DataFrame:
         pl.col("shape_id").str.slice(-4).alias("pid")
     )
 
-    # Write output
-    print("Writing parquet with gtfs polygons for every pattern (pid).")
-    df_patterns.write_parquet("out/gtfs/current_shapes.parquet")
+    # TODO Add timestamp
 
-    return True
-
-
-# def import_historic_gtfs():
-#     pass
-
-# def convert_to_geometries(df_patterns: pl.DataFrame):
-#     pass
+    return df_patterns
 
 
 if __name__ == "__main__":
 
-    print("Running GTFS scraper")
+    print("\n\nRunning GTFS scraper")
 
     # Download GTFS data
     # Current data source: https://www.transitchicago.com/downloads/sch_data/
     # https://www.transitchicago.com/downloads/sch_data/google_transit.zip
+    print("\n 1. Current GTFS data at CTA website")
 
     # Load pattern like data frame from must recent GTFS
-    gtfs_path = str(pathlib.Path(__file__).parent) + "/cta_current_GTFS/"
+    current_gtfs_path = DIR / "inp/google_transit.zip"
+    df_shapes, df_stops, df_trips = extract_files_from_zip(current_gtfs_path)
+    df_patterns = build_merged_patterb_data(df_shapes, df_stops, df_trips)
 
-    build_merged_shape_data(gtfs_path)
+    # Write output
+    print("Writing parquet with gtfs polygons for every pattern (pid).")
+    df_patterns.write_parquet("out/gtfs/current_shapes.parquet")
+
+    # Historic Data from Transit Land (downloaded zip files from box)
+    print("\n 2. Historic GTFS from Transit Land")
+    all_zips = os.listdir(f"{DIR}/inp/historic_gtfs")
+    folders_to_inspect = []
+
+    for zip_name in all_zips:
+
+        zip_path = DIR / "inp/historic_gtfs" / zip_name
+
+        # Some folders appear to not have specific text files j
+        try:
+            df_shapes, df_stops, df_trips = extract_files_from_zip(zip_path)
+        except KeyError:
+            folders_to_inspect.append(zip_name)
+
+        df_patterns = build_merged_patterb_data(df_shapes, df_stops, df_trips)
+
+        print(f"Writing parquet with gtfs from {zip_name}")
+        name = zip_name.removesuffix(".zip")
+        df_patterns.write_parquet(f"{DIR}/out/gtfs/{name}.parquet")
+
+    print(f"Folders with supposedely missing text files:\n\t{folders_to_inspect}")
