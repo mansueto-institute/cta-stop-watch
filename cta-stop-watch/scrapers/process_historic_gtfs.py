@@ -31,7 +31,9 @@ def extract_files_from_zip(path: pathlib.Path) -> tuple[pl.DataFrame]:
     return df_shapes, df_stops, df_trips
 
 
-def build_merged_patterb_data(df_shapes, df_stops, df_trips) -> pl.DataFrame:
+def build_merged_patterb_data(
+    df_shapes: pl.DataFrame, df_stops: pl.DataFrame, df_trips: pl.DataFrame
+) -> pl.DataFrame:
     """
     Takes data frames with GTFS data and reproduces the CTA API "pattern"
     tables in a standardized data frame for further cleaning.
@@ -70,7 +72,10 @@ def build_merged_patterb_data(df_shapes, df_stops, df_trips) -> pl.DataFrame:
     # Since the stops data only includes stops points, all other values joined
     # from the shapes data frame must be turns (which the CTA lables as W)
     df_patterns.with_columns(
-        (pl.when(pl.col("typ") == "S").then(pl.lit("S")).otherwise(pl.lit("W"))).alias(
+        (pl.when(pl.col("typ") == "S")
+         .then(pl.lit("S"))
+         .otherwise(pl.lit("W")))
+         .alias(
             "typ"
         )
     )
@@ -116,7 +121,7 @@ if __name__ == "__main__":
 
         zip_path = DIR / "inp/historic_gtfs" / zip_name
 
-        # Some folders appear to not have specific text files j
+        # Detect if a zip does not contain one of the required text files
         try:
             df_shapes, df_stops, df_trips = extract_files_from_zip(zip_path)
         except KeyError:
@@ -128,4 +133,4 @@ if __name__ == "__main__":
         name = zip_name.removesuffix(".zip")
         df_patterns.write_parquet(f"{DIR}/out/gtfs/{name}.parquet")
 
-    print(f"Folders with supposedely missing text files:\n\t{folders_to_inspect}")
+    print(f"Folders with missing text files:\n\t{folders_to_inspect}")
