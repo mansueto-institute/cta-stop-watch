@@ -7,12 +7,14 @@ import sys
 import re
 import pathlib
 from shapely import box
+import pickle
 
-from interpolation import interpolate_stoptime
+from Interpolation import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 DIR = pathlib.Path(__file__).parent / "out"
+
 
 def prepare_segment(pid: str):
     """
@@ -51,13 +53,38 @@ def prepare_trips(pid: str):
         ["bus_location_id", "unique_trip_vehicle_day", "vid", "data_time", "geometry"]
     ]
 
-    # remove trips with only one ping
-    filtered_trips_gdf = trips_gdf.groupby('unique_trip_vehicle_day').filter(lambda x: len(x) > 1)
+    all_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
-    
     # remove trips with all pings in the sameish location
-    filtered_trips_gdf.to_crs(epsg=26971, inplace=True)
-    filtered_trips_gdf = filtered_trips_gdf.groupby('unique_trip_vehicle_day').filter(lambda x: box(*x.geometry.total_bounds).area > 20)
+    trips_gdf.to_crs(epsg=26971, inplace=True)
+    filtered_trips_gdf = trips_gdf.groupby("unique_trip_vehicle_day").filter(
+        lambda x: box(*x.geometry.total_bounds).area > 20
+    )
+
+    # keep only last ping of any trips multiple first pings in the same spot
+    bad_indexes = []
+    for trip_id, trip_gdf in filtered_trips_gdf.groupby("unique_trip_vehicle_day"):
+        # if distance is super close
+        for i in range(len(trip_gdf) - 1):
+            if (
+                filtered_trips_gdf.geometry.iloc[i].distance(
+                    filtered_trips_gdf.geometry.iloc[i + 1]
+                )
+                < 5
+            ):
+                bad_indexes.append(trip_gdf.index[i])
+            else:
+                break
+
+    filtered_trips_gdf = filtered_trips_gdf[~filtered_trips_gdf.index.isin(bad_indexes)]
+
+    # remove trips with only one ping
+    filtered_trips_gdf = filtered_trips_gdf.groupby("unique_trip_vehicle_day").filter(
+        lambda x: len(x) > 1
+    )
+
+    print(f"Originally {all_trips_count} trips")
+
     filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
     return filtered_trips_gdf
@@ -76,6 +103,8 @@ def prepare_stops(pid: str):
     stops_gdf = stops_gdf[
         ["seg_combined", "typ", "stpid", "p_stp_id", "geometry", "data_time"]
     ]
+
+    stops_gdf.to_crs(epsg=4326, inplace=True)
 
     return stops_gdf
 
@@ -107,7 +136,9 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     assigned_pings = []
     good_indexes = []
 
-    processed_trips_gdf = processed_trips_gdf.sort_values("data_time").reset_index(drop=True)
+    processed_trips_gdf = processed_trips_gdf.sort_values("data_time").reset_index(
+        drop=True
+    )
 
     # i think itertuples is faster than iterrows.
     for row in processed_trips_gdf.itertuples():
@@ -119,11 +150,14 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
                 last_segment = row.seg_combined
                 assigned_pings.append(row.bus_location_id)
-                
+
     processed_trips_gdf = processed_trips_gdf.loc[good_indexes]
 
-    # merge with stops to get full processed df
+    # remove trips with only one ping at this point
+    if len(processed_trips_gdf.index) == 1:
+        return False
 
+    # merge with stops to get full processed df
     processed_trips_gdf["typ"] = "B"
     processed_trips_gdf = processed_trips_gdf[
         ["seg_combined", "typ", "bus_location", "data_time"]
@@ -137,6 +171,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
     return final_gdf
 
+
 def process_one_trip(
     trip_id: str,
     trip_gdf: GeoDataFrame,
@@ -148,8 +183,10 @@ def process_one_trip(
     for one trip, only keep points that are on route, then create route df
     with bus location, then interpolate time when bus is at each stop.
     """
-
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
+    if gdf is False:
+        return False
+
     gdf["unique_trip_vehicle_day"] = trip_id
 
     gdf = interpolate_stoptime(gdf)
@@ -175,10 +212,6 @@ def process_pattern(pid: str, tester: str = float("inf")):
     # prepare the trips
     trips_gdf = prepare_trips(pid)
 
-    # test
-    #trips_gdf = trips_gdf[trips_gdf['unique_trip_vehicle_day'] == '1523910.02353404888834757313912023-01-06']
-    # trips_gdf = trips_gdf[trips_gdf["unique_trip_vehicle_day"]== '7295.0235318404101004820292023-01-01']
-
     # prepare the stops
     stops_gdf = prepare_stops(pid)
 
@@ -187,11 +220,25 @@ def process_pattern(pid: str, tester: str = float("inf")):
     count = 0
     test_flag = False
 
-    print(f"Processing Trips for Pattern {pid}")
+    bad_trips = []
+
+    trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
+
+    print(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
+
     for row, (trip_id, trip_gdf) in enumerate(
         trips_gdf.groupby("unique_trip_vehicle_day")
     ):
-        processed_trip_df = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
+        try:
+            processed_trip_df = process_one_trip(
+                trip_id, trip_gdf, segments_gdf, stops_gdf
+            )
+        except:
+            bad_trips.append(trip_id)
+            continue
+
+        if processed_trip_df is False:
+            continue
 
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
@@ -200,67 +247,18 @@ def process_pattern(pid: str, tester: str = float("inf")):
         # for testing
         count += 1
         if count >= float(tester):
-            print(f"Processed {count} Trips for Pattern {pid}")
-            test_flag = True
             break
 
-    if not test_flag:
-        print(f"Processed {count} Trips for Pattern {pid}")
+    print(
+        f"Processed {count- len(bad_trips)} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
+    )
 
     all_trips_gdf = gpd.GeoDataFrame(all_trips, geometry="geometry", crs="EPSG:4326")
     all_trips_gdf["bus_stop_time"] = pd.to_datetime(all_trips_gdf["bus_stop_time"])
 
+    # save issue trips examples
+    with open(f"{DIR}/qc/bad_trips_{pid}.pickle", "wb") as f:
+        # Pickle the 'data' using the highest protocol available.
+        pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
+
     return all_trips_gdf
-
-
-def process_all_patterns():
-    """
-    Process all the trips for all patterns available. Export one file per pattern.
-    """
-    PID_DIR = f"{DIR}/pids/patterns"
-    pids = []
-    for pid_file in os.listdir(PID_DIR):
-        numbers = re.findall(r"\d+", pid_file)
-        pid = numbers[0]
-        pids.append(pid)
-
-    pids = set(pids)
-
-    if not os.path.exists(f"{DIR}/trips"):
-        os.makedirs(f"{DIR}/trips")
-
-    for pid in pids:
-        print(pid)
-        result = process_pattern(pid)
-        # do something with the result
-        result.to_parquet(
-            f"{DIR}/trips/test_trips_{pid}_full.parquet", index=False
-        )
-
-
-if __name__ == "__main__":
-    """
-   adding in a test for one pattern
-    """
-    DIR = pathlib.Path(__file__).parent / "out"
-
-    if not os.path.exists(f"{DIR}/trips"):
-        os.makedirs(f"{DIR}/trips")
-
-    if len(sys.argv) > 3:
-        print(
-            "Usage: python -m calculate_stop_time <[optional] pid> <[optional] number of trips to process>"
-        )
-        sys.exit(1)
-    elif len(sys.argv) == 3:
-        # run in testing model with limited number of trips
-        result = process_pattern(sys.argv[1], sys.argv[2])
-        result.to_parquet(f"{DIR}/trips/test_trips_{sys.argv[1]}_small.parquet", index=False)
-    elif len(sys.argv) == 2:
-        # run for pattern for all trips
-        result = process_pattern(sys.argv[1])
-        result.to_parquet(f"{DIR}/trips/test_trips_{sys.argv[1]}_full.parquet", index=False)
-    elif len(sys.argv) == 1:
-        # run for all patterns and all trips
-        process_all_patterns()
-        print("done")

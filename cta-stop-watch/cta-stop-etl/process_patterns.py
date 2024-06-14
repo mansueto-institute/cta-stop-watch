@@ -100,24 +100,3 @@ def convert_to_geometries(pid: str) -> bool:
     segment_df.to_parquet(f"{PID_DIR}/patterns/pid_{pid}_segment.parquet")
 
     return True
-
-
-if __name__ == "__main__":
-    DIR = pathlib.Path(__file__).parent / "out"
-
-    all_pids = os.listdir(f"{DIR}/pids")
-
-    # Run process for all of the files
-    if len(sys.argv) == 1:
-        pids = all_pids
-    # Run process just for specified pid
-    else:
-        pids = [sys.argv[1]]
-
-    if not os.path.exists(f"{DIR}/patterns"):
-        os.makedirs(f"{DIR}/patterns")
-
-    for pid_file in pids:
-        pid = pid_file.replace(".parquet", "")
-        print(f"Processing pattern for PID: {pid}")
-        convert_to_geometries(pid)
