@@ -24,7 +24,7 @@ def get_feeds():
     df = pd.DataFrame(r["feeds"][0]["feed_versions"])
 
     print("Writing metadata")
-    df.to_parquet(f"{DIR}/historic_gtfs/metadata.parquet")
+    df.to_parquet(f"{DIR}/inp/historic_gtfs/metadata.parquet")
 
     historic_feeds = df[df["earliest_calendar_date"] >= "2022-03-01"]["sha1"].tolist()
     return historic_feeds
@@ -33,10 +33,10 @@ def get_feeds():
 def download_historic_feed(sha1: str):
     URL = "https://transit.land/api/v2/rest/feed_versions/"
     FULL_URL = URL + sha1 + "/download" + "?api_key=" + TRANSIT_LAND_API_KEY
-    filename = f"historic_gtfs/{sha1}.zip"
+    filename = f"inp/historic_gtfs/{sha1}.zip"
 
-    if not os.path.exists(f"{DIR}/historic_gtfs"):
-        os.makedirs(f"{DIR}/historic_gtfs")
+    if not os.path.exists(f"{DIR}/inp/historic_gtfs"):
+        os.makedirs(f"{DIR}/inp/historic_gtfs")
 
     urlretrieve(FULL_URL, filename)
 
@@ -45,7 +45,7 @@ def download_historic_feed(sha1: str):
 
 def main():
     historic_feeds = get_feeds()
-
+    
     for feed in historic_feeds:
         print(f"Downloading {feed}")
         download_historic_feed(feed)
