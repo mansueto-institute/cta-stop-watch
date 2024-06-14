@@ -549,6 +549,16 @@ files = [
 ]
 
 [[package]]
+name = "env"
+version = "0.1.0"
+description = "Environment Variables for Humans"
+optional = false
+python-versions = "*"
+files = [
+    {file = "env-0.1.0.tar.gz", hash = "sha256:e07975087b08dd2aea45bf83447c7e21f43cf916bbc2a0722fceb66e54d03935"},
+]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.2.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -2298,4 +2308,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0b7ef34a7c228838d9530d5ac0b70a48d1074ebe0d127497bc37125bb27f64e1"
+content-hash = "53d78a6c0a1f55a20160d673780fd3dda18b4b726ec5254b2fdcb35d89b30896"

@@ -1,11 +1,8 @@
 import os
 import pandas as pd
-from dotenv import load_dotenv
 import requests
 import json
 import pathlib
-
-load_dotenv()
 
 # Register CTA API key to scrape bus data
 os.environ["CTA_API_KEY"] = "user_api_key"
