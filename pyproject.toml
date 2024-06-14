@@ -22,6 +22,7 @@ black = "^24.4.2"
 matplotlib = "^3.9.0"
 ruff = "^0.4.8"
 mapclassify = "^2.6.1"
+env = "^0.1.0"
 
 
 
