@@ -76,6 +76,7 @@ if __name__ == "__main__":
                 convert_to_geometries(pid)
             except:
                 print(f"Do not have pattern {pid} available currently")
+                continue
 
             print(f"Processing stop time for all trips of pattern {pid}")
             start = time.time()
