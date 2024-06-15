@@ -254,8 +254,9 @@ def process_pattern(pid: str, tester: str = float("inf")):
     all_trips_gdf["bus_stop_time"] = pd.to_datetime(all_trips_gdf["bus_stop_time"])
 
     # save issue trips examples
-    with open(f"{DIR}/qc/bad_trips_{pid}.pickle", "wb") as f:
-        # Pickle the 'data' using the highest protocol available.
-        pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
+    if len(bad_trips) > 0:
+        with open(f"{DIR}/qc/bad_trips_{pid}.pickle", "wb") as f:
+            # Pickle the 'data' using the highest protocol available.
+            pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
     return all_trips_gdf
