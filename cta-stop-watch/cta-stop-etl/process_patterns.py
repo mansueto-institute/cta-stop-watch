@@ -32,11 +32,7 @@ def convert_to_geometries(pid: str) -> bool:
     # load in raw pattern data
     PID_DIR = pathlib.Path(__file__).parent / "out"
 
-    try:
-        df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
-    except FileNotFoundError:
-        print(f"Pattern {pid} not found")
-        return False
+    df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
 
     # Convert into geodata with projection for Chicago (EPSG 4326)
     df_pattern = gpd.GeoDataFrame(
