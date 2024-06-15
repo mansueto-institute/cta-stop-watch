@@ -1,6 +1,6 @@
 import pathlib
 import os
-from calculate_stop_time import process_all_patterns, process_pattern
+from calculate_stop_time import process_pattern
 from process_patterns import convert_to_geometries
 from qc_pipeline import qc_pipeline
 import sys

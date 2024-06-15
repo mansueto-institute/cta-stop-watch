@@ -1,10 +1,7 @@
-import os
 import pandas as pd
 import warnings
 import geopandas as gpd
 from geopandas import GeoDataFrame
-import sys
-import re
 import pathlib
 from shapely import box
 import pickle
