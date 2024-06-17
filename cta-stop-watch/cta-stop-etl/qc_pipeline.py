@@ -15,7 +15,7 @@ import sys
 # NA times and avg sped too high
 def all_values_check(df: GeoDataFrame):
     """
-    return number of trips and actual trips with a bus stop with NA time or a max speed over 80mph for a pattern
+    return number of trips and actual trips with a bus stop with NA time or a max speed over 150mph for a pattern
     """
 
     # Avg speed too high
@@ -28,7 +28,7 @@ def all_values_check(df: GeoDataFrame):
     na_times_trips = set(na_times_df["unique_trip_vehicle_day"].unique().tolist())
 
     print(f"There are {len(na_times_trips)} trips with bus stops with NA time")
-    print(f"There are {len(avg_speed_trips)} trips with bus speeds over 80mph")
+    print(f"There are {len(avg_speed_trips)} trips with bus speeds over 150mph")
 
     # negative_times_trips
 
@@ -38,7 +38,7 @@ def all_values_check(df: GeoDataFrame):
 def time_issues(df: GeoDataFrame):
     """
     Checks is the first stop is the min time and the last stop is the max time
-    Checks if the total trip time is over 4 hours
+    Checks if the total trip time is over 8 hours
     """
     min_max_time_issue_trips = []
     very_long_trips = []
@@ -89,30 +89,36 @@ def qc_pipeline(pid: str = "all"):
 
     DIR = pathlib.Path(__file__).parent / "out"
 
+    PID_DIR = f"{DIR}/pids"
+    pids = []
+    for pid_file in os.listdir(PID_DIR):
+        numbers = re.findall(r"\d+", pid_file)
+        num = numbers[0]
+        pids.append(num)
+
+    pids_all = [int(pid) for pid in pids]
+    pids_all = set(pids_all)
+
     qc_rows = []
 
     issue_examples = []
 
     if pid == "all":
-        pids = os.listdir(f"{DIR}/patterns")
+        pids = pids_all
     else:
         pids = [pid]
 
-    for pids in pids:
-        pid = re.findall(r"\d+", pids)[0]
+    for pid in pids:
         print(f"Running QC for pattern {pid}")
 
         try:
-            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}_full.parquet")
+            df = pd.read_parquet(f"{DIR}/trips/trips_{pid}_full.parquet")
         except:
-            df = pd.read_parquet(f"{DIR}/trips/test_trips_{pid}_small.parquet")
+            print(f"Trips for pattern {pid} not available")
+            continue
 
-        # TODO add somewhere else
-        # df["time"] = df[["bus_stop_time", "bus_location_time"]].bfill(axis=1).iloc[:, 0]
-        # df.drop(columns=["bus_stop_time", "bus_location_time"], inplace=True)
         df = df[df["typ"] == "S"]
 
-        # negative_times_trips,
         na_times_trips, avg_speed_trips = all_values_check(df)
         same_time_trips, min_max_time_issue_trips, very_long_trips = time_issues(df)
 
