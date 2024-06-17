@@ -44,7 +44,7 @@ if __name__ == "__main__":
             print(f"Processing Pattern {sys.argv[2]}")
             try:
                 convert_to_geometries(sys.argv[2])
-            except:
+            except FileNotFoundError:
                 print(f"Do not have pattern {sys.argv[2]} available currently")
             if not os.path.exists(f"{DIR}/trips"):
                 os.makedirs(f"{DIR}/trips")
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         for pid in pids:
             try:
                 convert_to_geometries(pid)
-            except:
+            except FileNotFoundError:
                 print(f"Do not have pattern {pid} available currently")
                 continue
 

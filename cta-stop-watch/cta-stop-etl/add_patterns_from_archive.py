@@ -1,10 +1,9 @@
 import os
-import sys
 import pandas as pd
 import geopandas as gpd
 from shapely import LineString
 import pathlib
-import re 
+import re
 import logging
 import time
 
@@ -13,10 +12,9 @@ import time
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(filename='process_patterns.log', 
-                    filemode="w",
-                    encoding='utf-8', 
-                    level=logging.DEBUG)
+logging.basicConfig(
+    filename="process_patterns.log", filemode="w", encoding="utf-8", level=logging.INFO
+)
 
 logging.info(f"Log initialized at {time.time()}")
 
@@ -30,15 +28,6 @@ DIR_INP = pathlib.Path(__file__).parent.parent / "scrapers/out/gtfs/"
 DIR_OUT = pathlib.Path(__file__).parent / "out"
 
 # Functions -------------------------------------------------------------------
-
-# def load_pid(pid: str) -> pd.DataFrame | bool:
-#     try:
-#         df_raw = pd.read_parquet(f"{DIR_OUT}/patterns_raw/pid_{pid}_raw.parquet")
-#         return df_raw, True 
-#     except FileNotFoundError:
-#         # print(f"Pattern {pid} not found")
-#         logging.info(f"Pattern {pid} not found")
-#         return False 
 
 
 def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
@@ -82,6 +71,11 @@ def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
     logging.debug(f"{type(df_pattern)}")
     logging.debug(f"{df_pattern.shape}")
 
+    # Because we're dealing with an sliced data frame, indices must be restarted
+    # to be able to iterate over them without running into issues of being out
+    # of range
+    df_pattern = df_pattern.reset_index(drop=True)
+
     for idx, segment_data in df_pattern.iterrows():
         logging.debug(f"{idx = }, {type(segment_data) = }")
         # The first bus stop is stored as a point geometry instead of line
@@ -121,20 +115,23 @@ def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
 
     return df_pattern, df_segment
 
-def write_patters(df_pattern: pd.DataFrame, df_segment: pd.DataFrame, path: pathlib.Path): 
-    print(
-    f"Writing {path}/pid_{pid}_stop.parquet and {path}/pid_{pid}_segment.parquet"
-)
+
+def write_patters(
+    pid: str, df_pattern: pd.DataFrame, df_segment: pd.DataFrame, path: pathlib.Path
+):
+
+    # Parse id as integers to remove leading zeros
+    try:
+        pid = int(pid)
+    except ValueError:
+        pass
+
+    print(f"Writing {path}/pid_{pid}_stop.parquet and {path}/pid_{pid}_segment.parquet")
     df_pattern.to_parquet(f"{path}/pid_{pid}_stop.parquet")
     df_segment.to_parquet(f"{path}/pid_{pid}_segment.parquet")
 
     return True
 
-# def process_patterns_from_cta_api():
-#     pass 
-
-# def process_patterns_from_archive(): 
-#     pass
 
 # Implementation (main) -------------------------------------------------------
 
@@ -143,17 +140,17 @@ if __name__ == "__main__":
     logging.info("\n\nRunning pattern processor from archival GTFS data")
 
     # Check historic records for additional pids
-    logging.info("\n 2. Look for missing PIDs' patterns on historic data")
+    logging.info("\n 1. Look for missing PIDs' patterns on historic data")
 
     existing_patterns = os.listdir(DIR_OUT / "patterns")
-    existing_pids     = [re.sub("[^0-9]", "", p).zfill(4) for p in existing_patterns]
+    existing_pids = [re.sub("[^0-9]", "", p).zfill(4) for p in existing_patterns]
     new_pids = []
-    
+
     logging.info(f"{existing_pids}\n")
 
     historic_gtfs_shapes = os.listdir(DIR_INP)
 
-    for snapshot in historic_gtfs_shapes: 
+    for snapshot in historic_gtfs_shapes:
         # Load snapshot parquet
         logging.info(f"\tChecking PIDs in {snapshot}")
         df_gtfs_patterns = pd.read_parquet(DIR_INP / snapshot)
@@ -170,13 +167,9 @@ if __name__ == "__main__":
             # Process pid if missing and store shapefile
             df_pid = df_gtfs_patterns[df_gtfs_patterns["pid"] == pid]
             df_pattern, df_segment = convert_to_geometries(df_pid)
-            write_patters(df_pattern, df_segment, DIR_OUT / "patterns/from_gtfs")
+            write_patters(pid, df_pattern, df_segment, DIR_OUT / "patterns/from_gtfs")
 
             existing_pids.append(pid)
             new_pids.append(pid)
 
         logging.info(f"New patterns added for PIDs: {new_pids}")
-
-
-
-
