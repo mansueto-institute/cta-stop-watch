@@ -77,8 +77,15 @@ mapview(sf_chicago) +
 
 ## STOPS BY COMMUNITY AREA -----------------------------------------------------
 
+df_avg_time <- arrow::read_parquet("../analysis/aggregated_times_stops.parquet")
+
 # Count stops by Census Tract 
 sf_communities$n_stops <- lengths(st_intersects(sf_communities, sf_stops))
+
+mapview(sf_chicago) + 
+    mapview(sf_communities, alpha=0.6) +
+    mapview(sf_stops, alpha = 0, size = 4, cex = 1, 
+            col.regions = "red")
 
 mapview(sf_chicago) + 
     mapview(sf_communities, alpha=.05, zcol = "n_stops") +
@@ -190,6 +197,52 @@ mapview(sf_chicago) +
 
 mapview(sf_chicago) + 
     mapview(sf_tot_pop_comms, alpha=.05, zcol = "stops_percap") 
+
+
+## Imputed time data -----------------------------------------------------------
+
+# Paste point geometries 
+sf_stops_routes <- df_avg_time |>
+    left_join(sf_stops |> mutate(stpid = as.character(SYSTEMSTOP)), 
+              by = join_by(stpid)) |> 
+    sf::st_as_sf()
+
+sf_communities$n_stops_route <- lengths(st_intersects(sf_communities, sf_stops_routes))
+
+# Buses per hour 
+sf_stops_communities <- sf_communities |> 
+    st_join(sf_stops_routes)
+
+sf_avg_comms <- sf_stops_communities |> 
+    group_by(community, geometry)       |> 
+    summarise(avg_bus_per_hour = sum(avg_bus_per_hour), 
+              avg_wait_time_minutes = mean(avg_wait_time_minutes))
+
+## PRESENTATION ----------------------------------------------------------------
+
+
+mapview(sf_chicago) + 
+    mapview(sf_communities, alpha=0.8, zcol = "community", legend = FALSE) 
+
+mapview(sf_chicago) + 
+    mapview(sf_communities, alpha=0.8, zcol = "community", legend = FALSE) +
+    mapview(sf_stops, alpha = 0.2, size = 4, cex = 2, 
+            col.regions = "red")
+
+mapview(sf_chicago) + 
+    mapview(sf_communities, alpha=.05, zcol = "n_stops") +
+    mapview(sf_stops, alpha = 0, size = 2, cex = 1, 
+            col.regions = "grey")
+
+# mapview(sf_chicago) + 
+#     mapview(sf_tot_pop_comms, alpha=.05, zcol = "stops_percap") 
+
+mapview(sf_chicago) + 
+    mapview(sf_communities, alpha=.05, zcol = "n_stops_route") 
+
+mapview(sf_chicago) + 
+    mapview(sf_avg_comms, alpha=.05, zcol = "avg_bus_per_hour") 
+
 
 
 # # 2. Stops data + ACS --------------------------------------------------------
