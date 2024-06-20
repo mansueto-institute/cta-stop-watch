@@ -80,10 +80,6 @@ def convert_to_geometries(pid: str) -> bool:
     #         segment_df.iloc[0:i].geometry.unary_union
     #     )
 
-    # not used
-    # segment_df.loc[:, "time_spent_in_segment"] = pd.to_timedelta(0)
-    # segment_df.loc[:, "occurences_in_segment"] = 0
-
     # create unqiue id for each stop on the pattern
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 

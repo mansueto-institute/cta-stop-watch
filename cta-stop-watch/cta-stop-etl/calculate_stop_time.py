@@ -195,13 +195,6 @@ def process_pattern(pid: str, tester: str = float("inf")):
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
-    # is data for this pattern available?
-    # TODO check if pattern is available
-    # try:
-    #     prepare_segment(pid)
-    # except NameError:
-    #     print(f"Pattern {pid} not available")
-    #     return False
 
     # prepare the segments
     segments_gdf = prepare_segment(pid)
@@ -215,7 +208,6 @@ def process_pattern(pid: str, tester: str = float("inf")):
     # for each trip in the pattern, create df that has the bus location and the segment that it is in then interpolate
     all_trips = []
     count = 0
-    test_flag = False
 
     bad_trips = []
 
