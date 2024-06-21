@@ -84,9 +84,9 @@ def convert_to_geometries(pid: str) -> bool:
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
     print(
-        f"Writing out/patterns/pid_{pid}_stop.parquet and out/patterns/pid_{pid}_segment.parquet"
+        f"Writing out/patterns_current/pid_{pid}_stop.parquet and out/patterns_current/pid_{pid}_segment.parquet"
     )
-    df_pattern.to_parquet(f"{PID_DIR}/patterns/pid_{pid}_stop.parquet")
-    segment_df.to_parquet(f"{PID_DIR}/patterns/pid_{pid}_segment.parquet")
+    df_pattern.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_stop.parquet")
+    segment_df.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_segment.parquet")
 
     return True

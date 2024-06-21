@@ -167,7 +167,7 @@ if __name__ == "__main__":
             # Process pid if missing and store shapefile
             df_pid = df_gtfs_patterns[df_gtfs_patterns["pid"] == pid]
             df_pattern, df_segment = convert_to_geometries(df_pid)
-            write_patters(pid, df_pattern, df_segment, DIR_OUT / "patterns/from_gtfs")
+            write_patters(pid, df_pattern, df_segment, DIR_OUT / "patterns_historic")
 
             existing_pids.append(pid)
             new_pids.append(pid)

@@ -6,7 +6,7 @@ import pathlib
 from shapely import box
 import pickle
 
-from Interpolation import interpolate_stoptime
+from interpolation import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -18,8 +18,15 @@ def prepare_segment(pid: str):
     prepares the created segments from a pattern (pid) for use with the bus location.
     """
     # load segment
-    # gpd.read_parquet
-    segments_gdf = gpd.read_parquet(f"{DIR}/patterns/pid_{pid}_segment.parquet")
+
+    try:
+        segments_gdf = gpd.read_parquet(
+            f"{DIR}/patterns_current/pid_{pid}_segment.parquet"
+        )
+    except:
+        segments_gdf = gpd.read_parquet(
+            f"{DIR}/patterns_historic/pid_{pid}_segment.parquet"
+        )
 
     segments_gdf["prev_segment"] = segments_gdf["segments"]
     segments_gdf["segment"] = segments_gdf["segments"] + 1
@@ -92,8 +99,10 @@ def prepare_stops(pid: str):
     Prepares the stops from a pattern (pid) for use with the bus location
     """
 
-    # gpd.read_parquet
-    stops_gdf = gpd.read_parquet(f"{DIR}/patterns/pid_{pid}_stop.parquet")
+    try:
+        stops_gdf = gpd.read_parquet(f"{DIR}/patterns_current/pid_{pid}_stop.parquet")
+    except:
+        stops_gdf = gpd.read_parquet(f"{DIR}/patterns_historic/pid_{pid}_stop.parquet")
 
     stops_gdf.rename(columns={"segment": "seg_combined"}, inplace=True)
     stops_gdf["data_time"] = None
