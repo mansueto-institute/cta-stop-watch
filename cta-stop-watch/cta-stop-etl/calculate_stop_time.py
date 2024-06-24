@@ -162,7 +162,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     # merge with stops to get full processed df
     processed_trips_gdf["typ"] = "B"
     processed_trips_gdf = processed_trips_gdf[
-        ["seg_combined", "typ", "bus_location", "data_time"]
+        ["seg_combined", "typ", "bus_location", "data_time", 'vid']
     ]
     processed_trips_gdf.rename(columns={"bus_location": "geometry"}, inplace=True)
 
@@ -192,6 +192,7 @@ def process_one_trip(
     merge_time_end = time.time()
 
     gdf["unique_trip_vehicle_day"] = trip_id
+    gdf['vid'] = int(gdf[gdf['vid'].notna()]['vid'].unique()[0])
 
     inter_time_start = time.time()
     gdf, start_loop_total, stop_time_total, first_last_time_total = interpolate_stoptime(gdf)
