@@ -8,7 +8,7 @@ import pickle
 import os
 import time
 
-from interpolation import interpolate_stoptime
+from Interpolation import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -232,11 +232,11 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     stop_time = 0
     first_last = 0
     for trip_id, trip_gdf in trips_gdf.groupby("unique_trip_vehicle_day"):
-        try:
-            processed_trip_df, trip_merge_time, inter_merge_time, start_loop_total, stop_time_total, first_last_time_total = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
-        except Exception as e:
-            bad_trips.append(trip_id)
-            continue
+        #try:
+        processed_trip_df, trip_merge_time, inter_merge_time, start_loop_total, stop_time_total, first_last_time_total = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
+        # except Exception as e:
+        #     bad_trips.append(trip_id)
+        #     continue
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
         all_trips += processed_trip_dict
@@ -262,8 +262,8 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     print(f"Total stop time time: {stop_time}")
     print(f"Total first last time time: {first_last}")
 
-    all_trips_gdf = gpd.GeoDataFrame(all_trips, geometry="geometry", crs="EPSG:4326")
-    all_trips_gdf["bus_stop_time"] = pd.to_datetime(all_trips_gdf["bus_stop_time"])
+    all_trips_df = pd.DataFrame(all_trips)
+    all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
 
     # save issue trips examples
     if len(bad_trips) > 0:
@@ -272,7 +272,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
             pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
 
-    return all_trips_gdf
+    return all_trips_df
 
 
 def calculate_patterns(pids: list):
