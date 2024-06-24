@@ -6,6 +6,7 @@ from qc_pipeline import qc_pipeline
 from create_data_part import full_download
 from extract_routes import extract_routes
 from add_patterns_from_archive import main as patterns_historic
+from ..scrapers.process_historic_gtfs import main as process_historic_gtfs
 import time
 import re
 import argparse
@@ -26,7 +27,7 @@ def parse_arguments():
         "--pipeline_step",
         type=str,
         required=True,
-        choices=["process_patterns", "stop_time", "qc", "full", "download_trips"],
+        choices=["process_patterns", "stop_time", "qc", "full", "download_trips", 'download_patterns'],
         help="Specify which part of the pipeline to run",
     )
 
@@ -82,6 +83,10 @@ if __name__ == "__main__":
     if args.pipeline_step == 'download_trips':
         full_download('2022-6-1', '2024-6-1')
         extract_routes()
+
+    elif args.pipeline_step == "download_patterns":
+        print(f"Downloading patterns")
+        process_historic_gtfs()
     
     elif args.pipeline_step == "process_patterns":
         print(f"Processing {len(pids_pattern)} pattern(s)")

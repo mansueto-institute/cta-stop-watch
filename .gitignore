@@ -7,6 +7,8 @@ env.py
 historic_gtfs/
 *.log
 */analysis/out/
+*/scrapers/inp
+*/scrapers/out
 
 # R files ---------------------------------------------------------------------
 

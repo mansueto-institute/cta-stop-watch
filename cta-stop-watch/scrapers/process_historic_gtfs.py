@@ -93,8 +93,7 @@ def build_merged_pattern_data(
 
     return df_patterns
 
-
-if __name__ == "__main__":
+def main():
 
     print("\n\nRunning GTFS scraper")
 
@@ -142,3 +141,8 @@ if __name__ == "__main__":
         df_patterns.write_parquet(f"{DIR}/out/gtfs/{name}.parquet")
 
     print(f"Folders with missing text files:\n\t{folders_to_inspect}")
+
+if __name__ == "__main__":
+    main()
+
+    
