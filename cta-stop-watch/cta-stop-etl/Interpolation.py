@@ -8,49 +8,16 @@ def interpolate_stoptime(trip_df):
     given a route df with stops and bus location, interpolate the time when the bus is at each stop
     """
 
-    b_val = 1
-    s_val = 0
-    b_indices = []
-    s_indices = []
-    dist_next = []
-    ping_times = []
-    bus_stop_times = []
-    previous_time = None
-
     trip_df = trip_df.to_crs("epsg:26971")
     trip_df.loc[:, "data_time"] = pd.to_datetime(trip_df.data_time)
 
-    for i, row in trip_df.iterrows():
-        if row["typ"] == "B":
-            b_val += 1
-        b_indices.append(b_val)
-    for i, row in trip_df.iterrows():
-        if row["typ"] == "S":
-            s_val += 1
-        s_indices.append(s_val)
+    trip_df['b_index'] = (trip_df['typ'] == 'B').cumsum()
+    trip_df['b_index'] = trip_df['b_index'].ffill()
+    
+    trip_df['s_index'] = (trip_df['typ'] == 'S').cumsum()
+    trip_df['s_index'] = trip_df['s_index'].ffill()
 
-        current_point = row["geometry"]
-
-        next_row = trip_df.iloc[i + 1] if i + 1 < len(trip_df) else None
-        next_point = next_row["geometry"] if next_row is not None else None
-
-        # calculates the distance from the current point to the next point
-        if next_point is not None:
-            distance = current_point.distance(next_point)
-        else:
-            distance = None
-        dist_next.append(distance)
-
-        if row["typ"] == "B":
-            if previous_time is not None:
-                time_diff = row["data_time"] - previous_time
-                ping_times.append(time_diff)
-            previous_time = row["data_time"]
-
-    # assigns the 'b_value' and 'dist_next' columns
-    trip_df["b_value"] = b_indices
-    trip_df["s_value"] = s_indices
-    trip_df["dist_next"] = dist_next
+    trip_df['distance'] = trip_df['geometry'].distance(trip_df['geometry'].shift(-1))
 
     # Calculate accumulated distance
     trip_df["accumulated_distance"] = trip_df.groupby("b_value")["dist_next"].cumsum()
@@ -90,22 +57,7 @@ def interpolate_stoptime(trip_df):
     stops_df["original_index"] = stops_df.index
     stops_df.reset_index(drop=True, inplace=True)
 
-    for i, row in stops_df.iterrows():
-
-        proportion = (
-            row["accumulated_distance"] / row["ping_dist"]
-            if row["ping_dist"] != 0
-            else 0
-        )
-
-        bus_stop_time = row["data_time_y"] + (row["ping_time_diff"] * proportion)
-
-        bus_stop_times.append(bus_stop_time)
-
-    stops_df["bus_stop_time"] = bus_stop_times
-
-    # calculate the time difference in seconds between consecutive bus stops
-    # stops_df["time_diff"] = stops_df["bus_stop_time"].diff()
+    stops_df['bus_stop_time'] = stops_df['data_time_y'] + (stops_df['ping_time_diff'] * stops_df['accumulated_distance'] / stops_df['ping_dist'].replace(0, 0))
 
     # calculate the speed in meters per second then to mph
     stops_df["time_diff_seconds"] = stops_df["ping_time_diff"].apply(
