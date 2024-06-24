@@ -6,9 +6,38 @@ from qc_pipeline import qc_pipeline
 import sys
 import time
 import re
+import argparse
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Run the full or partial ETL pipeline."
+    )
+    parser.add_argument(
+        "-t",
+        "--test_pid",
+        type=int,
+        help="Allows for a run of the pipeline with a specific pattern id",
+    )
+    parser.add_argument(
+        "-p",
+        "--partial_pipeline",
+        type=str,
+        help="Allows for a partial run of the pipeline",
+    )
+
+    args = parser.parse_args()
+    return args
+
 
 if __name__ == "__main__":
 
+    args = parse_arguments()
+    print(args)
+
+"""
+
+    # TODO use arg parser
     DIR = pathlib.Path(__file__).parent / "out"
 
     if len(sys.argv) > 4 or (
@@ -86,3 +115,5 @@ if __name__ == "__main__":
             result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
 
             print(f"Time taken for stop times for {pid}: {(end - start) / 60} minutes")
+
+            """

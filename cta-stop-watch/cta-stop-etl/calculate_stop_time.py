@@ -5,6 +5,7 @@ from geopandas import GeoDataFrame
 import pathlib
 from shapely import box
 import pickle
+import os
 
 from interpolation import interpolate_stoptime
 
@@ -18,16 +19,10 @@ def prepare_segment(pid: str):
     prepares the created segments from a pattern (pid) for use with the bus location.
     """
     # load segment
+    # try current and then historic
+    segments_gdf = pattern_opener(pid, "segment")
 
-    try:
-        segments_gdf = gpd.read_parquet(
-            f"{DIR}/patterns_current/pid_{pid}_segment.parquet"
-        )
-    except:
-        segments_gdf = gpd.read_parquet(
-            f"{DIR}/patterns_historic/pid_{pid}_segment.parquet"
-        )
-
+    # .loc
     segments_gdf["prev_segment"] = segments_gdf["segments"]
     segments_gdf["segment"] = segments_gdf["segments"] + 1
     segments_gdf = segments_gdf[["prev_segment", "segment", "geometry"]]
@@ -99,10 +94,7 @@ def prepare_stops(pid: str):
     Prepares the stops from a pattern (pid) for use with the bus location
     """
 
-    try:
-        stops_gdf = gpd.read_parquet(f"{DIR}/patterns_current/pid_{pid}_stop.parquet")
-    except:
-        stops_gdf = gpd.read_parquet(f"{DIR}/patterns_historic/pid_{pid}_stop.parquet")
+    stops_gdf = pattern_opener(pid, "stop")
 
     stops_gdf.rename(columns={"segment": "seg_combined"}, inplace=True)
     stops_gdf["data_time"] = None
@@ -146,6 +138,8 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
         drop=True
     )
 
+    # only overlap segments at end of segment
+
     # i think itertuples is faster than iterrows.
     for row in processed_trips_gdf.itertuples():
         # if not assigned yet
@@ -171,9 +165,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     processed_trips_gdf.rename(columns={"bus_location": "geometry"}, inplace=True)
 
     final_gdf = pd.concat([processed_trips_gdf, stops_gdf], axis=0)
-    final_gdf = final_gdf.sort_values(["seg_combined", "data_time"]).reset_index(
-        drop=True
-    )
+    final_gdf = final_gdf.reset_index(drop=True)
 
     return final_gdf
 
@@ -261,3 +253,16 @@ def process_pattern(pid: str, tester: str = float("inf")):
             pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
     return all_trips_gdf
+
+
+def pattern_opener(pid: str, type: str):
+    """
+    look for processed pattern date, try current then try historic
+    """
+    # try current and then historic
+    if os.path.exists(f"{DIR}/patterns_current/pid_{pid}_{type}.parquet"):
+        gdf = gpd.read_parquet(f"{DIR}/patterns_current/pid_{pid}_{type}.parquet")
+    else:
+        gdf = gpd.read_parquet(f"{DIR}/patterns_historic/pid_{pid}_{type}.parquet")
+
+    return gdf
