@@ -81,39 +81,23 @@ def time_issues(df: GeoDataFrame):
 # Variations for bus stop
 
 
-def qc_pipeline(pid: str = "all"):
+def qc_pipeline(pids: list):
     """
     This function will run the qc pipeline for the ETL process
     """
-    print("Running QC Pipeline")
-
-    DIR = pathlib.Path(__file__).parent / "out"
-
-    PID_DIR = f"{DIR}/pids"
-    pids = []
-    for pid_file in os.listdir(PID_DIR):
-        numbers = re.findall(r"\d+", pid_file)
-        num = numbers[0]
-        pids.append(num)
-
-    pids_all = [int(pid) for pid in pids]
-    pids_all = set(pids_all)
 
     qc_rows = []
 
     issue_examples = []
 
-    if pid == "all":
-        pids = pids_all
-    else:
-        pids = [pid]
+    DIR = pathlib.Path(__file__).parent / "out"
 
     for pid in pids:
         print(f"Running QC for pattern {pid}")
 
         try:
             df = pd.read_parquet(f"{DIR}/trips/trips_{pid}_full.parquet")
-        except:
+        except FileNotFoundError:
             print(f"Trips for pattern {pid} not available")
             continue
 
@@ -157,24 +141,6 @@ def qc_pipeline(pid: str = "all"):
     qc_df.to_parquet(f"{DIR}/qc/qc_summary_df.parquet")
 
     return True
-
-
-if __name__ == "__main__":
-    if len(sys.argv) > 2:
-        print("Usage: python -m qc_pipeline <[optional] pid>")
-        sys.exit(1)
-
-    elif len(sys.argv) == 2:
-        pid = sys.argv[1]
-        qc_pipeline(pid)
-    else:
-        qc_pipeline()
-
-# to read pickle
-# with open("data.pickle", "rb") as f:
-#     # The protocol version used is detected automatically, so we do not
-#     # have to specify it.
-#     data = pickle.load(f)
 
 
 def stops_per_pattern():

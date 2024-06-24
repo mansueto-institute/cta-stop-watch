@@ -1,7 +1,7 @@
 import pathlib
 import os
-from calculate_stop_time import process_pattern
-from process_patterns import convert_to_geometries
+from calculate_stop_time import calculate_patterns
+from process_patterns import process_patterns
 from qc_pipeline import qc_pipeline
 import sys
 import time
@@ -21,22 +21,95 @@ def parse_arguments():
     )
     parser.add_argument(
         "-p",
-        "--partial_pipeline",
+        "--pipeline_step",
         type=str,
-        help="Allows for a partial run of the pipeline",
+        required=True,
+        choices=["process_pattern", "stop_time", "qc", "full", "download_trips"],
+        help="Specify which part of the pipeline to run",
     )
 
     args = parser.parse_args()
     return args
 
 
+def all_pids(DIR, type):
+    """
+    Find list of all pids currently available.
+    """
+
+    if type == "trip_data":
+        PID_DIR = f"{DIR}/pids"
+        pids = []
+        for pid_file in os.listdir(PID_DIR):
+            numbers = re.findall(r"\d+", pid_file)
+            pid = numbers[0]
+            pids.append(pid)
+    elif type == "processed_patterns":
+        pattern_current_DIR = f"{DIR}/patterns_current"
+        pattern_historic_DIR = f"{DIR}/patterns_historic"
+
+        pids_c = []
+        for pid_file in os.listdir(pattern_current_DIR):
+            numbers = re.findall(r"\d+", pid_file)
+            pid = numbers[0]
+            pids_c.append(pid)
+
+        pids_h = []
+        for pid_file in os.listdir(pattern_historic_DIR):
+            numbers = re.findall(r"\d+", pid_file)
+            pid = numbers[0]
+            pids_h.append(pid)
+
+        pids = set(pids_c + pids_h)
+
+    return pids
+
+
 if __name__ == "__main__":
 
     args = parse_arguments()
-    print(args)
+    DIR = pathlib.Path(__file__).parent / "out"
+
+    if args.test_pid is not None:
+        pids_pattern = [args.test_pid]
+        pids_calculate = [args.test_pid]
+    else:
+        pids_pattern = all_pids(DIR, "trip_data")
+        pids_calculate = all_pids(DIR, "processed_patterns")
+
+    if args.pipeline_step == "process_pattern":
+        print(f"Processing {len(pids_pattern)} pattern(s)")
+        process_patterns(pids_pattern)
+
+    elif args.pipeline_step == "stop_time":
+        print(f"Calculating stop time for {len(pids_calculate)} pattern(s)")
+
+        calculate_start = time.time()
+        calculate_patterns(pids_calculate)
+        calculate_end = time.time()
+        print(f"calculate_patterns time taken: {(calculate_end - calculate_start)} minutes")
+
+    elif args.pipeline_step == "qc":
+        print(f"Running QC for for {len(pids_calculate)} pattern(s)")
+        qc_pipeline(pids_calculate)
+
+    elif args.pipeline_step == "full":
+        # download and process bus data
+        # TODO
+
+        # Process patterns
+        print(f"Processing {len(pids_pattern)} pattern(s)")
+        process_patterns(pids_pattern)
+
+        # calculate stop time
+        print(f"Calculating stop time for {len(pids_calculate)} pattern(s)")
+        calculate_patterns(pids_calculate)
+
+        # run qc
+        print(f"Running QC for for {len(pids_calculate)} pattern(s)")
+        qc_pipeline(pids_calculate)
 
 """
-
     # TODO use arg parser
     DIR = pathlib.Path(__file__).parent / "out"
 
@@ -115,5 +188,4 @@ if __name__ == "__main__":
             result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
 
             print(f"Time taken for stop times for {pid}: {(end - start) / 60} minutes")
-
-            """
+"""

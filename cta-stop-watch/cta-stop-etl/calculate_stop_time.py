@@ -6,6 +6,7 @@ import pathlib
 from shapely import box
 import pickle
 import os
+import time
 
 from interpolation import interpolate_stoptime
 
@@ -167,6 +168,9 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     final_gdf = pd.concat([processed_trips_gdf, stops_gdf], axis=0)
     final_gdf = final_gdf.reset_index(drop=True)
 
+    final_gdf = final_gdf.sort_values(["seg_combined", "data_time"]).reset_index(
+            drop=True
+        )
     return final_gdf
 
 
@@ -181,18 +185,24 @@ def process_one_trip(
     for one trip, only keep points that are on route, then create route df
     with bus location, then interpolate time when bus is at each stop.
     """
+    
+    merge_time_start = time.time()
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
-    if gdf is False:
-        return False
+    merge_time_end = time.time()
 
     gdf["unique_trip_vehicle_day"] = trip_id
 
-    gdf = interpolate_stoptime(gdf)
+    inter_time_start = time.time()
+    gdf, start_loop_total, stop_time_total, first_last_time_total = interpolate_stoptime(gdf)
+    inter_time_end = time.time()
 
-    return gdf
+    trip_merge_time = merge_time_end - merge_time_start
+    inter_merge_time = inter_time_end - inter_time_start
+
+    return gdf, trip_merge_time, inter_merge_time, start_loop_total, stop_time_total, first_last_time_total
 
 
-def process_pattern(pid: str, tester: str = float("inf")):
+def calculate_pattern(pid: str, tester: str = float("inf")):
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
@@ -216,20 +226,17 @@ def process_pattern(pid: str, tester: str = float("inf")):
 
     print(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
 
-    for row, (trip_id, trip_gdf) in enumerate(
-        trips_gdf.groupby("unique_trip_vehicle_day")
-    ):
+    total_merge_time = 0
+    total_inter_time = 0
+    start_loop = 0
+    stop_time = 0
+    first_last = 0
+    for trip_id, trip_gdf in trips_gdf.groupby("unique_trip_vehicle_day"):
         try:
-            processed_trip_df = process_one_trip(
-                trip_id, trip_gdf, segments_gdf, stops_gdf
-            )
-        except:
+            processed_trip_df, trip_merge_time, inter_merge_time, start_loop_total, stop_time_total, first_last_time_total = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
+        except Exception as e:
             bad_trips.append(trip_id)
             continue
-
-        if processed_trip_df is False:
-            continue
-
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
         all_trips += processed_trip_dict
@@ -239,9 +246,21 @@ def process_pattern(pid: str, tester: str = float("inf")):
         if count >= float(tester):
             break
 
+        total_merge_time += trip_merge_time
+        total_inter_time += inter_merge_time
+        start_loop += start_loop_total
+        stop_time += stop_time_total   
+        first_last += first_last_time_total
+
     print(
         f"Processed {count- len(bad_trips)} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
     )
+
+    print(f"Total merge time: {total_merge_time}")
+    print(f"Total interpolate time: {total_inter_time}")
+    print(f"Total start loop time: {start_loop}")
+    print(f"Total stop time time: {stop_time}")
+    print(f"Total first last time time: {first_last}")
 
     all_trips_gdf = gpd.GeoDataFrame(all_trips, geometry="geometry", crs="EPSG:4326")
     all_trips_gdf["bus_stop_time"] = pd.to_datetime(all_trips_gdf["bus_stop_time"])
@@ -252,7 +271,23 @@ def process_pattern(pid: str, tester: str = float("inf")):
             # Pickle the 'data' using the highest protocol available.
             pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
+
     return all_trips_gdf
+
+
+def calculate_patterns(pids: list):
+    """
+    calculate stop times for all the patterns
+    """
+
+    if not os.path.exists(f"{DIR}/trips"):
+        os.makedirs(f"{DIR}/trips")
+
+    for pid in pids:
+        result = calculate_pattern(pid)
+        result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
+
+    return True
 
 
 def pattern_opener(pid: str, type: str):

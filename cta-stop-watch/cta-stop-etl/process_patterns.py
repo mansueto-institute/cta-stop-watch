@@ -32,7 +32,10 @@ def convert_to_geometries(pid: str) -> bool:
     # load in raw pattern data
     PID_DIR = pathlib.Path(__file__).parent / "out"
 
-    df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
+    try:
+        df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
+    except FileNotFoundError:
+        return False
 
     # Convert into geodata with projection for Chicago (EPSG 4326)
     df_pattern = gpd.GeoDataFrame(
@@ -72,14 +75,6 @@ def convert_to_geometries(pid: str) -> bool:
         segment_df.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
     )
 
-    # To avoid overlapping of shapes,
-    # comment out for v2 to retain overlapping shapes
-
-    # for i in range(1, segment_df.shape[0]):
-    #     segment_df.loc[i, "geometry"] = segment_df.iloc[i].geometry.difference(
-    #         segment_df.iloc[0:i].geometry.unary_union
-    #     )
-
     # create unqiue id for each stop on the pattern
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
@@ -90,3 +85,19 @@ def convert_to_geometries(pid: str) -> bool:
     segment_df.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_segment.parquet")
 
     return True
+
+
+def process_patterns(pids: list):
+    """
+    process all the patterns
+    """
+    bad_pids = []
+    for pid in pids:
+
+        if not convert_to_geometries(pid):
+            bad_pids.append(pid)
+            continue
+    if len(bad_pids) > 0:
+        print(
+            f"Missing {len(bad_pids)} PIDs from ghost bus data that we do not have. List here: {bad_pids}"
+        )
