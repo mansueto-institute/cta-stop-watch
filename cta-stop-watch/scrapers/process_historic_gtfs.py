@@ -1,6 +1,6 @@
 import os
 import pathlib
-from zipfile import ZipFile
+from zipfile import ZipFile,BadZipFile
 import polars as pl
 
 DIR = pathlib.Path(__file__).parent
@@ -31,7 +31,7 @@ def extract_files_from_zip(path: pathlib.Path) -> tuple[pl.DataFrame]:
     return df_shapes, df_stops, df_trips
 
 
-def build_merged_patterb_data(
+def build_merged_pattern_data(
     df_shapes: pl.DataFrame, df_stops: pl.DataFrame, df_trips: pl.DataFrame
 ) -> pl.DataFrame:
     """
@@ -98,6 +98,9 @@ if __name__ == "__main__":
 
     print("\n\nRunning GTFS scraper")
 
+    if not os.path.exists(f"{DIR}/out/gtfs"):
+        os.makedirs(f"{DIR}/out/gtfs")
+
     # Download GTFS data
     # Current data source: https://www.transitchicago.com/downloads/sch_data/
     # https://www.transitchicago.com/downloads/sch_data/google_transit.zip
@@ -106,7 +109,7 @@ if __name__ == "__main__":
     # Load pattern like data frame from must recent GTFS
     current_gtfs_path = DIR / "inp/google_transit.zip"
     df_shapes, df_stops, df_trips = extract_files_from_zip(current_gtfs_path)
-    df_patterns = build_merged_patterb_data(df_shapes, df_stops, df_trips)
+    df_patterns = build_merged_pattern_data(df_shapes, df_stops, df_trips)
 
     # Write output
     print("Writing parquet with gtfs polygons for every pattern (pid).")
@@ -117,6 +120,9 @@ if __name__ == "__main__":
     all_zips = os.listdir(f"{DIR}/inp/historic_gtfs")
     folders_to_inspect = []
 
+    if not os.path.exists(f"{DIR}/out/gtfs"):
+        os.makedirs(f"{DIR}/out/gtfs")
+
     for zip_name in all_zips:
 
         zip_path = DIR / "inp/historic_gtfs" / zip_name
@@ -124,13 +130,15 @@ if __name__ == "__main__":
         # Detect if a zip does not contain one of the required text files
         try:
             df_shapes, df_stops, df_trips = extract_files_from_zip(zip_path)
-        except KeyError:
+        except (KeyError, BadZipFile):
             folders_to_inspect.append(zip_name)
+            continue
 
-        df_patterns = build_merged_patterb_data(df_shapes, df_stops, df_trips)
+        df_patterns = build_merged_pattern_data(df_shapes, df_stops, df_trips)
 
         print(f"Writing parquet with gtfs from {zip_name}")
         name = zip_name.removesuffix(".zip")
+
         df_patterns.write_parquet(f"{DIR}/out/gtfs/{name}.parquet")
 
     print(f"Folders with missing text files:\n\t{folders_to_inspect}")

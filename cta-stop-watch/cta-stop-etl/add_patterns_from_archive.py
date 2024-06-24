@@ -98,25 +98,14 @@ def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
         df_segment.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
     )
 
-    # To avoid overlapping of shapes,
-    # comment out for v2 to retain overlapping shapes
-
-    # for i in range(1, df_segment.shape[0]):
-    #     df_segment.loc[i, "geometry"] = df_segment.iloc[i].geometry.difference(
-    #         df_segment.iloc[0:i].geometry.unary_union
-    #     )
-
-    # not used
-    # df_segment.loc[:, "time_spent_in_segment"] = pd.to_timedelta(0)
-    # df_segment.loc[:, "occurences_in_segment"] = 0
-
     # create unique id for each stop on the pattern
+    pid = df_pattern['pid'].unique()[0]
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
     return df_pattern, df_segment
 
 
-def write_patters(
+def write_patterns(
     pid: str, df_pattern: pd.DataFrame, df_segment: pd.DataFrame, path: pathlib.Path
 ):
 
@@ -135,16 +124,19 @@ def write_patters(
 
 # Implementation (main) -------------------------------------------------------
 
-if __name__ == "__main__":
+def main():
 
     logging.info("\n\nRunning pattern processor from archival GTFS data")
 
     # Check historic records for additional pids
     logging.info("\n 1. Look for missing PIDs' patterns on historic data")
 
-    existing_patterns = os.listdir(DIR_OUT / "patterns")
+    existing_patterns = os.listdir(DIR_OUT / "patterns_current")
     existing_pids = [re.sub("[^0-9]", "", p).zfill(4) for p in existing_patterns]
     new_pids = []
+
+    if not os.path.exists(f"{DIR_OUT}/patterns_historic"):
+        os.makedirs(f"{DIR_OUT}/patterns_historic")
 
     logging.info(f"{existing_pids}\n")
 
@@ -167,9 +159,13 @@ if __name__ == "__main__":
             # Process pid if missing and store shapefile
             df_pid = df_gtfs_patterns[df_gtfs_patterns["pid"] == pid]
             df_pattern, df_segment = convert_to_geometries(df_pid)
-            write_patters(pid, df_pattern, df_segment, DIR_OUT / "patterns_historic")
+            write_patterns(pid, df_pattern, df_segment, DIR_OUT / "patterns_historic")
 
             existing_pids.append(pid)
             new_pids.append(pid)
 
         logging.info(f"New patterns added for PIDs: {new_pids}")
+
+
+if __name__ == "__main__":
+    main()

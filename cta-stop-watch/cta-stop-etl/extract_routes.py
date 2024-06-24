@@ -13,12 +13,9 @@ def extract_list_pids():
     df_routes.collect().write_parquet("out/all_pids_list.parquet")
 
 
-if __name__ == "__main__":
+def extract_routes():
     extract_list_pids()
     all_pids_df = pl.read_parquet("out/all_pids_list.parquet")
     for row in all_pids_df.iter_rows(named=True):
         print(row["pid"])
         extract_pid(row["pid"])
-
-    # extract_route("6")
-    # extract_route("4")

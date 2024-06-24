@@ -8,7 +8,7 @@ import pickle
 import os
 import time
 
-from interpolation import interpolate_stoptime
+from interpolation_old import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
