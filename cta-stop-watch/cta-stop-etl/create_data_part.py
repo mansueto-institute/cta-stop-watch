@@ -43,6 +43,9 @@ def download_full_day_csv_to_parquet(
         day_csv = day_f + ".csv"
         day_parquet = day_f + ".parquet"
         url_day = URL_HEAD + day_csv
+        if (out_path / day_parquet).exists():
+            print(f"Skipping {day_f}")
+            continue
         try:
             print(url_day)
             df = pl.read_csv(url_day, dtypes=dtype_map)

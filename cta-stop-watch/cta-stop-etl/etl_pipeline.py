@@ -6,7 +6,7 @@ from qc_pipeline import qc_pipeline
 from create_data_part import full_download
 from extract_routes import extract_routes
 from add_patterns_from_archive import main as patterns_historic
-from ..scrapers.process_historic_gtfs import main as process_historic_gtfs
+#from ..scrapers.process_historic_gtfs import main as process_historic_gtfs
 import time
 import re
 import argparse
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         extract_routes()
 
     elif args.pipeline_step == "download_patterns":
-        print(f"Downloading patterns")
+        print("Downloading patterns")
         process_historic_gtfs()
     
     elif args.pipeline_step == "process_patterns":
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         calculate_start = time.time()
         calculate_patterns(pids_calculate)
         calculate_end = time.time()
-        print(f"calculate_patterns time taken: {(calculate_end - calculate_start)} minutes")
+        print(f"calculate_patterns total time taken: {(calculate_end - calculate_start)/60} minutes")
 
     elif args.pipeline_step == "qc":
         print(f"Running QC for for {len(pids_calculate)} pattern(s)")

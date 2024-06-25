@@ -9,7 +9,7 @@ def interpolate_stoptime(trip_df):
     """
     given a route df with stops and bus location, interpolate the time when the bus is at each stop
     """
-    start_loop_start = time.time()  
+    #start_loop_start = time.time()  
 
     trip_df = trip_df.to_crs("epsg:26971")
 
@@ -21,7 +21,7 @@ def interpolate_stoptime(trip_df):
     trip_df['s_value'] = (trip_df['typ'] == 'S').cumsum()
     trip_df['s_value'] = trip_df['s_value'].ffill()
 
-    start_loop_end = time.time()
+    #start_loop_end = time.time()
 
     trip_df['dist_next'] = trip_df['geometry'].distance(trip_df['geometry'].shift(-1))
 
@@ -63,11 +63,11 @@ def interpolate_stoptime(trip_df):
     stops_df["original_index"] = stops_df.index
     stops_df.reset_index(drop=True, inplace=True)
 
-    stop_time_start = time.time()
+    #stop_time_start = time.time()
 
     stops_df['bus_stop_time'] = stops_df['data_time_y'] + (stops_df['ping_time_diff'] * stops_df['accumulated_distance'] / stops_df['ping_dist'].replace(0, 0))
 
-    stop_time_end =time.time()
+    #stop_time_end =time.time()
 
     # calculate the speed in meters per second then to mph
     stops_df["time_diff_seconds"] = stops_df["ping_time_diff"].apply(
@@ -142,7 +142,7 @@ def interpolate_stoptime(trip_df):
         last_ping_index, "data_time"
     ]
 
-    first_time = time.time()
+    #first_time = time.time()
     # first rows
     for i in range(first_ping_index - 1, -1, -1):
         new_trip_df.loc[i, "bus_stop_time"] = new_trip_df.loc[
@@ -155,7 +155,7 @@ def interpolate_stoptime(trip_df):
             i - 1, "bus_stop_time"
         ] + pd.Timedelta(seconds=new_trip_df.loc[i, "time_diff_seconds"])
 
-    last_time = time.time()
+    #last_time = time.time()
 
     # clean data table
     new_trip_df = new_trip_df.drop(columns=["b_value", "ping_time_diff"])
@@ -169,8 +169,10 @@ def interpolate_stoptime(trip_df):
 
     # new_trip_gdf = gpd.GeoDataFrame(new_trip_df, geometry="geometry", crs="EPSG:4326")
 
-    start_loop_total = start_loop_end - start_loop_start
-    stop_time_total = stop_time_end - stop_time_start
-    first_last_time_total = last_time - first_time 
+    #start_loop_total = start_loop_end - start_loop_start
+    #stop_time_total = stop_time_end - stop_time_start
+    #first_last_time_total = last_time - first_time 
 
-    return new_trip_df, start_loop_total, stop_time_total, first_last_time_total
+    #start_loop_total, stop_time_total, first_last_time_total
+
+    return new_trip_df  
