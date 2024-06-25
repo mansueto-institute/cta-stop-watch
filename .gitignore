@@ -1,14 +1,15 @@
-*/cta-stop-etl/out/
+*/cta-stop-etl/out/*/*
+*/cta-stop-etl/out/*.parquet
 .env
 .DS_Store
 __pycache__/
 .ipynb_checkpoints
 env.py
-historic_gtfs/
 *.log
 */analysis/out/
-*/scrapers/inp
-*/scrapers/out
+*/scrapers/inp/*/*
+*/scrapers/inp/*.zip
+*/scrapers/out/*/*
 
 # R files ---------------------------------------------------------------------
 
