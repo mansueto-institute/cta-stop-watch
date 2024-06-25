@@ -59,7 +59,7 @@ def save_partitioned_parquet(out_file: str):
     (SELECT
         *,
         CONCAT(
-            rt, pid, origtatripno, tatripid, vid, data_date
+            rt, pid, tatripid, vid, data_date
         ) AS unique_trip_vehicle_day
     FROM read_parquet('out/parquets/*.parquet'))
     TO '{out_file}'
