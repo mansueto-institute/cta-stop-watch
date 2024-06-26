@@ -6,7 +6,6 @@ import pathlib
 from shapely import box
 import pickle
 import os
-import time
 import logging
 
 from interpolation import interpolate_stoptime
@@ -91,7 +90,10 @@ def prepare_trips(pid: str):
 
     filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
-    return filtered_trips_gdf, og_trips_count, 
+    return (
+        filtered_trips_gdf,
+        og_trips_count,
+    )
 
 
 def prepare_stops(pid: str):
@@ -103,7 +105,7 @@ def prepare_stops(pid: str):
 
     stops_gdf.rename(columns={"segment": "seg_combined"}, inplace=True)
     stops_gdf["data_time"] = None
-    
+
     stops_gdf = stops_gdf[
         ["seg_combined", "typ", "stpid", "p_stp_id", "geometry", "data_time"]
     ]
@@ -166,7 +168,7 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     # merge with stops to get full processed df
     processed_trips_gdf["typ"] = "B"
     processed_trips_gdf = processed_trips_gdf[
-        ["seg_combined", "typ", "bus_location", "data_time", 'vid']
+        ["seg_combined", "typ", "bus_location", "data_time", "vid"]
     ]
     processed_trips_gdf.rename(columns={"bus_location": "geometry"}, inplace=True)
 
@@ -174,8 +176,8 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     final_gdf = final_gdf.reset_index(drop=True)
 
     final_gdf = final_gdf.sort_values(["seg_combined", "data_time"]).reset_index(
-            drop=True
-        )
+        drop=True
+    )
     return final_gdf
 
 
@@ -190,14 +192,11 @@ def process_one_trip(
     for one trip, only keep points that are on route, then create route df
     with bus location, then interpolate time when bus is at each stop.
     """
-    
 
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
 
-
     gdf["unique_trip_vehicle_day"] = trip_id
-    gdf['vid'] = int(gdf[gdf['vid'].notna()]['vid'].unique()[0])
-
+    gdf["vid"] = int(gdf[gdf["vid"].notna()]["vid"].unique()[0])
 
     gdf = interpolate_stoptime(gdf)
 
@@ -226,16 +225,22 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
 
     filtered_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
-    logging.debug(f"Trying to process {filtered_trips_count} trips for Pattern {pid} after filtering")
+    logging.debug(
+        f"Trying to process {filtered_trips_count} trips for Pattern {pid} after filtering"
+    )
 
     for trip_id, trip_gdf in trips_gdf.groupby("unique_trip_vehicle_day"):
         try:
-            processed_trip_df = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
+            processed_trip_df = process_one_trip(
+                trip_id, trip_gdf, segments_gdf, stops_gdf
+            )
         except Exception as e:
-            logging.debug(f"Error processing trip {trip_id} for Pattern {pid}. Error: {e}")
+            logging.debug(
+                f"Error processing trip {trip_id} for Pattern {pid}. Error: {e}"
+            )
             bad_trips.append(trip_id)
             continue
-    
+
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
         all_trips += processed_trip_dict
@@ -258,7 +263,6 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
             # Pickle the 'data' using the highest protocol available.
             pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
-
     return all_trips_df, og_trips_count, processed_trips_count, len(bad_trips)
 
 
@@ -275,7 +279,9 @@ def calculate_patterns(pids: list):
     all_bad_trips_count = 0
 
     for pid in pids:
-        result, og_trips_count, processed_trips_count, bad_trips_count = calculate_pattern(pid)
+        result, og_trips_count, processed_trips_count, bad_trips_count = (
+            calculate_pattern(pid)
+        )
         result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
 
         all_og_trips_count += og_trips_count
