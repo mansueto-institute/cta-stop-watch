@@ -1,33 +1,32 @@
-import os
 import pandas as pd
+import warnings
 import geopandas as gpd
 from geopandas import GeoDataFrame
-import sys
-from shapely import wkt
-import re
+import pathlib
+from shapely import box
+import pickle
+import os
+import logging
 
-## CONSTANTS
-M_TO_FT = 3.280839895
+from interpolation import interpolate_stoptime
+
+logger_calculate = logging.getLogger(__name__)
+
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
+DIR = pathlib.Path(__file__).parent / "out"
 
 
 def prepare_segment(pid: str):
     """
-    prepares the created segments from a pattern (pid) for use with the bus location. 
+    prepares the created segments from a pattern (pid) for use with the bus location.
     """
-    #load segment
-    #gpd.read_parquet
-    segments_df = pd.read_parquet(
-        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
-    )
-    segments_df = pd.read_parquet(
-        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_segment.parquet"
-    )
+    # load segment
+    # try current and then historic
+    segments_gdf = pattern_opener(pid, "segment")
 
-    # this will go away
-    segments_df["geometry"] = segments_df["geometry"].apply(wkt.loads)
-    segments_gdf = gpd.GeoDataFrame(segments_df, crs="epsg:4326")
-
-
+    # .loc
     segments_gdf["prev_segment"] = segments_gdf["segments"]
     segments_gdf["segment"] = segments_gdf["segments"] + 1
     segments_gdf = segments_gdf[["prev_segment", "segment", "geometry"]]
@@ -41,7 +40,7 @@ def prepare_trips(pid: str):
     """
 
     # load trips for a pattern
-    trips_df = pd.read_parquet(f"cta-stop-watch/cta-stop-etl/out/pids/{pid}.parquet")
+    trips_df = pd.read_parquet(f"{DIR}/pids/{pid}.parquet")
 
     trips_gdf = gpd.GeoDataFrame(
         trips_df,
@@ -52,9 +51,49 @@ def prepare_trips(pid: str):
         ),
     )
     trips_gdf = trips_gdf.sort_values("data_time")
-    trips_gdf = trips_gdf[["unique_trip_vehicle_day", "vid", "data_time", "geometry"]]
+    trips_gdf["bus_location_id"] = trips_gdf.index
+    trips_gdf = trips_gdf[
+        ["bus_location_id", "unique_trip_vehicle_day", "vid", "data_time", "geometry"]
+    ]
 
-    return trips_gdf
+    og_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
+
+    # remove trips with all pings in the sameish location
+    trips_gdf.to_crs(epsg=26971, inplace=True)
+    filtered_trips_gdf = trips_gdf.groupby("unique_trip_vehicle_day").filter(
+        lambda x: box(*x.geometry.total_bounds).area > 20
+    )
+
+    # keep only last ping of any trips multiple first pings in the same spot
+    bad_indexes = []
+    for trip_id, trip_gdf in filtered_trips_gdf.groupby("unique_trip_vehicle_day"):
+        # if distance is super close
+        for i in range(len(trip_gdf) - 1):
+            if (
+                filtered_trips_gdf.geometry.iloc[i].distance(
+                    filtered_trips_gdf.geometry.iloc[i + 1]
+                )
+                < 5
+            ):
+                bad_indexes.append(trip_gdf.index[i])
+            else:
+                break
+
+    filtered_trips_gdf = filtered_trips_gdf[~filtered_trips_gdf.index.isin(bad_indexes)]
+
+    # remove trips with only one ping
+    filtered_trips_gdf = filtered_trips_gdf.groupby("unique_trip_vehicle_day").filter(
+        lambda x: len(x) > 1
+    )
+
+    logging.info(f"Originally {og_trips_count} trips")
+
+    filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
+
+    return (
+        filtered_trips_gdf,
+        og_trips_count,
+    )
 
 
 def prepare_stops(pid: str):
@@ -62,27 +101,30 @@ def prepare_stops(pid: str):
     Prepares the stops from a pattern (pid) for use with the bus location
     """
 
-    # gpd.read_parquet
-    stops_df = pd.read_parquet(
-        f"cta-stop-watch/cta-stop-etl/out/patterns/pid_{pid}_stop.parquet"
-    )
+    stops_gdf = pattern_opener(pid, "stop")
 
-    stops_df.rename(
-        columns={"segment": "seg_combined", "geometry": "location"}, inplace=True
-    )
-    stops_df["data_time"] = None
-    stops_df = stops_df[["seg_combined", "typ", "location", "data_time"]]
+    stops_gdf.rename(columns={"segment": "seg_combined"}, inplace=True)
+    stops_gdf["data_time"] = None
 
-    return stops_df
+    stops_gdf = stops_gdf[
+        ["seg_combined", "typ", "stpid", "p_stp_id", "geometry", "data_time"]
+    ]
+
+    stops_gdf.to_crs(epsg=4326, inplace=True)
+
+    return stops_gdf
 
 
-def merge_segments_trip(trip_gdf, segments_gdf, stops_df):
+def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
     """
     Confirm bus locations are on route and then create route df with bus location
     """
 
     # merge the bus locations with the segments to find the segment that the bus is in
     trip_gdf["bus_location"] = trip_gdf.geometry
+
+    # TODO
+    # write function to find pings not on route
 
     processed_trips_gdf = segments_gdf.sjoin(
         trip_gdf, how="inner", predicate="contains"
@@ -92,207 +134,175 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_df):
         processed_trips_gdf["prev_segment"] + processed_trips_gdf["segment"]
     ) / 2
 
-    # merge with stops to get full processed df
+    # determine which segment to put the bus in
+    # try first segment it touches
+    # if segment already has been assigned after that, try the next one
 
-    processed_trips_gdf["typ"] = "B"
-    processed_trips_gdf.rename(columns={"bus_location": "location"}, inplace=True)
-    processed_trips_gdf = processed_trips_gdf[
-        ["seg_combined", "typ", "location", "data_time"]
-    ]
+    last_segment = 0
+    assigned_pings = []
+    good_indexes = []
 
-    final_df = pd.concat([processed_trips_gdf, stops_df], axis=0)
-    final_df = final_df.sort_values(["seg_combined", "data_time"]).reset_index(
+    processed_trips_gdf = processed_trips_gdf.sort_values("data_time").reset_index(
         drop=True
     )
 
-    return final_df
+    # only overlap segments at end of segment
 
-def interpolate_stoptime(trip_df):
-    """
-    given a route df with stops and bus location, interpolate the time when the bus is at each stop
-    """ 
-    b_val = 1 
-    b_indices = [] 
-    dist_next = [] 
-    ping_times = []
-    previous_time = None
-    
-    #creates 'geometry' column for wkt and crs converstion
-    # this should go away
-    trip_df['geometry'] = trip_df['location'].astype('str').apply(wkt.loads)
-    trip_df = gpd.GeoDataFrame(trip_df, geometry='geometry', crs='epsg:26971')
+    # i think itertuples is faster than iterrows.
+    for row in processed_trips_gdf.itertuples():
+        # if not assigned yet
+        if row.bus_location_id not in assigned_pings:
+            # if segment trying to assign is not before last segment assigned then assign
+            if row.seg_combined > last_segment:
+                good_indexes.append(row.Index)
+
+                last_segment = row.seg_combined
+                assigned_pings.append(row.bus_location_id)
+
+    processed_trips_gdf = processed_trips_gdf.loc[good_indexes]
+
+    # remove trips with only one ping at this point
+    if len(processed_trips_gdf.index) == 1:
+        return False
+
+    # merge with stops to get full processed df
+    processed_trips_gdf["typ"] = "B"
+    processed_trips_gdf = processed_trips_gdf[
+        ["seg_combined", "typ", "bus_location", "data_time", "vid"]
+    ]
+    processed_trips_gdf.rename(columns={"bus_location": "geometry"}, inplace=True)
+
+    final_gdf = pd.concat([processed_trips_gdf, stops_gdf], axis=0)
+    final_gdf = final_gdf.reset_index(drop=True)
+
+    final_gdf = final_gdf.sort_values(["seg_combined", "data_time"]).reset_index(
+        drop=True
+    )
+    return final_gdf
 
 
-    trip_df.loc[:,"data_time"] = pd.to_datetime(trip_df.data_time)
-    
-    for i, row in trip_df.iterrows():
-        if row['typ'] == 'B':
-            b_val += 1
-        b_indices.append(b_val)
-    
-        current_point = row['geometry']
-
-        next_row = trip_df.iloc[i + 1] if i + 1 < len(trip_df) else None
-        next_point = next_row['geometry'] if next_row is not None else None
-        
-        #calculates the distance from the current point to the next point
-        if next_point is not None:
-            distance = current_point.distance(next_point)
-        else:
-            distance = None
-        
-        dist_next.append(distance)
-
-        if row['typ'] == 'B':
-            if previous_time is not None:
-                time_diff = row['data_time'] - previous_time
-                ping_times.append(time_diff)
-            previos_time = row['data_time']
-                    
-    #assigns the 'b_value' column 
-    trip_df['b_value'] = b_indices
-    
-    #add the 'dist_next' column 
-    trip_df['dist_next'] = dist_next
-
-    #Calculate accumulated distance
-    trip_df["accumulated_distance"] = trip_df.groupby("b_value")["dist_next"].cumsum()
-    
-    #calculates 'ping_dist' based on 'b_value' groups
-    trip_df['ping_dist'] = trip_df.groupby('b_value')['dist_next'].transform('sum')
-
-    ping_times_df = trip_df.loc[trip_df.data_time.notna(),["data_time", "b_value"]]
-    ping_times_df.loc[:,"ping_time_diff"] = -1*ping_times_df.data_time.diff(-1)
-    #replaces NaN values in ping_time_diff with zero
-    ping_times_df['ping_time_diff'] = ping_times_df['ping_time_diff'].fillna(pd.Timedelta(seconds=0))
-
-    #merge the two dataframes to include the 'ping_time_diff' column in trip_df
-    trip_df = trip_df.merge(ping_times_df, on='b_value', how='left')
-
-    #replaces NaN values in data_time_y and ping_time_diff for calculation
-    trip_df['data_time_y'] = trip_df['data_time_y'].fillna(pd.Timedelta(seconds=0))
-    trip_df['ping_time_diff'] = trip_df['ping_time_diff'].fillna(pd.Timedelta(seconds=0))
-
-    #calculates times at each bus stop 
-    for i, row in trip_df.iterrows():
-        if row["typ"] == "S":
-            ping_dist = row["ping_dist"]
-            accumulated_distance = row["accumulated_distance"]
-            ping_time_diff = row["ping_time_diff"]
-        
-            proportion = accumulated_distance / ping_dist if ping_dist != 0 else 0
-    
-            bus_stop_time = row["data_time_y"] + (ping_time_diff * proportion)
-            
-            #update the bus_stop_time in the dataframe
-            trip_df.at[i, "bus_stop_time"] = bus_stop_time
-
-    trip_df = trip_df.loc[trip_df['typ'].isin(['S','B']), ['unique_trip_vehicle_day', 'seg_combined', 'typ', 'location', 'bus_stop_time']]
-
-    #convert the timestamp to timedelta
-    #trip_df.loc[:,"bus_stop_time"] = pd.to_datetime(trip_df.bus_stop_time)
-    
-    return trip_df
-    
-
-def process_one_trip(trip_id:str,
-    trip_df: GeoDataFrame, segments_df: GeoDataFrame, stops_df: GeoDataFrame
+def process_one_trip(
+    trip_id: str,
+    trip_gdf: GeoDataFrame,
+    segments_gdf: GeoDataFrame,
+    stops_gdf: GeoDataFrame,
 ):
     """
     process one trip to return a df with the time a bus is at each stop.
-    for one trip, only keep points that are on route, then create route df 
-    with bus location, then interpolate time when bus is at each stop. 
+    for one trip, only keep points that are on route, then create route df
+    with bus location, then interpolate time when bus is at each stop.
     """
 
-    df = merge_segments_trip(trip_df, segments_df, stops_df)
-    df['unique_trip_vehicle_day'] = trip_id
+    gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
 
-    df = interpolate_stoptime(df)
+    gdf["unique_trip_vehicle_day"] = trip_id
+    gdf["vid"] = int(gdf[gdf["vid"].notna()]["vid"].unique()[0])
 
-    return df
+    gdf = interpolate_stoptime(gdf)
+
+    return gdf
 
 
-
-def process_pattern(pid: str, tester:str = float("inf")):
+def calculate_pattern(pid: str, tester: str = float("inf")):
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
-    # is data for this pattern available?
-    try:
-        prepare_segment(pid)
-    except NameError:
-        print(f"Pattern {pid} not available")
-        return False
-    
+
     # prepare the segments
     segments_gdf = prepare_segment(pid)
 
     # prepare the trips
-    trips_gdf = prepare_trips(pid)
+    trips_gdf, og_trips_count = prepare_trips(pid)
 
     # prepare the stops
-    stops_df = prepare_stops(pid)
+    stops_gdf = prepare_stops(pid)
 
     # for each trip in the pattern, create df that has the bus location and the segment that it is in then interpolate
     all_trips = []
-    count = 0
-    for row, (trip_id, trip_gdf) in enumerate(trips_gdf.groupby("unique_trip_vehicle_day")):
-        print(trip_id)
-        processed_trip_df = process_one_trip(trip_id,trip_gdf, segments_gdf, stops_df)
+    processed_trips_count = 0
+
+    bad_trips = []
+
+    filtered_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
+
+    logging.info(
+        f"Trying to process {filtered_trips_count} trips for Pattern {pid} after filtering"
+    )
+
+    for trip_id, trip_gdf in trips_gdf.groupby("unique_trip_vehicle_day"):
+        try:
+            processed_trip_df = process_one_trip(
+                trip_id, trip_gdf, segments_gdf, stops_gdf
+            )
+        except Exception as e:
+            logging.debug(
+                f"Error processing trip {trip_id} for Pattern {pid}. Error: {e}"
+            )
+            bad_trips.append(trip_id)
+            continue
 
         # put in a dictionary then make a df is much faster
-        processed_trip_dict = processed_trip_df.to_dict(orient='records')
+        processed_trip_dict = processed_trip_df.to_dict(orient="records")
         all_trips += processed_trip_dict
 
         # for testing
-        count += 1
-        if count >= float(tester):
+        processed_trips_count += 1
+        if processed_trips_count >= float(tester):
             break
 
+    logging.info(
+        f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
+    )
 
     all_trips_df = pd.DataFrame(all_trips)
+    all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
 
-    return all_trips_df
+    # save issue trips examples
+    if len(bad_trips) > 0:
+        with open(f"{DIR}/qc/bad_trips_{pid}.pickle", "wb") as f:
+            # Pickle the 'data' using the highest protocol available.
+            pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
-def process_all_patterns():
+    return all_trips_df, og_trips_count, processed_trips_count, len(bad_trips)
+
+
+def calculate_patterns(pids: list):
     """
-    Process all the trips for all patterns available. Export one file per pattern.
+    calculate stop times for all the patterns
     """
-    
-    PID_DIR = "out/pids/patterns"
-    pids = []
-    for pid_file in os.listdir(PID_DIR):
-    
-        numbers = re.findall(r'\d+', pid_file)
-        pid = numbers[0]
-        pids.append(pid)
 
-    pids = set(pids)
+    if not os.path.exists(f"{DIR}/trips"):
+        os.makedirs(f"{DIR}/trips")
+
+    all_og_trips_count = 0
+    all_processed_trips_count = 0
+    all_bad_trips_count = 0
+
     for pid in pids:
-        print(pid)
-        result = process_pattern(pid)
-        # do something with the result
-        #result.to_csv(f'out/full_trips/pid_{pid}_all_trips.csv', index=False)
+        result, og_trips_count, processed_trips_count, bad_trips_count = (
+            calculate_pattern(pid)
+        )
+        result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
 
-    
+        all_og_trips_count += og_trips_count
+        all_processed_trips_count += processed_trips_count
+        all_bad_trips_count += bad_trips_count
 
-if __name__ == "__main__":
+    logging.info(
+        f"In total there were {all_og_trips_count} trips, {all_processed_trips_count} were processed, and {all_bad_trips_count} had errors."
+    )
+
+    return True
+
+
+def pattern_opener(pid: str, type: str):
     """
-   adding in a test for one pattern
+    look for processed pattern date, try current then try historic
     """
-    if len(sys.argv) > 3:
-        print("Usage: python -m cta-stop-watch.cta-stop-etl.calculate_stop_time <pid> <[optional] number of trips to process>")
-        sys.exit(1)
-    elif len(sys.argv) == 3:
-        # run in testing model with limited number of trips
-        result = process_pattern(sys.argv[1], sys.argv[2])
-        result.to_csv('test_full_pattern.csv', index=False)
-    elif len(sys.argv) == 2:
-        # run for pattern for all trips
-        result = process_pattern(sys.argv[1])
-        result.to_csv('test_full_pattern.csv', index=False)
-    elif len(sys.argv) == 1:
-        # run for all patterns and all trips
-        process_all_patterns()
-        print("done")
+    # try current and then historic
+    if os.path.exists(f"{DIR}/patterns_current/pid_{pid}_{type}.parquet"):
+        gdf = gpd.read_parquet(f"{DIR}/patterns_current/pid_{pid}_{type}.parquet")
+    else:
+        gdf = gpd.read_parquet(f"{DIR}/patterns_historic/pid_{pid}_{type}.parquet")
 
+    return gdf

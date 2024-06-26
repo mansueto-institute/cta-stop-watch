@@ -43,8 +43,14 @@ def download_full_day_csv_to_parquet(
         day_csv = day_f + ".csv"
         day_parquet = day_f + ".parquet"
         url_day = URL_HEAD + day_csv
-        print(url_day)
-        df = pl.read_csv(url_day, dtypes=dtype_map)
+        if (out_path / day_parquet).exists():
+            print(f"Skipping {day_f}")
+            continue
+        try:
+            print(url_day)
+            df = pl.read_csv(url_day, dtypes=dtype_map)
+        except Exception as e:
+            print(f"No data for {day_f}")
         df.write_parquet(out_path / day_parquet)
 
 
@@ -53,7 +59,7 @@ def save_partitioned_parquet(out_file: str):
     (SELECT
         *,
         CONCAT(
-            rt, pid, origtatripno, tatripid, vid, data_date
+            rt, pid, tatripid, vid, data_date
         ) AS unique_trip_vehicle_day
     FROM read_parquet('out/parquets/*.parquet'))
     TO '{out_file}'
@@ -61,11 +67,16 @@ def save_partitioned_parquet(out_file: str):
     duckdb.execute(cmd_number)
 
 
-if __name__ == "__main__":
-    start = date(year=2023, month=1, day=1)
-    end = date(year=2024, month=1, day=1)
+def full_download(start: str = "2023-1-1", end: str = "2024-12-31"):
+    
+
+    start = start.split('-')
+    end = end.split('-')
+    start = date(year=int(start[0]), month=int(start[1]), day=int(start[2]))
+    end = date(year=int(end[0]), month=int(end[1]), day=int(end[2]))
+ 
     delta = timedelta(days=1)
     folder_path = Path("out/parquets/")
-    out_file = "out/2023_cta_bus_full_day_data_v2.parquet"
+    out_file = "out/cta_bus_full_day_data_v2.parquet"
     download_full_day_csv_to_parquet(start, end, delta, folder_path)
     save_partitioned_parquet(out_file)
