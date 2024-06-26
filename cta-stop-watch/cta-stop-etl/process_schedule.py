@@ -58,7 +58,11 @@ def process_route_timetable(
 
 
 def create_timetables(max_feeds: int = 100):
-    DIR = pathlib.Path(__file__).parent / "../scrapers/historic_gtfs"
+    """
+    creates a time table from a feed for each route using the process_route_timetable 
+    function, an adaption of gtfs_kit.build_route_timetable
+    """
+    DIR = pathlib.Path(__file__).parent / "../scrapers/inp/historic_gtfs"
 
     feed_count = 1
 
@@ -72,11 +76,11 @@ def create_timetables(max_feeds: int = 100):
         full_path = str(DIR) + "/" + path
         sha1 = path.split("/")[-1].split(".")[0]
 
-        test_sha1 = [
-            "7a4510c7c9fcdbaef0dccb0f33dfec26483b8c78",
-        ]
-        if sha1 not in test_sha1:
-            continue
+        # test_sha1 = [
+        #     "7a4510c7c9fcdbaef0dccb0f33dfec26483b8c78",
+        # ]
+        # if sha1 not in test_sha1:
+        #     continue
 
         print(f"Reading feed {sha1}")
         feed = gk.read_feed(full_path, dist_units="m")  # in meters
@@ -99,12 +103,15 @@ def create_timetables(max_feeds: int = 100):
 
             timetables_df = process_route_timetable(feed, rt, all_dates, merged_df, a)
             timetables_df["pid"] = timetables_df["shape_id"].str.slice(-4)
+
+            print(timetables_df.columns)
             timetables_df = timetables_df[
                 [
                     "route_id",
                     "pid",
                     "schd_trip_id",
                     "stop_id",
+                    "stop_sequence",
                     "date",
                     "arrival_time",
                     "departure_time",
@@ -140,6 +147,11 @@ def create_timetables(max_feeds: int = 100):
 
 
 def dedupe_schedules():
+    """
+    given all the historic shedules, dedupe them by date and time by taking only 
+    scheduled trips from a schedule in which there was not an update
+    
+    """
     # get all route
     rt_DIR = pathlib.Path(__file__).parent / ("../analysis/rt_to_pid.parquet")
     rt_to_pid = pd.read_parquet(rt_DIR)
@@ -158,7 +170,6 @@ def dedupe_schedules():
     # rts = [1]
 
     for rt in rts:
-
         if str(rt) in rts_finished:
             print(f"Route {rt} already finished")
             continue
