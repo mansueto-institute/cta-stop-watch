@@ -45,7 +45,7 @@ def download_historic_feed(sha1: str):
 
 def main():
     historic_feeds = get_feeds()
-    
+
     for feed in historic_feeds:
         print(f"Downloading {feed}")
         download_historic_feed(feed)

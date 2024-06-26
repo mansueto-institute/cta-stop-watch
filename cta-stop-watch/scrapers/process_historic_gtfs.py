@@ -1,6 +1,6 @@
 import os
 import pathlib
-from zipfile import ZipFile,BadZipFile
+from zipfile import ZipFile, BadZipFile
 import polars as pl
 
 DIR = pathlib.Path(__file__).parent
@@ -72,10 +72,7 @@ def build_merged_pattern_data(
     # Since the stops data only includes stops points, all other values joined
     # from the shapes data frame must be turns (which the CTA lables as W)
     df_patterns.with_columns(
-        (pl.when(pl.col("typ") == "S")
-         .then(pl.lit("S"))
-         .otherwise(pl.lit("W")))
-         .alias(
+        (pl.when(pl.col("typ") == "S").then(pl.lit("S")).otherwise(pl.lit("W"))).alias(
             "typ"
         )
     )
@@ -86,12 +83,11 @@ def build_merged_pattern_data(
     # Standardize id format with pid
     df_patterns = df_patterns.with_columns(pl.col("shape_id").cast(pl.String))
     df_patterns = df_patterns.with_columns(
-        pl.col("shape_id").str.slice(-4).alias("pid")
+        pl.col("shape_id").str.slice(-5).alias("pid")
     )
 
-    # TODO Add timestamp
-
     return df_patterns
+
 
 def main():
 
@@ -142,7 +138,6 @@ def main():
 
     print(f"Folders with missing text files:\n\t{folders_to_inspect}")
 
+
 if __name__ == "__main__":
     main()
-
-    
