@@ -57,7 +57,7 @@ def prepare_trips(pid: str):
         ["bus_location_id", "unique_trip_vehicle_day", "vid", "data_time", "geometry"]
     ]
 
-    all_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
+    og_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
     # remove trips with all pings in the sameish location
     trips_gdf.to_crs(epsg=26971, inplace=True)
@@ -87,12 +87,11 @@ def prepare_trips(pid: str):
         lambda x: len(x) > 1
     )
 
-    # print(f"Originally {all_trips_count} trips")
-    logging.debug(f"Originally {all_trips_count} trips")
+    logging.debug(f"Originally {og_trips_count} trips")
 
     filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
-    return filtered_trips_gdf
+    return filtered_trips_gdf, og_trips_count, 
 
 
 def prepare_stops(pid: str):
@@ -104,7 +103,6 @@ def prepare_stops(pid: str):
 
     stops_gdf.rename(columns={"segment": "seg_combined"}, inplace=True)
     stops_gdf["data_time"] = None
-    logging.debug(f"{stops_gdf.columns}")
     
     stops_gdf = stops_gdf[
         ["seg_combined", "typ", "stpid", "p_stp_id", "geometry", "data_time"]
@@ -220,60 +218,41 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     segments_gdf = prepare_segment(pid)
 
     # prepare the trips
-    trips_gdf = prepare_trips(pid)
+    trips_gdf, og_trips_count = prepare_trips(pid)
 
     # prepare the stops
     stops_gdf = prepare_stops(pid)
 
     # for each trip in the pattern, create df that has the bus location and the segment that it is in then interpolate
     all_trips = []
-    count = 0
+    processed_trips_count = 0
 
     bad_trips = []
 
-    trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
+    filtered_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
-    # print(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
-    logging.debug(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
-    total_merge_time = 0
-    total_inter_time = 0
-    start_loop = 0
-    stop_time = 0
-    first_last = 0
+    logging.debug(f"Trying to process {filtered_trips_count} trips for Pattern {pid} after filtering")
+
     for trip_id, trip_gdf in trips_gdf.groupby("unique_trip_vehicle_day"):
-        #try:
-        processed_trip_df = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
-        #trip_merge_time, inter_merge_time, start_loop_total, stop_time_total, first_last_time_total = 
-        # except Exception as e:
-        #     bad_trips.append(trip_id)
-        #     continue
+        try:
+            processed_trip_df = process_one_trip(trip_id, trip_gdf, segments_gdf, stops_gdf)
+        except Exception as e:
+            logging.debug(f"Error processing trip {trip_id} for Pattern {pid}. Error: {e}")
+            bad_trips.append(trip_id)
+            continue
+    
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
         all_trips += processed_trip_dict
 
         # for testing
-        count += 1
-        if count >= float(tester):
+        processed_trips_count += 1
+        if processed_trips_count >= float(tester):
             break
 
-        # total_merge_time += trip_merge_time
-        # total_inter_time += inter_merge_time
-        # start_loop += start_loop_total
-        # stop_time += stop_time_total   
-        # first_last += first_last_time_total
-
-    # print(
-    #     f"Processed {count- len(bad_trips)} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
-    # )
     logging.debug(
-        f"Processed {count- len(bad_trips)} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
+        f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
     )
-
-    # print(f"Total merge time: {total_merge_time}")
-    # print(f"Total interpolate time: {total_inter_time}")
-    # print(f"Total start loop time: {start_loop}")
-    # print(f"Total stop time time: {stop_time}")
-    # print(f"Total first last time time: {first_last}")
 
     all_trips_df = pd.DataFrame(all_trips)
     all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
@@ -285,7 +264,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
             pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
 
-    return all_trips_df
+    return all_trips_df, og_trips_count, processed_trips_count, len(bad_trips)
 
 
 def calculate_patterns(pids: list):
@@ -296,9 +275,21 @@ def calculate_patterns(pids: list):
     if not os.path.exists(f"{DIR}/trips"):
         os.makedirs(f"{DIR}/trips")
 
+    all_og_trips_count = 0
+    all_processed_trips_count = 0
+    all_bad_trips_count = 0
+
     for pid in pids:
-        result = calculate_pattern(pid)
+        result, og_trips_count, processed_trips_count, bad_trips_count = calculate_pattern(pid)
         result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
+
+        all_og_trips_count += og_trips_count
+        all_processed_trips_count += processed_trips_count
+        all_bad_trips_count += bad_trips_count
+
+    logging.info(
+        f"In total there were {all_og_trips_count} trips, {all_processed_trips_count} were processed, and {all_bad_trips_count} had errors."
+    )
 
     return True
 

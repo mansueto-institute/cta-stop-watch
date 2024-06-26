@@ -21,7 +21,7 @@ logging.basicConfig(filename='pipeline.log',
                     filemode="w",
                     encoding='utf-8', 
                     level=logging.DEBUG
-                    # level=logging.INFO
+                    #level=logging.INFO
                     )
 
 start_tmstmp = time.time()
