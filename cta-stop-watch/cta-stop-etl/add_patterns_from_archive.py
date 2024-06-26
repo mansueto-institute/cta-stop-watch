@@ -11,7 +11,7 @@ import pyarrow
 
 # Logging set up --------------------------------------------------------------
 
-# We no longer use this logging configuration. 
+# We no longer use this logging configuration.
 # Logger now starts from etl_pipeline.py.
 
 # logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
     )
 
     # create unique id for each stop on the pattern
-    pid = df_pattern['pid'].unique()[0]
+    pid = df_pattern["pid"].unique()[0]
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
     return df_pattern, df_segment
@@ -122,6 +122,7 @@ def write_patterns(
 
 # Implementation (main) -------------------------------------------------------
 
+
 def main():
 
     logging.info("Running pattern processor from archival GTFS data:")
@@ -130,7 +131,7 @@ def main():
     logging.info("\t1. Look for missing PIDs' patterns on historic data")
 
     existing_patterns = os.listdir(DIR_OUT / "patterns_current")
-    existing_pids = [re.sub("[^0-9]", "", p).zfill(4) for p in existing_patterns]
+    existing_pids = [re.sub("[^0-9]", "", p).zfill(5) for p in existing_patterns]
     new_pids = []
 
     if not os.path.exists(f"{DIR_OUT}/patterns_historic"):
@@ -139,13 +140,13 @@ def main():
     historic_gtfs_shapes = os.listdir(DIR_INP)
 
     for snapshot in historic_gtfs_shapes:
-        
+
         # Check that file is valid (a parquet file)
-        if not snapshot.endswith(".parquet"): 
-                continue
-        
+        if not snapshot.endswith(".parquet"):
+            continue
+
         logging.debug(f"\tChecking PIDs in {snapshot}")
-        
+
         df_gtfs_patterns = pd.read_parquet(DIR_INP / snapshot)
 
         # Get unique pids
