@@ -3,11 +3,14 @@ import pandas as pd
 import requests
 import json
 import pathlib
+import logging
 
-# Register CTA API key to scrape bus data
-os.environ["CTA_API_KEY"] = "user_api_key"
-DIR = pathlib.Path(__file__).parent / "out"
+from dotenv import load_dotenv
 
+# Load API keys 
+load_dotenv()
+
+DIR = pathlib.Path(__file__).parent.parent / "cta-stop-etl/out"
 
 def query_cta_api(pid: str) -> bool | pd.DataFrame:
     """
@@ -28,15 +31,17 @@ def query_cta_api(pid: str) -> bool | pd.DataFrame:
     pattern = json.loads(response.content)
 
     if "error" in pattern["bustime-response"]:
+        logging.debug("\t\t\t Skiping PID {pid}")
         return False
 
     df_pattern = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
 
-    df_pattern.to_parquet(f"out/patterns_raw/pid_{pid}_raw.parquet")
+    df_pattern.to_parquet(f"{DIR}/patterns_raw/pid_{pid}_raw.parquet")
+
+    return True
 
 
 if __name__ == "__main__":
-    PID_DIR = pathlib.Path(__file__).parent / "cta-stop-etl/out"
 
     all_pids = os.listdir(f"{DIR}/pids")
 
@@ -46,5 +51,5 @@ if __name__ == "__main__":
     for pid_file in all_pids:
         pid = pid_file.replace(".parquet", "")
 
-        print(f"Querying raw pattern for PID: {pid}")
+        logging.debug(f"Querying raw pattern for PID: {pid}")
         pattern = query_cta_api(pid)
