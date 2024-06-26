@@ -191,21 +191,16 @@ def process_one_trip(
     with bus location, then interpolate time when bus is at each stop.
     """
     
-    #merge_time_start = time.time()
+
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
-    #merge_time_end = time.time()
+
 
     gdf["unique_trip_vehicle_day"] = trip_id
     gdf['vid'] = int(gdf[gdf['vid'].notna()]['vid'].unique()[0])
 
-    #inter_time_start = time.time()
+
     gdf = interpolate_stoptime(gdf)
-    #inter_time_end = time.time()
 
-    #trip_merge_time = merge_time_end - merge_time_start
-    #inter_merge_time = inter_time_end - inter_time_start
-
-    #trip_merge_time, inter_merge_time, start_loop_total, stop_time_total, first_last_time_total
     return gdf
 
 
