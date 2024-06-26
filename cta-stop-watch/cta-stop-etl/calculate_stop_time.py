@@ -86,7 +86,7 @@ def prepare_trips(pid: str):
         lambda x: len(x) > 1
     )
 
-    logging.debug(f"Originally {og_trips_count} trips")
+    logging.info(f"Originally {og_trips_count} trips")
 
     filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
@@ -225,7 +225,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
 
     filtered_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
-    logging.debug(
+    logging.info(
         f"Trying to process {filtered_trips_count} trips for Pattern {pid} after filtering"
     )
 
@@ -250,7 +250,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
         if processed_trips_count >= float(tester):
             break
 
-    logging.debug(
+    logging.info(
         f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
     )
 
