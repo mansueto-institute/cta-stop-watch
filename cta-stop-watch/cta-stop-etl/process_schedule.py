@@ -59,7 +59,7 @@ def process_route_timetable(
 
 def create_timetables(max_feeds: int = 100):
     """
-    creates a time table from a feed for each route using the process_route_timetable 
+    creates a time table from a feed for each route using the process_route_timetable
     function, an adaption of gtfs_kit.build_route_timetable
     """
     DIR = pathlib.Path(__file__).parent / "../scrapers/inp/historic_gtfs"
@@ -102,9 +102,8 @@ def create_timetables(max_feeds: int = 100):
             print(f"creating timetable for route {rt}")
 
             timetables_df = process_route_timetable(feed, rt, all_dates, merged_df, a)
-            timetables_df["pid"] = timetables_df["shape_id"].str.slice(-4)
+            timetables_df["pid"] = timetables_df["shape_id"].str.slice(-5)
 
-            print(timetables_df.columns)
             timetables_df = timetables_df[
                 [
                     "route_id",
@@ -137,7 +136,8 @@ def create_timetables(max_feeds: int = 100):
             os.makedirs("out/timetables_raw")
 
         print("Writing to parquet file")
-        one_feed_df.to_parquet(f"out/timetables_test/{sha1}.parquet", index=False)
+        # one_feed_df.to_parquet(f"out/timetables_test/{sha1}.parquet", index=False)
+        one_feed_df.to_parquet(f"out/timetables/{sha1}.parquet", index=False)
 
         feed_count += 1
         if feed_count > max_feeds:
@@ -148,9 +148,9 @@ def create_timetables(max_feeds: int = 100):
 
 def dedupe_schedules():
     """
-    given all the historic shedules, dedupe them by date and time by taking only 
+    given all the historic schedules, dedupe them by date and time by taking only
     scheduled trips from a schedule in which there was not an update
-    
+
     """
     # get all route
     rt_DIR = pathlib.Path(__file__).parent / ("../analysis/rt_to_pid.parquet")
