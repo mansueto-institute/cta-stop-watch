@@ -7,6 +7,7 @@ from shapely import box
 import pickle
 import os
 import time
+import logging
 
 from interpolation import interpolate_stoptime
 
@@ -100,6 +101,8 @@ def prepare_stops(pid: str):
 
     stops_gdf.rename(columns={"segment": "seg_combined"}, inplace=True)
     stops_gdf["data_time"] = None
+    logging.debug(f"{stops_gdf.columns}")
+    
     stops_gdf = stops_gdf[
         ["seg_combined", "typ", "stpid", "p_stp_id", "geometry", "data_time"]
     ]

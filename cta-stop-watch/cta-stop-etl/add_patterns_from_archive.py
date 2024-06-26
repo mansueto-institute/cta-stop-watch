@@ -10,13 +10,14 @@ import time
 
 # Logging set up --------------------------------------------------------------
 
-logger = logging.getLogger(__name__)
+# We no longer use this logging configuration. 
+# Logger now starts from etl_pipeline.py.
 
-logging.basicConfig(
-    filename="process_patterns.log", filemode="w", encoding="utf-8", level=logging.INFO
-)
-
-logging.info(f"Log initialized at {time.time()}")
+# logger = logging.getLogger(__name__)
+# logging.basicConfig(
+#     filename="process_patterns.log", filemode="w", encoding="utf-8", level=logging.INFO
+# )
+# logging.info(f"Log initialized at {time.time()}")
 
 # Constants -------------------------------------------------------------------
 
@@ -68,16 +69,12 @@ def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
     segments = list(range(0, len(df_pattern)))
     geometries = []
 
-    logging.debug(f"{type(df_pattern)}")
-    logging.debug(f"{df_pattern.shape}")
-
     # Because we're dealing with an sliced data frame, indices must be restarted
     # to be able to iterate over them without running into issues of being out
     # of range
     df_pattern = df_pattern.reset_index(drop=True)
 
     for idx, segment_data in df_pattern.iterrows():
-        logging.debug(f"{idx = }, {type(segment_data) = }")
         # The first bus stop is stored as a point geometry instead of line
         if idx == 0.0:
             geometries.append(segment_data["geometry"])
@@ -126,10 +123,10 @@ def write_patterns(
 
 def main():
 
-    logging.info("\n\nRunning pattern processor from archival GTFS data")
+    logging.info("Running pattern processor from archival GTFS data:")
 
     # Check historic records for additional pids
-    logging.info("\n 1. Look for missing PIDs' patterns on historic data")
+    logging.info("\t1. Look for missing PIDs' patterns on historic data")
 
     existing_patterns = os.listdir(DIR_OUT / "patterns_current")
     existing_pids = [re.sub("[^0-9]", "", p).zfill(4) for p in existing_patterns]
@@ -138,13 +135,17 @@ def main():
     if not os.path.exists(f"{DIR_OUT}/patterns_historic"):
         os.makedirs(f"{DIR_OUT}/patterns_historic")
 
-    logging.info(f"{existing_pids}\n")
-
     historic_gtfs_shapes = os.listdir(DIR_INP)
 
     for snapshot in historic_gtfs_shapes:
+        
+        # Check that file is valid (a parquet file)
+        if not snapshot.endswith(".parquet"): 
+                continue
+        
+        logging.debug(f"\tChecking PIDs in {snapshot}")
+        
         # Load snapshot parquet
-        logging.info(f"\tChecking PIDs in {snapshot}")
         df_gtfs_patterns = pd.read_parquet(DIR_INP / snapshot)
 
         # Get unique pids
@@ -152,10 +153,10 @@ def main():
 
         # Identify any pid missing from those already processed
         missing_pids = [p for p in snapshot_pids if p not in existing_pids]
-        logging.info(f"\t\tMissing PIDs found: {missing_pids}")
+        logging.debug(f"\t\tMissing PIDs found: {missing_pids}")
 
         for pid in missing_pids:
-            logging.info(f"\t\t\tProcessing PID {pid}")
+            logging.debug(f"\t\t\tProcessing PID {pid}")
             # Process pid if missing and store shapefile
             df_pid = df_gtfs_patterns[df_gtfs_patterns["pid"] == pid]
             df_pattern, df_segment = convert_to_geometries(df_pid)
@@ -164,7 +165,7 @@ def main():
             existing_pids.append(pid)
             new_pids.append(pid)
 
-        logging.info(f"New patterns added for PIDs: {new_pids}")
+    logging.info(f"\tNew patterns added for PIDs: {new_pids}")
 
 
 if __name__ == "__main__":
