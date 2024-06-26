@@ -11,6 +11,8 @@ import logging
 
 from interpolation import interpolate_stoptime
 
+logger_calculate = logging.getLogger(__name__)
+
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -85,7 +87,8 @@ def prepare_trips(pid: str):
         lambda x: len(x) > 1
     )
 
-    print(f"Originally {all_trips_count} trips")
+    # print(f"Originally {all_trips_count} trips")
+    logging.debug(f"Originally {all_trips_count} trips")
 
     filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
@@ -230,8 +233,8 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
 
     trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
-    print(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
-
+    # print(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
+    logging.debug(f"Trying to process {trips_count} trips for Pattern {pid} after filtering")
     total_merge_time = 0
     total_inter_time = 0
     start_loop = 0
@@ -259,7 +262,10 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
         # stop_time += stop_time_total   
         # first_last += first_last_time_total
 
-    print(
+    # print(
+    #     f"Processed {count- len(bad_trips)} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
+    # )
+    logging.debug(
         f"Processed {count- len(bad_trips)} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
     )
 
