@@ -10,7 +10,6 @@ import os
 import duckdb
 import sys
 import numpy as np
-import re
 
 
 def process_route_timetable(

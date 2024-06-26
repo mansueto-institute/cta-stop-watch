@@ -6,6 +6,7 @@ import pathlib
 import re
 import logging
 import time
+import pyarrow
 
 
 # Logging set up --------------------------------------------------------------
@@ -145,7 +146,6 @@ def main():
         
         logging.debug(f"\tChecking PIDs in {snapshot}")
         
-        # Load snapshot parquet
         df_gtfs_patterns = pd.read_parquet(DIR_INP / snapshot)
 
         # Get unique pids
