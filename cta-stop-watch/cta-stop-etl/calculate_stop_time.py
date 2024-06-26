@@ -53,7 +53,15 @@ def prepare_trips(pid: str):
     trips_gdf = trips_gdf.sort_values("data_time")
     trips_gdf["bus_location_id"] = trips_gdf.index
     trips_gdf = trips_gdf[
-        ["bus_location_id", "unique_trip_vehicle_day", "vid", "data_time", "geometry"]
+        [
+            "rt",
+            "pid",
+            "bus_location_id",
+            "unique_trip_vehicle_day",
+            "vid",
+            "data_time",
+            "geometry",
+        ]
     ]
 
     og_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
@@ -196,9 +204,12 @@ def process_one_trip(
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
 
     gdf["unique_trip_vehicle_day"] = trip_id
-    gdf["vid"] = int(gdf[gdf["vid"].notna()]["vid"].unique()[0])
 
     gdf = interpolate_stoptime(gdf)
+
+    gdf["vid"] = int(trip_gdf[trip_gdf["vid"].notna()]["vid"].unique()[0])
+    gdf["rt"] = int(trip_gdf[trip_gdf["rt"].notna()]["rt"].unique()[0])
+    gdf["pid"] = int(trip_gdf[trip_gdf["pid"].notna()]["pid"].unique()[0])
 
     return gdf
 
