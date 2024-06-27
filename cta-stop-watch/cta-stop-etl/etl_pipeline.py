@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     filename="pipeline.log",
+    format='%(asctime)s %(levelname)s:  %(message)s', # With timestamp
     filemode="w",
     encoding="utf-8",
     level=logging.DEBUG,
