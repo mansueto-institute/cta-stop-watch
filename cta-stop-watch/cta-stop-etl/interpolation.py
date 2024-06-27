@@ -41,7 +41,7 @@ def interpolate_stoptime(trip_df):
             "data_time",
             "b_value",
             "typ",
-            #"geometry",
+            'vid',
             "unique_trip_vehicle_day",
         ],
     ]
@@ -88,17 +88,17 @@ def interpolate_stoptime(trip_df):
             "stop_dist",
             "speed_mph",
             "unique_trip_vehicle_day_x",
+            'vid_x', 
             "stpid",
             "p_stp_id",
-            #"geometry_x",
         ]
     ]
 
     new_names = {
         "seg_combined_x": "seg_combined",
         "typ_x": "typ",
-        #"geometry_x": "geometry",
         "unique_trip_vehicle_day_x": "unique_trip_vehicle_day",
+        'vid_x':'vid'
     }
 
     stops_df.rename(columns=new_names, inplace=True)
