@@ -97,7 +97,11 @@ def create_trips_df(rts: list | str, is_scheduled: bool = False) -> pl.DataFrame
 
     else:
         df_trips_all = df_trips_all.rename(
-            {"unique_trip_vehicle_day": "trip_id", "stpid": "stop_id"}
+            {
+                "unique_trip_vehicle_day": "trip_id",
+                "stpid": "stop_id",
+                "seg_combined": "stop_sequence",
+            }
         )
 
     return df_trips_all

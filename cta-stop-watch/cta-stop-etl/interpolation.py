@@ -33,10 +33,13 @@ def interpolate_stoptime(trip_df):
     # calculates 'stop_dist' based on 's_value' groups
     trip_df["stop_dist"] = trip_df.groupby("s_value")["dist_next"].transform("sum")
 
+    trip_df["stop_sequence"] = trip_df["s_value"]
+
     ping_times_df = trip_df.loc[
         trip_df.data_time.notna(),
         [
             "seg_combined",
+            "stop_sequence",
             "data_time",
             "b_value",
             "typ",
@@ -83,6 +86,7 @@ def interpolate_stoptime(trip_df):
             "original_index",
             "seg_combined_x",
             "typ_x",
+            "stop_sequence_x",
             "bus_stop_time",
             "time_diff_seconds",
             "stop_dist",
@@ -97,6 +101,7 @@ def interpolate_stoptime(trip_df):
         "seg_combined_x": "seg_combined",
         "typ_x": "typ",
         "unique_trip_vehicle_day_x": "unique_trip_vehicle_day",
+        "stop_sequence_x": "stop_sequence",
     }
 
     stops_df.rename(columns=new_names, inplace=True)
