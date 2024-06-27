@@ -76,12 +76,6 @@ def create_timetables(max_feeds: int = 100):
         full_path = str(DIR) + "/" + path
         sha1 = path.split("/")[-1].split(".")[0]
 
-        # test_sha1 = [
-        #     "7a4510c7c9fcdbaef0dccb0f33dfec26483b8c78",
-        # ]
-        # if sha1 not in test_sha1:
-        #     continue
-
         print(f"Reading feed {sha1}")
         feed = gk.read_feed(full_path, dist_units="m")  # in meters
         rts = feed.routes[feed.routes["route_short_name"].notna()]["route_id"]
@@ -137,7 +131,7 @@ def create_timetables(max_feeds: int = 100):
 
         print("Writing to parquet file")
         # one_feed_df.to_parquet(f"out/timetables_test/{sha1}.parquet", index=False)
-        one_feed_df.to_parquet(f"out/timetables/{sha1}.parquet", index=False)
+        one_feed_df.to_parquet(f"out/timetables_raw/{sha1}.parquet", index=False)
 
         feed_count += 1
         if feed_count > max_feeds:
