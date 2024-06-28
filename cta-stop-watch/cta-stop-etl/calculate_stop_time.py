@@ -208,9 +208,9 @@ def process_one_trip(
 
     gdf = interpolate_stoptime(gdf)
 
-    gdf["vid"] = int(trip_gdf[trip_gdf["vid"].notna()]["vid"].unique()[0])
-    gdf["rt"] = int(trip_gdf[trip_gdf["rt"].notna()]["rt"].unique()[0])
-    gdf["pid"] = int(trip_gdf[trip_gdf["pid"].notna()]["pid"].unique()[0])
+    gdf["vid"] = str(trip_gdf[trip_gdf["vid"].notna()]["vid"].unique()[0])
+    gdf["rt"] = str(trip_gdf[trip_gdf["rt"].notna()]["rt"].unique()[0])
+    gdf["pid"] = str(trip_gdf[trip_gdf["pid"].notna()]["pid"].unique()[0])
 
     return gdf
 
