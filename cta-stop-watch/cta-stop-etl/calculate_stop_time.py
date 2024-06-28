@@ -7,7 +7,8 @@ from shapely import box
 import pickle
 import os
 import logging
-import time 
+import time
+import multiprocessing
 
 from interpolation import interpolate_stoptime
 
@@ -282,6 +283,15 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     return all_trips_df, og_trips_count, processed_trips_count, len(bad_trips)
 
 
+def calculate_patter_wrapper(pid: str, tester: str = float("inf")):
+    print(f"{pid=}")
+    result, og_trips_count, processed_trips_count, bad_trips_count = calculate_pattern(
+        pid
+    )
+    result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
+    return og_trips_count, processed_trips_count, bad_trips_count
+
+
 def calculate_patterns(pids: list):
     """
     calculate stop times for all the patterns
@@ -293,16 +303,18 @@ def calculate_patterns(pids: list):
     all_og_trips_count = 0
     all_processed_trips_count = 0
     all_bad_trips_count = 0
+    trips_counts = [0, 0, 0]
+    print(f"Starting process at: {time.strftime('%l:%M%p %Z %b %d, %Y') }")
+    with multiprocessing.Pool(4) as pool:
+        results = pool.map(calculate_patter_wrapper, pids)
 
-    for pid in pids:
-        result, og_trips_count, processed_trips_count, bad_trips_count = (
-            calculate_pattern(pid)
-        )
-        result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
+    for idx, trips_count in enumerate(zip(*results)):
+        trips_counts[idx] = sum(trips_count)
+    all_og_trips_count += trips_counts[0]
+    all_processed_trips_count += trips_counts[1]
+    all_bad_trips_count += trips_counts[2]
 
-        all_og_trips_count += og_trips_count
-        all_processed_trips_count += processed_trips_count
-        all_bad_trips_count += bad_trips_count
+    print(f"Finishing process at: {time.strftime('%l:%M%p %Z %b %d, %Y') }")
 
     logging.info(
         f"In total there were {all_og_trips_count} trips, {all_processed_trips_count} were processed, and {all_bad_trips_count} had errors."
