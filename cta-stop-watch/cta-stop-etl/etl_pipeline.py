@@ -196,10 +196,21 @@ def execute_process_patterns(pids_pattern, print=True):
 
 def execute_stop_time(pids_calculate, print=True):
     # print(f"Calculating stop time for {len(pids_calculate)} pattern(s)")
-    logging.info(f"\tCalculating stop time for {len(pids_calculate)} pattern(s)\n")
+    # find already completed trips
+
+    DIR_OUT = pathlib.Path(__file__).parent / "out"
+    completed_patterns_files = os.listdir(DIR_OUT / "trips")
+    completed_patterns = [re.sub("[^0-9]", "", p) for p in completed_patterns_files]
+
+    pids_calculate_new = [
+        pid for pid in pids_calculate if pid not in completed_patterns
+    ]
+    logging.info(
+        f"\t There are {len(pids_calculate)}. Already calculated stop time for  {len(completed_patterns)} Patterns. Calculating stop time for {len(pids_calculate_new)} pattern(s)\n"
+    )
 
     tmstmp1 = time.time()
-    calculate_patterns(pids_calculate)
+    calculate_patterns(pids_calculate_new)
 
     diff1 = time.time() - tmstmp1
     execution_time = (
