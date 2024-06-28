@@ -259,8 +259,8 @@ if __name__ == "__main__":
         pids_calculate = [args.test_pid]
     else:
         logging.info("\tPIDs to Process: ALL\n")
-        pids_pattern = all_pids(DIR, "trip_data")
-        pids_calculate = all_pids(DIR, "processed_patterns")
+        pids_pattern = all_pids(DIR, "processed_patterns")
+        pids_calculate = all_pids(DIR, "trip_data")
 
     logging.info("STARTING PIPELINE EXECUTION" + f"{'-'*17}" + "\n")
 
