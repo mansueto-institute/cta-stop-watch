@@ -7,6 +7,7 @@ from shapely import box
 import pickle
 import os
 import logging
+import time 
 
 from interpolation import interpolate_stoptime
 
@@ -218,7 +219,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
-
+    start_tmstm = time.time()
     # prepare the segments
     segments_gdf = prepare_segment(pid)
 
@@ -261,8 +262,12 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
         if processed_trips_count >= float(tester):
             break
 
+    end_tmstmp = time.time()
+    diff = end_tmstmp - start_tmstm
+    formatted_time = time.strftime("%H hours %M minutes %S", time.gmtime(diff))
+
     logging.info(
-        f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors."
+        f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors. Time elapsed: {formatted_time}"
     )
 
     all_trips_df = pd.DataFrame(all_trips)

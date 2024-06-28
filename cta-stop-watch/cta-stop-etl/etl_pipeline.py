@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(
     filename="pipeline.log",
     format='%(asctime)s %(levelname)s:  %(message)s', # With timestamp
+    datefmt='%Y-%m-%d %H:%M:%S',
     filemode="w",
     encoding="utf-8",
     level=logging.DEBUG,
@@ -116,12 +117,14 @@ def print_timing_at_exit() -> None:
     end_tmstmp = time.time()
     end_string = time.asctime(time.localtime())
 
-    logging.info("EXITING PIPELINE EXECUTION" + f"{'-'*43}" + "\n")
+    logging.info("EXITING PIPELINE EXECUTION" + f"{'-'*18}" + "\n")
     logging.info("Time results" + f"{'-'*57}")
     logging.info(f"Finished running pipeline at {end_string}")
     total_running_time = end_tmstmp - start_tmstmp
-    formatted_time = time.strftime("%H:%M:%S", time.gmtime(total_running_time))
-    logging.info(f"Total running time {formatted_time}")
+    # formatted_time = time.strftime("%H:%M:%S", time.gmtime(total_running_time))
+    formatted_time = time.strftime("%H hours %M minutes %S", time.gmtime(total_running_time))
+
+    logging.info(f"Total running time: {formatted_time}")
 
 
 def execute_download_trips(print=True):
@@ -146,7 +149,7 @@ def execute_download_trips(print=True):
         print_timing_at_exit()
         logging.info(execution_time1)
         logging.info(execution_time2)
-        logging.info(f"{'-'*69}")
+        logging.info(f"{'-'*44}")
         return None
     return execution_time1, execution_time2
 
@@ -248,7 +251,7 @@ if __name__ == "__main__":
         pids_pattern = all_pids(DIR, "trip_data")
         pids_calculate = all_pids(DIR, "processed_patterns")
 
-    logging.info("STARTING PIPELINE EXECUTION" + f"{'-'*42}" + "\n")
+    logging.info("STARTING PIPELINE EXECUTION" + f"{'-'*17}" + "\n")
 
     if args.pipeline_step == "download_trips":
         execute_download_trips()
