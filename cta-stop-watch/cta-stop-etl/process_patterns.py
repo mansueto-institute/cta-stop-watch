@@ -2,13 +2,21 @@ import pandas as pd
 import geopandas as gpd
 from shapely import LineString
 import pathlib
+import logging
 
 ## CONSTANTS
 M_TO_FT = 3.280839895
 BUFFER_DIST = 50
+PID_DIR = pathlib.Path(__file__).parent / "out"
 
+def load_raw_pattern(pid: str) -> pd.DataFrame | bool:
+    try:
+        df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
+        return True, df_raw
+    except FileNotFoundError:
+        return False, False
 
-def convert_to_geometries(pid: str) -> bool:
+def convert_to_geometries(df_raw: pd.DataFrame, pid: str) -> bool:
     """
      and converts
     it into route polygones that can be used to asses if a bus is inside it's
@@ -28,14 +36,6 @@ def convert_to_geometries(pid: str) -> bool:
     - Parquet file with segments as buffers: "out/pattern/pid_{pid}_segment.parquet"
 
     """
-
-    # load in raw pattern data
-    PID_DIR = pathlib.Path(__file__).parent / "out"
-
-    try:
-        df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
-    except FileNotFoundError:
-        return False
 
     # Convert into geodata with projection for Chicago (EPSG 4326)
     df_pattern = gpd.GeoDataFrame(
@@ -78,7 +78,7 @@ def convert_to_geometries(pid: str) -> bool:
     # create unqiue id for each stop on the pattern
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
-    print(
+    logging.debug(
         f"Writing out/patterns_current/pid_{pid}_stop.parquet and out/patterns_current/pid_{pid}_segment.parquet"
     )
     df_pattern.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_stop.parquet")
@@ -94,10 +94,19 @@ def process_patterns(pids: list):
     bad_pids = []
     for pid in pids:
 
-        if not convert_to_geometries(pid):
+        found, df_raw = load_raw_pattern(pid)
+        if not found:
             bad_pids.append(pid)
             continue
+        else:
+            convert_to_geometries(df_raw, pid)
+            print(f"Succes in converting pattern {pid} to geometry")
+
     if len(bad_pids) > 0:
         print(
             f"Missing {len(bad_pids)} PIDs from ghost bus data that we do not have. List here: {bad_pids}"
         )
+
+
+if __name__ == "__main__": 
+    process_patterns(["14103"])
