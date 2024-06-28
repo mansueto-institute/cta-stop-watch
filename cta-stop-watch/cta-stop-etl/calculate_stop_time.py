@@ -24,7 +24,7 @@ def prepare_segment(pid: str):
     prepares the created segments from a pattern (pid) for use with the bus location.
     """
     # load segment
-    # try current and then historic
+    # try current and then historicgit 
     segments_gdf = pattern_opener(pid, "segment")
 
     # .loc
@@ -170,9 +170,9 @@ def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
 
     processed_trips_gdf = processed_trips_gdf.loc[good_indexes]
 
-    # remove trips with only one ping at this point
+    # Assigns an empty dataframe with patterns with only one ping (for streamline processing)
     if len(processed_trips_gdf.index) == 1:
-        return False
+        return None
 
     # merge with stops to get full processed df
     processed_trips_gdf["typ"] = "B"
@@ -203,6 +203,10 @@ def process_one_trip(
     """
 
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
+
+    # checks if dataframe is None for unprocessed trips 
+    if gdf is None:
+        return gdf
 
     gdf["unique_trip_vehicle_day"] = trip_id
 
@@ -246,12 +250,17 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
             processed_trip_df = process_one_trip(
                 trip_id, trip_gdf, segments_gdf, stops_gdf
             )
+
         except Exception as e:
             logging.debug(
                 f"Error processing trip {trip_id} for Pattern {pid}. Error: {e}"
             )
             bad_trips.append(trip_id)
             continue
+
+        #if processed_trip_df is empty skips to processing next trip
+        if processed_trip_df is None:
+            continue 
 
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
@@ -270,6 +279,9 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
         f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors. Time elapsed: {formatted_time}"
     )
 
+    # return 4 empty dataframes for unpacking in calculate_patterns
+    if len(all_trips) == 0:
+        return None, None, None, None 
     all_trips_df = pd.DataFrame(all_trips)
     all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
 
@@ -298,6 +310,8 @@ def calculate_patterns(pids: list):
         result, og_trips_count, processed_trips_count, bad_trips_count = (
             calculate_pattern(pid)
         )
+        if result is None:
+            continue
         result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)
 
         all_og_trips_count += og_trips_count
