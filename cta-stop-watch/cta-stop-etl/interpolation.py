@@ -158,7 +158,6 @@ def interpolate_stoptime(trip_df):
             "b_value",
             "ping_time_diff",
             "time_diff_seconds",
-            "stop_dist",
             "data_time",
         ]
     )
