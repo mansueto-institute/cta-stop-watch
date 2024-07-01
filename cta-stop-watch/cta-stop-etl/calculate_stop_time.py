@@ -7,7 +7,7 @@ from shapely import box
 import pickle
 import os
 import logging
-import time 
+import time
 
 from interpolation import interpolate_stoptime
 
@@ -24,7 +24,7 @@ def prepare_segment(pid: str):
     prepares the created segments from a pattern (pid) for use with the bus location.
     """
     # load segment
-    # try current and then historicgit 
+    # try current and then historicgit
     segments_gdf = pattern_opener(pid, "segment")
 
     # .loc
@@ -204,7 +204,7 @@ def process_one_trip(
 
     gdf = merge_segments_trip(trip_gdf, segments_gdf, stops_gdf)
 
-    # checks if dataframe is None for unprocessed trips 
+    # checks if dataframe is None for unprocessed trips
     if gdf is None:
         return gdf
 
@@ -258,9 +258,9 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
             bad_trips.append(trip_id)
             continue
 
-        #if processed_trip_df is empty skips to processing next trip
+        # if processed_trip_df is empty skips to processing next trip
         if processed_trip_df is None:
-            continue 
+            continue
 
         # put in a dictionary then make a df is much faster
         processed_trip_dict = processed_trip_df.to_dict(orient="records")
@@ -281,7 +281,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
 
     # return 4 empty dataframes for unpacking in calculate_patterns
     if len(all_trips) == 0:
-        return None, None, None, None 
+        return None, None, None, None
     all_trips_df = pd.DataFrame(all_trips)
     all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
 
@@ -307,9 +307,14 @@ def calculate_patterns(pids: list):
     all_bad_trips_count = 0
 
     for pid in pids:
-        result, og_trips_count, processed_trips_count, bad_trips_count = (
-            calculate_pattern(pid)
-        )
+        try:
+            result, og_trips_count, processed_trips_count, bad_trips_count = (
+                calculate_pattern(pid)
+            )
+        except Exception as e:
+            logging.debug(f"Do not have pattern {pid}. Error: {e}")
+            continue
+
         if result is None:
             continue
         result.to_parquet(f"{DIR}/trips/trips_{pid}_full.parquet", index=False)

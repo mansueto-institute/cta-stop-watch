@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     filename="pipeline.log",
-    format='%(asctime)s %(levelname)s:  %(message)s', # With timestamp
-    datefmt='%Y-%m-%d %H:%M:%S',
+    format="%(asctime)s %(levelname)s:  %(message)s",  # With timestamp
+    datefmt="%Y-%m-%d %H:%M:%S",
     filemode="w",
     encoding="utf-8",
     level=logging.DEBUG,
@@ -122,7 +122,9 @@ def print_timing_at_exit() -> None:
     logging.info(f"Finished running pipeline at {end_string}")
     total_running_time = end_tmstmp - start_tmstmp
     # formatted_time = time.strftime("%H:%M:%S", time.gmtime(total_running_time))
-    formatted_time = time.strftime("%H hours %M minutes %S", time.gmtime(total_running_time))
+    formatted_time = time.strftime(
+        "%H hours %M minutes %S", time.gmtime(total_running_time)
+    )
 
     logging.info(f"Total running time: {formatted_time}")
 
@@ -259,8 +261,8 @@ if __name__ == "__main__":
         pids_calculate = [args.test_pid]
     else:
         logging.info("\tPIDs to Process: ALL\n")
-        pids_pattern = all_pids(DIR, "trip_data")
-        pids_calculate = all_pids(DIR, "processed_patterns")
+        pids_pattern = all_pids(DIR, "processed_patterns")
+        pids_calculate = all_pids(DIR, "trip_data")
 
     logging.info("STARTING PIPELINE EXECUTION" + f"{'-'*17}" + "\n")
 
