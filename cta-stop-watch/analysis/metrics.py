@@ -100,6 +100,19 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
     return df_trips_all
 
+# def time_till_next_bus(
+#     trips_df: pl.DataFrame,
+#     is_daytime: bool = True,
+# ):
+#     if is_daytime:
+#         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
+
+#     trips_df = trips_df.sort(['stop_id', 'bus_stop_time'])
+#     trips_df = trips_df.with_columns([
+#         (pl.col('bus_stop_time').diff().over(['stop_id']).dt.total_seconds() / 60).alias('time_till_next_bus')
+#     ])
+
+#     return trips_df
 
 def time_to_next_stop(
     trips_df: pl.DataFrame,
@@ -109,6 +122,13 @@ def time_to_next_stop(
     if is_daytime:
         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
 
+    # finds time between buses at each stop for a given route
+    trips_df = trips_df.sort(['stop_id', 'bus_stop_time'])
+    trips_df = trips_df.with_columns([
+        (pl.col('bus_stop_time').diff().over(['stop_id']).dt.total_seconds() / 60).alias('time_till_next_bus')
+    ])
+
+    # finds time between bus stops for a given route 
     trips_df = trips_df.sort(by=["trip_id", "bus_stop_time"])
     trips_df = trips_df.with_columns(
         time_to_previous_stop=(
@@ -120,6 +140,7 @@ def time_to_next_stop(
         pl.col("time_to_previous_stop").fill_null(strategy="zero")
     )
 
+    # finds the cumulative time for a trip for a given route 
     trips_df = trips_df.with_columns(
         cum_trip_time=pl.cum_sum("time_to_previous_stop").over(
             pl.col("trip_id").rle_id()
@@ -245,27 +266,60 @@ def create_all_metrics_df(rts: list | str, is_schedule: bool):
             continue
 
         trips_df = time_to_next_stop(trips_df)
-        trips_df = trips_df.rename(
-            {
-                "time_to_previous_stop": "actual_time_to_previous_stop",
-                "cum_trip_time": "actual_cum_trip_time",
-            }
-        )
-
-        # group metric
+        if is_schedule:
+            trips_df = trips_df.rename(
+                {
+                    "time_till_next_bus": "schedule_time_till_next_bus",
+                    "time_to_previous_stop": "schedule_time_to_previous_stop",
+                    "cum_trip_time": "schedule_cum_trip_time",
+                }
+            )
+        else:
+            trips_df = trips_df.rename(
+                {
+                    "time_till_next_bus": "actual_time_till_next_bus",
+                    "time_to_previous_stop": "actual_time_to_previous_stop",
+                    "cum_trip_time": "actual_cum_trip_time",
+                }
+            )
+        
+        # find grouped metrics for depending on actual or schedule 
         all_metrics = []
-        # add the rest in here
-        for metric in [
-            "actual_time_to_previous_stop",
-            "actual_cum_trip_time",
-            "actual_num_buses",
-        ]:
+        metrics = [
+            "time_till_next_stop",
+            "time_to_previous_stop",
+            "cum_trip_time",
+            "num_buses",
+        ]
+        metrics = [f"schedule_{m}" if is_schedule else f"actual_{m}" for m in metrics]
 
+        for metric in metrics:
             grouped = group_metrics(trips_df, metric)
             all_metrics.append(grouped)
-
+        
         one_route.append(join_metrics(all_metrics))
 
     all_df = pl.concat(one_route)
 
     return all_df
+
+def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
+    """
+    For all the routes, create a combined DataFrame with all the metrics for both scheduled and actual data.
+    """
+    scheduled_df = create_all_metrics_df(rts, is_schedule=True)
+    actual_df = create_all_metrics_df(rts, is_schedule=False)
+
+    combined_df = pl.concat([scheduled_df, actual_df])
+
+    return combined_df
+
+def average_delay(combined_df: pl.DataFrame): 
+    """
+    For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop.
+    """ 
+    combined_df = combined_df.with_columns(
+        delay_avg=(pl.col('median_actual_wait_time') - pl.col('median_schedule_wait_time')).alias('avg_delay')
+    )
+
+    return combined_df
