@@ -310,6 +310,8 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
     scheduled_df = create_all_metrics_df(rts, is_schedule=True)
     actual_df = create_all_metrics_df(rts, is_schedule=False)
 
+    scheduled_df = scheduled_df.with_columns(pl.col("pid").cast(pl.Int64))
+
     combined_df = scheduled_df.join(actual_df,
                                 on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
                                 how="full",
@@ -317,7 +319,7 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
                             )
     # For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop
     combined_df = combined_df.with_columns(
-        delay_avg=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus')).alias('avg_time_till_next_bus_delay')
+        avg_time_till_next_bus_delay=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus'))
     )
 
     return combined_df
