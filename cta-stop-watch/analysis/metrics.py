@@ -286,7 +286,7 @@ def create_all_metrics_df(rts: list | str, is_schedule: bool):
         # find grouped metrics for depending on actual or schedule 
         all_metrics = []
         metrics = [
-            "time_till_next_stop",
+            "time_till_next_bus",
             "time_to_previous_stop",
             "cum_trip_time",
             "num_buses",
@@ -310,16 +310,24 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
     scheduled_df = create_all_metrics_df(rts, is_schedule=True)
     actual_df = create_all_metrics_df(rts, is_schedule=False)
 
-    combined_df = pl.concat([scheduled_df, actual_df])
-
-    return combined_df
-
-def average_delay(combined_df: pl.DataFrame): 
-    """
-    For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop.
-    """ 
+    combined_df = scheduled_df.join(actual_df,
+                                on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
+                                how="full",
+                                coalesce=True,
+                            )
+    # For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop
     combined_df = combined_df.with_columns(
-        delay_avg=(pl.col('median_actual_wait_time') - pl.col('median_schedule_wait_time')).alias('avg_delay')
+        delay_avg=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus')).alias('avg_time_till_next_bus_delay')
     )
 
     return combined_df
+
+# def average_delay(combined_df: pl.DataFrame): 
+#     """
+#     For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop.
+#     """ 
+#     combined_df = combined_df.with_columns(
+#         delay_avg=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus')).alias('avg_time_till_next_bus_delay')
+#     )
+
+#     return combined_df
