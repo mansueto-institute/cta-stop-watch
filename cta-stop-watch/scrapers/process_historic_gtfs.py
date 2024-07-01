@@ -28,12 +28,13 @@ def extract_files_from_zip(path: pathlib.Path) -> tuple[pl.DataFrame]:
         with gtfs_zip.open("trips.txt") as trips:
             df_trips = pl.read_csv(trips, infer_schema_length=0)
 
-    return df_shapes, df_stops, df_trips
+        with gtfs_zip.open("stop_times.txt") as stop_times:
+            df_stop_times = pl.read_csv(stop_times, infer_schema_length=0)
+
+    return df_shapes, df_stops, df_trips, df_stop_times
 
 
-def build_merged_pattern_data(
-    df_shapes: pl.DataFrame, df_stops: pl.DataFrame, df_trips: pl.DataFrame
-) -> pl.DataFrame:
+def prep_shapes(df_shapes: pl.DataFrame) -> pl.DataFrame:
     """
     Takes data frames with GTFS data and reproduces the CTA API "pattern"
     tables in a standardized data frame for further cleaning.
@@ -59,34 +60,43 @@ def build_merged_pattern_data(
         }
     )
 
-    # Preprocess GTFS stops file to have the same format as the CTA patterns
-    df_stops = df_stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]]
-    df_stops = df_stops.rename(
-        {"stop_id": "stpid", "stop_name": "stpnm", "stop_lat": "lat", "stop_lon": "lon"}
-    )
-    df_stops = df_stops.with_columns(pl.lit("S").alias("typ"))
-
-    # Recreate the CTA API "patterns" file by merging GTFS shapes and stops
-    df_patterns = df_shapes.join(df_stops, on=["lat", "lon"])
-
     # Since the stops data only includes stops points, all other values joined
     # from the shapes data frame must be turns (which the CTA lables as W)
-    df_patterns.with_columns(
-        (pl.when(pl.col("typ") == "S").then(pl.lit("S")).otherwise(pl.lit("W"))).alias(
-            "typ"
-        )
-    )
-
-    # Add ids from trips file
-    df_patterns = df_patterns.join(df_trips, on=["shape_id"])
+    df_shapes.with_columns(typ=None)
 
     # Standardize id format with pid
-    df_patterns = df_patterns.with_columns(pl.col("shape_id").cast(pl.String))
-    df_patterns = df_patterns.with_columns(
-        pl.col("shape_id").str.slice(-5).alias("pid")
-    )
+    df_shapes = df_shapes.with_columns(pl.col("shape_id").cast(pl.String))
+    df_shapes = df_shapes.with_columns(pl.col("shape_id").str.slice(-5).alias("pid"))
 
-    return df_patterns
+    return df_shapes
+
+
+def prep_stops(
+    df_stops: pl.DataFrame, df_trips: pl.DataFrame, df_stop_times: pl.DataFrame
+) -> pl.DataFrame:
+    """
+    recreate stops for a pattern with geomtery
+    """
+
+    # combine trips to get get stopids for a pid
+    join1 = df_trips.join(df_stop_times, on="trip_id", coalesce=True)
+
+    stops_pids = join1.select(
+        ["route_id", "shape_id", "stop_id", "stop_sequence"]
+    ).unique()
+
+    # create pid from shape_id
+    stops_pids = stops_pids.with_columns(pl.col("shape_id").cast(pl.String))
+    stops_pids = stops_pids.with_columns(pl.col("shape_id").str.slice(-5).alias("pid"))
+
+    stops_pids = stops_pids.drop("shape_id")
+
+    stop_geom = df_stops.select(["stop_id", "stop_lat", "stop_lon"])
+
+    # join geometry for stopid
+    stops_pids = stops_pids.join(stop_geom, on="stop_id", how="left", coalesce=True)
+
+    return stops_pids
 
 
 def main():
@@ -103,12 +113,16 @@ def main():
 
     # Load pattern like data frame from must recent GTFS
     current_gtfs_path = DIR / "inp/google_transit.zip"
-    df_shapes, df_stops, df_trips = extract_files_from_zip(current_gtfs_path)
-    df_patterns = build_merged_pattern_data(df_shapes, df_stops, df_trips)
+    df_shapes, df_stops, df_trips, df_stop_times = extract_files_from_zip(
+        current_gtfs_path
+    )
+    df_shapes_processed = prep_shapes(df_shapes)
+    df_stops_processed = prep_stops(df_stops, df_trips, df_stop_times)
 
     # Write output
     print("Writing parquet with gtfs polygons for every pattern (pid).")
-    df_patterns.write_parquet("out/gtfs/current_shapes.parquet")
+    df_shapes_processed.write_parquet("out/gtfs/current_shapes.parquet")
+    df_stops_processed.write_parquet("out/gtfs/current_stops.parquet")
 
     # Historic Data from Transit Land (downloaded zip files from box)
     print("\n 2. Historic GTFS from Transit Land")
@@ -124,17 +138,21 @@ def main():
 
         # Detect if a zip does not contain one of the required text files
         try:
-            df_shapes, df_stops, df_trips = extract_files_from_zip(zip_path)
+            df_shapes, df_stops, df_trips, df_stop_times = extract_files_from_zip(
+                zip_path
+            )
         except (KeyError, BadZipFile):
             folders_to_inspect.append(zip_name)
             continue
 
-        df_patterns = build_merged_pattern_data(df_shapes, df_stops, df_trips)
+        df_shapes_processed = prep_shapes(df_shapes)
+        df_stops_processed = prep_stops(df_stops, df_trips, df_stop_times)
 
         print(f"Writing parquet with gtfs from {zip_name}")
         name = zip_name.removesuffix(".zip")
 
-        df_patterns.write_parquet(f"{DIR}/out/gtfs/{name}.parquet")
+        df_shapes_processed.write_parquet(f"{DIR}/out/gtfs/{name}_segments.parquet")
+        df_stops_processed.write_parquet(f"{DIR}/out/gtfs/{name}_stops.parquet")
 
     print(f"Folders with missing text files:\n\t{folders_to_inspect}")
 
