@@ -319,7 +319,7 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
                             )
     # For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop
     combined_df = combined_df.with_columns(
-        avg_time_till_next_bus_delay=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus'))
+        time_till_next_bus_delay=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus'))
     )
 
     return combined_df
