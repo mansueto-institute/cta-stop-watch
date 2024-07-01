@@ -100,6 +100,38 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
     return df_trips_all
 
+def bustime_delay(
+    trips_df: pl.DataFrame,
+    is_daytime: bool = True,
+    is_schedule: bool = False
+):
+    if is_daytime:
+        trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
+
+    trips_df = trips_df.sort(['stop_id', 'bus_stop_time'])
+    trips_df = trips_df.with_columns([
+        (pl.col('bus_stop_time').diff().over(['stop_id']).dt.total_seconds() / 60).alias('wait_time')
+    ])
+
+    if is_schedule:
+        trips_df = (
+        trips_df
+        .group_by('stop_id')
+        .agg(
+            wait_time_median=pl.col('median_schedule_wait_time').median()
+            )
+        )
+
+    else:
+        trips_df = (
+            trips_df
+            .group_by('stop_id')
+            .agg(
+                wait_time_median=pl.col('median_actual_wait_time').median()
+                )
+            )
+
+    return trips_df
 
 def time_to_next_stop(
     trips_df: pl.DataFrame,
@@ -267,5 +299,13 @@ def create_all_metrics_df(rts: list | str, is_schedule: bool):
         one_route.append(join_metrics(all_metrics))
 
     all_df = pl.concat(one_route)
+
+    return all_df
+
+def average_delay(all_df: pl.DataFrame): 
+    
+    all_df = all_df.with_columns(
+        delay_avg=(pl.col('median_actual_wait_time') - pl.col('median_schedule_wait_time')).alias('avg_delay')
+    )
 
     return all_df
