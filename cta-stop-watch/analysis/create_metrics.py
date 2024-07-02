@@ -49,7 +49,7 @@ def create_metrics(rts):
     )
 
     # export
-    # trip_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    trip_metrics.write_parquet(f"{OUT_DIR}/trip_metrics_df.parquet")
 
     # combine stop level at routes
     actual_full_stops = pl.concat(all_routes_stops_actual)
@@ -59,6 +59,6 @@ def create_metrics(rts):
     )
 
     # export
-    # stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
     return stop_metrics, trip_metrics
