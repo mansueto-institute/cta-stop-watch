@@ -14,11 +14,9 @@ def time_to_next_stop(
     # finds time between buses at each stop for a given route
     trips_df = trips_df.sort(["stop_id", "bus_stop_time"])
     trips_df = trips_df.with_columns(
-        [
-            (
-                pl.col("bus_stop_time").diff().over(["stop_id"]).dt.total_seconds() / 60
-            ).alias("time_till_next_bus")
-        ]
+        time_till_next_bus=(
+            pl.col("bus_stop_time").shift(-1) - pl.col("bus_stop_time")
+        ).over(pl.col("stop_id").rle_id())
     )
 
     # finds time between bus stops for a given route
