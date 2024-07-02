@@ -57,6 +57,8 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
         if 'stop_dist' in df_trips.columns:
             df_trips = df_trips.drop('stop_dist')
 
+        df_trips = df_trips.with_columns(pl.exclude('bus_stop_time').cast(pl.String))
+
         if not is_schedule:
             df_trips = df_trips.with_columns(
                 pl.col("pid")
@@ -65,8 +67,6 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
                 .cast(pl.Int32)
                 .cast(pl.String)
                 .alias("pid"),
-                pl.col("vid").cast(pl.String).alias("vid"),
-                pl.col("rt").cast(pl.String).alias("rt"),
             )
 
         trips.append(df_trips)
@@ -101,25 +101,10 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
             {
                 "unique_trip_vehicle_day": "trip_id",
                 "stpid": "stop_id",
-                "seg_combined": "stop_sequence",
             }
         )
 
     return df_trips_all
-
-# def time_till_next_bus(
-#     trips_df: pl.DataFrame,
-#     is_daytime: bool = True,
-# ):
-#     if is_daytime:
-#         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
-
-#     trips_df = trips_df.sort(['stop_id', 'bus_stop_time'])
-#     trips_df = trips_df.with_columns([
-#         (pl.col('bus_stop_time').diff().over(['stop_id']).dt.total_seconds() / 60).alias('time_till_next_bus')
-#     ])
-
-#     return trips_df
 
 def time_to_next_stop(
     trips_df: pl.DataFrame,
@@ -216,6 +201,7 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
             )
 
         grouped_df = df.group_by([*group_list]).agg(
+            pl.count(metric).alias(f"count_{metric}"),
             pl.median(metric).alias(f"median_{metric}"),
             pl.mean(metric).alias(f"mean_{metric}"),
             pl.max(metric).alias(f"max_{metric}"),
@@ -317,8 +303,6 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
     scheduled_df = create_all_metrics_df(rts, is_schedule=True)
     actual_df = create_all_metrics_df(rts, is_schedule=False)
 
-    scheduled_df = scheduled_df.with_columns(pl.col("pid").cast(pl.Int64))
-
     combined_df = scheduled_df.join(actual_df,
                                 on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
                                 how="full",
@@ -330,13 +314,3 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
     )
 
     return combined_df
-
-# def average_delay(combined_df: pl.DataFrame): 
-#     """
-#     For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop.
-#     """ 
-#     combined_df = combined_df.with_columns(
-#         delay_avg=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus')).alias('avg_time_till_next_bus_delay')
-#     )
-
-#     return combined_df
