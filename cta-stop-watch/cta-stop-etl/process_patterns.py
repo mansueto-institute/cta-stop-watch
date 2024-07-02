@@ -76,7 +76,7 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write = True) -> bool:
         df_segment.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
     )
 
-    # create unqiue id for each stop on the pattern
+    # create unique id for each stop on the pattern
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
     if write: 
@@ -87,7 +87,7 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write = True) -> bool:
         df_segment.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_segment.parquet")
 
         return True
-    return df_pattern
+    return df_segment
 
 
 def process_patterns(pids: list):
