@@ -27,7 +27,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
     # just look at the rts for schedule
     if is_schedule:
-        iter = rt
+        iter = [rt]
         file_DIR = "../cta-stop-etl/out/clean_timetables/rt{rt}_timetable.parquet"
         error = "Do not have timetable for route {rt}. Skipping"
     else:
@@ -54,12 +54,19 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
             print(error.format(**template_values))
             continue
 
+        if 'stop_dist' in df_trips.columns:
+            df_trips = df_trips.drop('stop_dist')
+
         if not is_schedule:
-            # for now
-            df_trips = df_trips.filter(pl.col("typ") == "S")
             df_trips = df_trips.with_columns(
-                pl.lit(pid).cast(pl.Int64).alias("pid"),
-                pl.lit(rt).cast(pl.String).alias("rt"),
+                pl.col("pid")
+                .cast(pl.String)
+                .cast(pl.Float64)
+                .cast(pl.Int32)
+                .cast(pl.String)
+                .alias("pid"),
+                pl.col("vid").cast(pl.String).alias("vid"),
+                pl.col("rt").cast(pl.String).alias("rt"),
             )
 
         trips.append(df_trips)
