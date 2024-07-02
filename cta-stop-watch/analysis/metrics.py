@@ -54,10 +54,10 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
             print(error.format(**template_values))
             continue
 
-        if 'stop_dist' in df_trips.columns:
-            df_trips = df_trips.drop('stop_dist')
+        if "stop_dist" in df_trips.columns:
+            df_trips = df_trips.drop("stop_dist")
 
-        df_trips = df_trips.with_columns(pl.exclude('bus_stop_time').cast(pl.String))
+        df_trips = df_trips.with_columns(pl.exclude("bus_stop_time").cast(pl.String))
 
         if not is_schedule:
             df_trips = df_trips.with_columns(
@@ -106,6 +106,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
     return df_trips_all
 
+
 def time_to_next_stop(
     trips_df: pl.DataFrame,
     is_daytime: bool = True,
@@ -115,12 +116,16 @@ def time_to_next_stop(
         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
 
     # finds time between buses at each stop for a given route
-    trips_df = trips_df.sort(['stop_id', 'bus_stop_time'])
-    trips_df = trips_df.with_columns([
-        (pl.col('bus_stop_time').diff().over(['stop_id']).dt.total_seconds() / 60).alias('time_till_next_bus')
-    ])
+    trips_df = trips_df.sort(["stop_id", "bus_stop_time"])
+    trips_df = trips_df.with_columns(
+        [
+            (
+                pl.col("bus_stop_time").diff().over(["stop_id"]).dt.total_seconds() / 60
+            ).alias("time_till_next_bus")
+        ]
+    )
 
-    # finds time between bus stops for a given route 
+    # finds time between bus stops for a given route
     trips_df = trips_df.sort(by=["trip_id", "bus_stop_time"])
     trips_df = trips_df.with_columns(
         time_to_previous_stop=(
@@ -132,7 +137,7 @@ def time_to_next_stop(
         pl.col("time_to_previous_stop").fill_null(strategy="zero")
     )
 
-    # finds the cumulative time for a trip for a given route 
+    # finds the cumulative time for a trip for a given route
     trips_df = trips_df.with_columns(
         cum_trip_time=pl.cum_sum("time_to_previous_stop").over(
             pl.col("trip_id").rle_id()
@@ -154,6 +159,11 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
     Given a metric and a trips dataframe, this function will group the data by hour, day, week, month and year.
     """
 
+    if "trip_duration" in metric:
+        groupings = ["rt", "pid"]
+    else:
+        groupings = ["rt", "pid", "stop_sequence", "stop_id"]
+
     all_periods = []
     for grouping, trunc in [
         ("hour", "1h"),
@@ -164,7 +174,8 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
         ("year", "1y"),
     ]:
 
-        group_list = ["rt", "pid", "stop_sequence", "stop_id", grouping]
+        group_list = groupings.copy()
+        group_list.append(grouping)
 
         if "num_buses" in metric:
             df = trips_df.with_columns(
@@ -190,6 +201,15 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
             elif grouping == "year":
                 df = df.with_columns((pl.col(grouping).dt.year()).alias(grouping))
 
+        elif "trip_duration" in metric:
+            df = trips_df.with_columns(
+                (pl.col("start_trip").dt.hour()).alias("hour"),
+                (pl.col("start_trip").dt.month()).alias("month"),
+                (pl.col("start_trip").dt.year()).alias("year"),
+                (pl.col("start_trip").dt.weekday()).alias("weekday"),
+                (pl.col("start_trip").dt.ordinal_day()).alias("dayofyear"),
+                (pl.col("start_trip").dt.week()).alias("week"),
+            )
         else:
             df = trips_df.with_columns(
                 (pl.col("bus_stop_time").dt.hour()).alias("hour"),
@@ -201,6 +221,7 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
             )
 
         grouped_df = df.group_by([*group_list]).agg(
+            pl.count(metric).alias(f"count_{metric}"),
             pl.count(metric).alias(f"count_{metric}"),
             pl.median(metric).alias(f"median_{metric}"),
             pl.mean(metric).alias(f"mean_{metric}"),
@@ -275,8 +296,8 @@ def create_all_metrics_df(rts: list | str, is_schedule: bool):
                     "cum_trip_time": "actual_cum_trip_time",
                 }
             )
-        
-        # find grouped metrics for depending on actual or schedule 
+
+        # find grouped metrics for depending on actual or schedule
         all_metrics = []
         metrics = [
             "time_till_next_bus",
@@ -289,12 +310,13 @@ def create_all_metrics_df(rts: list | str, is_schedule: bool):
         for metric in metrics:
             grouped = group_metrics(trips_df, metric)
             all_metrics.append(grouped)
-        
+
         one_route.append(join_metrics(all_metrics))
 
     all_df = pl.concat(one_route)
 
     return all_df
+
 
 def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
     """
@@ -303,14 +325,29 @@ def create_combined_metrics_df(rts: list | str) -> pl.DataFrame:
     scheduled_df = create_all_metrics_df(rts, is_schedule=True)
     actual_df = create_all_metrics_df(rts, is_schedule=False)
 
-    combined_df = scheduled_df.join(actual_df,
-                                on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
-                                how="full",
-                                coalesce=True,
-                            )
+    combined_df = scheduled_df.join(
+        actual_df,
+        on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
+        how="full",
+        coalesce=True,
+    )
     # For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop
     combined_df = combined_df.with_columns(
-        time_till_next_bus_delay=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus'))
+        time_till_next_bus_delay=(
+            pl.col("median_actual_time_till_next_bus")
+            - pl.col("median_schedule_time_till_next_bus")
+        )
     )
 
     return combined_df
+
+
+# def average_delay(combined_df: pl.DataFrame):
+#     """
+#     For the combined DataFrame calculate the average delay for till the next bus arrives at a given bus stop.
+#     """
+#     combined_df = combined_df.with_columns(
+#         delay_avg=(pl.col('median_actual_time_till_next_bus') - pl.col('median_schedule_time_till_next_bus')).alias('avg_time_till_next_bus_delay')
+#     )
+
+#     return combined_df
