@@ -1,3 +1,4 @@
+import polars as pl 
 import pandas as pd
 import geopandas as gpd
 from shapely import LineString
@@ -16,7 +17,7 @@ def load_raw_pattern(pid: str) -> pd.DataFrame | bool:
     except FileNotFoundError:
         return False, False
 
-def convert_to_geometries(df_raw: pd.DataFrame, pid: str) -> bool:
+def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write = True) -> bool:
     """
      and converts
     it into route polygones that can be used to asses if a bus is inside it's
@@ -64,27 +65,29 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str) -> bool:
         geometries.append(geometry)
 
     # Change projection and units so distance and time can be computed (in feet)
-    segment_df = gpd.GeoDataFrame(
+    df_segment = gpd.GeoDataFrame(
         data={"segments": segments}, geometry=geometries, crs="EPSG:4326"
     ).sort_values("segments")
-    segment_df.loc[:, "length_ft"] = (
-        segment_df.geometry.to_crs("EPSG:26971").length * M_TO_FT
+    df_segment.loc[:, "length_ft"] = (
+        df_segment.geometry.to_crs("EPSG:26971").length * M_TO_FT
     )
-    segment_df.loc[:, "ls_geometry"] = segment_df.geometry
-    segment_df.geometry = (
-        segment_df.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
+    df_segment.loc[:, "ls_geometry"] = df_segment.geometry
+    df_segment.geometry = (
+        df_segment.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
     )
 
     # create unqiue id for each stop on the pattern
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
-    logging.debug(
-        f"Writing out/patterns_current/pid_{pid}_stop.parquet and out/patterns_current/pid_{pid}_segment.parquet"
-    )
-    df_pattern.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_stop.parquet")
-    segment_df.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_segment.parquet")
+    if write: 
+        logging.debug(
+            f"Writing out/patterns_current/pid_{pid}_stop.parquet and out/patterns_current/pid_{pid}_segment.parquet"
+        )
+        df_pattern.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_stop.parquet")
+        df_segment.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_segment.parquet")
 
-    return True
+        return True
+    return df_pattern
 
 
 def process_patterns(pids: list):
