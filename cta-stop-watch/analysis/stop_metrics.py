@@ -1,5 +1,4 @@
 import polars as pl
-import pandas as pd
 from utils import group_metrics
 
 
@@ -57,7 +56,7 @@ def join_metrics(all_metrics: list[pl.DataFrame]):
 
         static = static.join(
             all_metrics[i],
-            on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
+            on=["rt", "pid", "stop_id", "period", "period_value"],
             how="full",
             coalesce=True,
         )
@@ -114,7 +113,7 @@ def create_combined_metrics_stop_df(scheduled_df, actual_df):
 
     combined_df = scheduled_df.join(
         actual_df,
-        on=["rt", "pid", "stop_id", "stop_sequence", "period", "period_value"],
+        on=["rt", "pid", "stop_id", "period", "period_value"],
         how="full",
         coalesce=True,
     )

@@ -2,10 +2,15 @@ from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_d
 from trip_metrics import create_trips_metric_df, create_combined_metrics_trip_df
 from utils import create_trips_df
 import polars as pl
+import pandas as pd
 
 
-def create_metrics(rts):
+def create_metrics(rts, agg: bool = True):
     OUT_DIR = "out/"
+
+    if rts == "all":
+        xwalk = pd.read_parquet("rt_to_pid.parquet")
+        rts = xwalk["rt"].unique().tolist()
 
     # for each route
 
@@ -20,8 +25,8 @@ def create_metrics(rts):
         # prep schedule and actual
         print(f"Processing route {rt}")
         try:
-            actual_df = create_trips_df(rt=rt, is_schedule=True)
-            schedule_df = create_trips_df(rt=rt, is_schedule=False)
+            actual_df = create_trips_df(rt=rt, is_schedule=False)
+            schedule_df = create_trips_df(rt=rt, is_schedule=True)
         except Exception as e:
             print(f"issue with rt {rt}: {e}")
             continue
@@ -43,22 +48,29 @@ def create_metrics(rts):
     # combine trip level at routes
     actual_full_trips = pl.concat(all_routes_trips_actual)
     schedule_full_trips = pl.concat(all_routes_trips_schedule)
-    #
-    trip_metrics = create_combined_metrics_trip_df(
-        actual_full_trips, schedule_full_trips
-    )
+
+    # trip_metrics = create_combined_metrics_trip_df(
+    #     actual_full_trips, schedule_full_trips
+    # )
 
     # export
-    trip_metrics.write_parquet(f"{OUT_DIR}/trip_metrics_df.parquet")
+
+    actual_full_trips.write_parquet(f"{OUT_DIR}/actual_trip_metrics_df.parquet")
+    schedule_full_trips.write_parquet(f"{OUT_DIR}/schedule_trip_metrics_df.parquet")
 
     # combine stop level at routes
     actual_full_stops = pl.concat(all_routes_stops_actual)
     schedule_full_stops = pl.concat(all_routes_stops_schedule)
-    stop_metrics = create_combined_metrics_stop_df(
-        actual_full_stops, schedule_full_stops
-    )
+    # stop_metrics = create_combined_metrics_stop_df(
+    #     actual_full_stops, schedule_full_stops
+    # )
 
     # export
-    stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    actual_full_stops.write_parquet(f"{OUT_DIR}/actual_stop_metrics_df.parquet")
+    schedule_full_stops.write_parquet(f"{OUT_DIR}/schedule_stop_metrics_df.parquet")
 
-    return stop_metrics, trip_metrics
+    return True
+
+
+if __name__ == "__main__":
+    create_metrics("all")

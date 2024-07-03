@@ -16,6 +16,7 @@ def create_rt_pid_xwalk() -> bool:
 
     return True
 
+
 def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
     """
     Given rts to pids xwalk and a list of rts, create a df for all the trips for the rts
@@ -47,7 +48,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
             template_values = {"pid": pid}
 
         try:
-
+            print(template_values)
             df_trips = pl.read_parquet(file_DIR.format(**template_values))
         except FileNotFoundError:
             print(error.format(**template_values))
@@ -58,21 +59,19 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
         df_trips = df_trips.with_columns(pl.exclude("bus_stop_time").cast(pl.String))
 
-        if not is_schedule:
-            df_trips = df_trips.with_columns(
-                pl.col("pid")
-                .cast(pl.String)
-                .cast(pl.Float64)
-                .cast(pl.Int32)
-                .cast(pl.String)
-                .alias("pid"),
-            )
+        df_trips = df_trips.with_columns(
+            pl.col("pid").cast(pl.Float64).cast(pl.Int32).cast(pl.String).alias("pid")
+        )
 
         trips.append(df_trips)
 
     df_trips_all = pl.concat(trips)
 
     if is_schedule:
+
+        # account for a bug detailed in github issue #21
+        df_trips_all = df_trips_all.filter(pl.col("bus_stop_time").is_not_null())
+
         df_trips_all = df_trips_all.sort(["schd_trip_id", "bus_stop_time"])
 
         df_trips_all = df_trips_all.with_columns(
@@ -83,6 +82,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
         # create unique trip id. schd_trip_id is reused so count how many
         #  stops there are in a pattern and use that to determine when a
         #  trip ends and a new begins for trips with the same schd_trip_id
+
         df_trips_all = df_trips_all.with_columns(
             pl.struct("schd_trip_id", "total_stops", "trip_rn")
             .map_elements(
@@ -105,6 +105,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
     return df_trips_all
 
+
 def group_metrics(trips_df: pl.DataFrame, metric: str):
     """
     Given a metric and a trips dataframe, this function will group the data by hour, day, week, month and year.
@@ -113,7 +114,7 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
     if "trip_duration" in metric:
         groupings = ["rt", "pid"]
     else:
-        groupings = ["rt", "pid", "stop_sequence", "stop_id"]
+        groupings = ["rt", "pid", "stop_id"]
 
     all_periods = []
     for grouping, trunc in [
@@ -193,4 +194,3 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
         all_periods_df = pl.concat(all_periods)
 
     return all_periods_df
-

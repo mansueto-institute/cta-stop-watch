@@ -27,6 +27,8 @@ seaborn = "^0.13.2"
 gtfs-kit = "^6.1.0"
 argparse = "^1.4.0"
 branca = "^0.7.2"
+plotly = "^5.22.0"
+nbformat = "^5.10.4"
 
 
 
