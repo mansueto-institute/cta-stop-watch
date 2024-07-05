@@ -33,6 +33,14 @@ import time
 from polars import ColumnNotFoundError
 import datetime
 
+# Packages to import maps as pngs
+import selenium
+from selenium.webdriver.firefox.options import Options as options
+from selenium.webdriver.firefox.service import Service
+import io 
+from PIL import Image
+
+
 # Import from module with "-" on its name 
 import importlib  
 ppatt = importlib.import_module("cta-stop-watch.cta-stop-etl.process_patterns")
@@ -63,12 +71,30 @@ DIR_INP = DIR.parents[2] / "cta-stop-etl/out/"
 
 DIR_PID = pathlib.Path(__file__).parents[2] / "cta-stop-etl/out/"
 # TIME_WINDOWS = [5, 10, 15, 20, 30, 45, 60, 90, 120]
-TIME_WINDOWS = [0.5, 2, 5, 10, 15]
+TIME_WINDOWS = [2, 5, 10, 15]
 TIME_WINDOWS = [datetime.timedelta(minutes=t) for t in TIME_WINDOWS]
 
 NUM_TRANSFERS = 0
 
 print(DIR_INP)
+
+# SELENIUM FIREFOX DRIVER -----------------------------------------------------
+
+# Documentation 
+# https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location/
+# https://stackoverflow.com/questions/58296262/python-selenium-4-firefox-firefoxbinary-deprecated
+
+# Declare firefox driver to be able to export folium maps to pngs. 
+# On terminal: sudo apt install firefox
+
+#///////////////// Init binary & driver
+geckodriver_path = '/snap/bin/geckodriver/exe'
+firefox_binary_path = '/usr/bin/firefox/exe'
+
+ops = options()
+ops.binary_location = firefox_binary_path
+serv = Service(geckodriver_path)
+browser1 = selenium.webdriver.Firefox(service=serv, options=ops)
 
 # FUNCTIONS -------------------------------------------------------------------
 
@@ -93,17 +119,22 @@ def compute_travel_time_baseline(df_catalogue: pl.DataFrame, df_stops_metrics: p
     """
 
     # Get route 
-    route = df_catalogue.filter(
-        (pl.col("stop_id") == stop) & (pl.col("pid") == pid))["route_id"].item()
-    # route = df_stop_pid["route_id"].item()
+    df_stop_pid_pair = df_catalogue.filter(
+        (pl.col("stop_id") == stop) & (pl.col("pid") == pid))
+    route = df_stop_pid_pair["route_id"].item()
+
+    # Valid pair 
+    # logging.info(f"{df_stop_pid_pair = }")
+
 
     # logging.debug(df_stops_metrics.columns)
+    # logging.debug(f"Pid before filtering {pid = }")
 
     df_pid = df_stops_metrics.filter(
-        # (pl.col("stop_id") == stop) & 
-        (pl.col("pid") == pid ) & 
+        (pl.col("pid") == pid) & 
         (pl.col("period") == "year") & 
-        (pl.col("period_value") == 2024)
+        (pl.col("period_value") == 2024) &
+        True
                                     ).with_columns(
                                         pl.col("stop_sequence").cast(pl.Int16)
                                     ).sort(pl.col("stop_sequence")
@@ -111,8 +142,7 @@ def compute_travel_time_baseline(df_catalogue: pl.DataFrame, df_stops_metrics: p
                                     ).select(["rt", "pid", "stop_sequence", "stop_id", "period_value", "time_to_previous"]
         )
 
-    # logging.debug(df_pid)
-    logging.debug(df_pid.with_row_index().filter(pl.col("stop_id") == stop))
+    # logging.debug(df_pid.with_row_index().filter(pl.col("stop_id") == stop))
     
     # Find index of stop and take it as the start of the path  
     start = df_pid.with_row_index().filter(pl.col("stop_id") == stop)["index"].item()
@@ -168,16 +198,15 @@ def find_reachable_segment_by_time(df_travel_time: pl.DataFrame, df_pattern: pl.
         - gdf_dissolved (gpd.GeoDataFrame): A data frame with a single shape 
         of the path that can be reached within the time budget. 
         """
+        # logging.debug(f"{time_budget = }")
+        # logging.debug(f"{df_travel_time = }")
+
         # Filter observations based on the windows
         df_within_time = df_travel_time.filter(pl.col("travel_time_elapsed") <= time_budget) 
+
         # logging.debug(f"{df_within_time = }")
         stops_within_reach = df_within_time["stop_id"].unique()
         
-        # Check why filtering is leaving stops out
-        # logging.debug(stops_within_reach)
-        # logging.debug(f"{df_pattern.columns = }")
-        # logging.debug(f"{df_pattern = }")
-        # logging.debug(f"{df_pattern['stpid'] = }")
 
         # Filter original pattern stops 
         df_pattern_within_reach = df_pattern.filter(pl.col("stpid").is_in(stops_within_reach))
@@ -220,11 +249,6 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
         logging.debug(f"Bus stop patterns: {stop_pids}")
 
         for pid in stop_pids: 
-            # TODO remove hard coded PID ID
-            # pid = "14110"
-            pid = str(int(pid))
-            logging.info(f"{pid = }")
-
             # Compute time for remaining path starting from the stop 
             df_time = compute_travel_time_baseline(df_catalogue, df_stops_metrics, pid = pid, stop = stop)
 
@@ -239,13 +263,10 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
     
             for time_budget in time_windows:
                 # logging.debug(f"{time_budget = }")
-                gdf_dissolved = find_reachable_segment_by_time(df_time, df_pattern, stop, pid, time_budget)
+                gdf_dissolved = find_reachable_segment_by_time(df_time, df_pattern, stop = stop, pid = pid, time_budget = time_budget)
                 # logging.debug(f"{gdf_dissolved =}")
                 gdf_stops_reach_areas = pd.concat([gdf_stops_reach_areas, gdf_dissolved])
 
-            # TODO remove breaks once full data is available
-            # break
-        # break
     return gdf_stops_reach_areas
 
 def merge_areas_by_time(gdf_stops_reach_areas: gpd.GeoDataFrame) -> gpd.GeoDataFrame: 
@@ -261,18 +282,30 @@ def merge_areas_by_time(gdf_stops_reach_areas: gpd.GeoDataFrame) -> gpd.GeoDataF
 
     return gdf_stop_areas
 
+def plot_paths(gdf): 
+    m = gdf.explore(column = "time_budget", cmap = "OrRd")
+    img_data = m._to_png(30)
+    img = Image.open(io.BytesIO(img_data))
+    img.save("example.png")
+
 
 def main(): 
     # Load stop id and patterns catalogue 
     df_catalogue = pl.read_parquet("../../scrapers/rt_pid_stop.parquet").with_columns(
-        pl.col("pid").cast(pl.Int16).cast(pl.String)
+        # Cast types so that ids are the same in both data sets
+        pl.col("pid").cast(pl.Int16).cast(pl.String), 
+        pl.col("stop_id").cast(pl.Int16).cast(pl.String)
     )
 
-    # Load metrics 
-    df_stops_metrics = pl.read_parquet("stop_metrics_df.parquet")
+    # Remove this filter once we have data for every route and not just the 172
+    df_catalogue = df_catalogue.filter(pl.col("route_id") == "172")
 
-    logging.debug(df_catalogue["pid"]) # This has leading zeros
-    logging.debug(df_stops_metrics["pid"]) # This doesn't have leading zeros
+    # Load metrics 
+    df_stops_metrics = pl.read_parquet("stop_metrics_df.parquet").with_columns(
+        # Cast types so that ids are the same in both data sets
+        pl.col("pid").cast(pl.Int16).cast(pl.String), 
+        pl.col("stop_id").cast(pl.Int16).cast(pl.String)
+    )
 
     # logging.debug(df_catalogue)
     # logging.debug(df_catalogue.columns)
@@ -284,7 +317,9 @@ def main():
     logging.debug(f"{gdf_stop_areas = }")
     logging.debug(f"{gdf_stop_areas.columns}")
 
-    # gdf_stop_areas.to_parquet("accessibility_trial.parquet")
+    gdf_stop_areas.to_parquet("accessibility_trial.parquet")
+
+    plot_paths(gdf_stop_areas)
 
 
 if __name__ == "__main__":
