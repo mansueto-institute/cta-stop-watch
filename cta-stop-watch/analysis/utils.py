@@ -200,3 +200,37 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
         all_periods_df = pl.concat(all_periods)
 
     return all_periods_df
+
+
+def create_trips_df_pid(
+    pid: str,
+) -> pl.DataFrame:
+    """
+    prep routes for one pid
+    """
+    # just look at the rts for schedule
+
+    file_DIR = f"../cta-stop-etl/out/trips/trips_{pid}_full.parquet"
+    error = f"Do not have pattern {pid} for route. Skipping"
+
+    try:
+        df_trips = pl.read_parquet(file_DIR)
+    except FileNotFoundError:
+        print(error)
+
+    if "stop_dist" in df_trips.columns:
+        df_trips = df_trips.drop("stop_dist")
+
+    df_trips = df_trips.with_columns(pl.exclude("bus_stop_time").cast(pl.String))
+
+    df_trips = df_trips.with_columns(
+        pl.col("pid").cast(pl.Float64).cast(pl.Int32).cast(pl.String).alias("pid")
+    )
+    df_trips = df_trips.rename(
+        {
+            "unique_trip_vehicle_day": "trip_id",
+            "stpid": "stop_id",
+        }
+    )
+
+    return df_trips
