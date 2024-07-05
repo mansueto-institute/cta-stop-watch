@@ -75,13 +75,19 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
         df_trips_all = df_trips_all.sort(["schd_trip_id", "bus_stop_time"])
 
         df_trips_all = df_trips_all.with_columns(
-            total_stops=pl.col("stop_id").n_unique().over("pid"),
+            total_stops=pl.col("stop_sequence")
+            .cast(pl.Float64)
+            .cast(pl.Int32)
+            .max()
+            .over("schd_trip_id"),
             trip_rn=pl.col("bus_stop_time").rank("ordinal").over("schd_trip_id"),
         )
 
         # create unique trip id. schd_trip_id is reused so count how many
-        #  stops there are in a pattern and use that to determine when a
-        #  trip ends and a new begins for trips with the same schd_trip_id
+        #  stops there are for a schd_trip_id (always the same) and use that
+        # to determine when a trip ends and a new begins for trips with the
+        # same schd_trip_id. tried to use num of stops / seq max for a
+        # pattern but its not a unique value :(
 
         df_trips_all = df_trips_all.with_columns(
             pl.struct("schd_trip_id", "total_stops", "trip_rn")
