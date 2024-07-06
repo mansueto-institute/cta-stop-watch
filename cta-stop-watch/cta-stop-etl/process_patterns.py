@@ -4,11 +4,15 @@ import geopandas as gpd
 from shapely import LineString
 import pathlib
 import logging
+from pyproj import Proj, CRS
 
 ## CONSTANTS
 M_TO_FT = 3.280839895
 BUFFER_DIST = 50
 PID_DIR = pathlib.Path(__file__).parent / "out"
+
+PROJ_4326 = CRS("epsg:4326")
+PROJ_26971 = CRS("epsg:26971")
 
 def load_raw_pattern(pid: str) -> pd.DataFrame | bool:
     try:
@@ -42,7 +46,7 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write = True) -> bool:
     df_pattern = gpd.GeoDataFrame(
         df_raw,
         geometry=gpd.GeoSeries.from_xy(
-            x=df_raw.loc[:, "lon"], y=df_raw.loc[:, "lat"], crs="EPSG:4326"
+            x=df_raw.loc[:, "lon"], y=df_raw.loc[:, "lat"], crs=PROJ_4326
         ),
     )
 
@@ -66,14 +70,14 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write = True) -> bool:
 
     # Change projection and units so distance and time can be computed (in feet)
     df_segment = gpd.GeoDataFrame(
-        data={"segments": segments}, geometry=geometries, crs="EPSG:4326"
+        data={"segments": segments}, geometry=geometries, crs=PROJ_4326
     ).sort_values("segments")
     df_segment.loc[:, "length_ft"] = (
-        df_segment.geometry.to_crs("EPSG:26971").length * M_TO_FT
+        df_segment.geometry.to_crs(PROJ_26971).length * M_TO_FT
     )
     df_segment.loc[:, "ls_geometry"] = df_segment.geometry
     df_segment.geometry = (
-        df_segment.geometry.to_crs("EPSG:26971").buffer(BUFFER_DIST).to_crs("EPSG:4326")
+        df_segment.geometry.to_crs(PROJ_26971).buffer(BUFFER_DIST).to_crs(PROJ_4326)
     )
 
     # create unique id for each stop on the pattern

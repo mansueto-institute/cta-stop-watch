@@ -6,7 +6,6 @@
             # Convert segment into shape 
 
 # TODO
-# Fix type casting of pid x_x
 # Check projection 
 # Address edge cases (stop is start/end of path)
 # Dissolve shapes grouping by bus stop and time budget
@@ -27,18 +26,11 @@ import pandas as pd
 import geopandas as gpd
 import pathlib
 import os
-import re
 import logging
 import time
-from polars import ColumnNotFoundError
 import datetime
-
-# Packages to import maps as pngs
-import selenium
-from selenium.webdriver.firefox.options import Options as options
-from selenium.webdriver.firefox.service import Service
-import io 
-from PIL import Image
+from selenium import webdriver
+from selenium.webdriver.remote.remote_connection import LOGGER
 
 
 # Import from module with "-" on its name 
@@ -48,15 +40,23 @@ ppatt = importlib.import_module("cta-stop-watch.cta-stop-etl.process_patterns")
 
 # LOGGER ----------------------------------------------------------------------
 
+# Set selenium logger to warning level
+LOGGER.setLevel(logging.WARNING)
+
+
+# Start logger for this script
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     filename="stops_dict.log",
     filemode="w",
+    format = "%(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
     encoding="utf-8",
     level=logging.DEBUG,
     # level=logging.INFO
 )
+
+# formatter = logging.Formatter('[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s','%m-%d %H:%M:%S')
 
 start_tmstmp = time.time()
 start_string = time.asctime(time.localtime())
@@ -68,33 +68,24 @@ logging.info(f"CTA BUSES ETL PIPELINE STARTED AT: {start_string}")
 # Paths 
 DIR = pathlib.Path(__file__) 
 DIR_INP = DIR.parents[2] / "cta-stop-etl/out/"
-
 DIR_PID = pathlib.Path(__file__).parents[2] / "cta-stop-etl/out/"
+
+
+# Simulation parameter: Time
 # TIME_WINDOWS = [5, 10, 15, 20, 30, 45, 60, 90, 120]
 TIME_WINDOWS = [2, 5, 10, 15]
 TIME_WINDOWS = [datetime.timedelta(minutes=t) for t in TIME_WINDOWS]
 
+# Simulation parameter: Tranfers
 NUM_TRANSFERS = 0
 
-print(DIR_INP)
+# Data 
+# DF_CATALOGUE = pl.read_parquet("../../scrapers/rt_pid_stop.parquet").with_columns(
+#         # Cast types so that ids are the same in both data sets
+#         pl.col("pid").cast(pl.Int16).cast(pl.String), 
+#         pl.col("stop_id").cast(pl.Int16).cast(pl.String)
+#     )
 
-# SELENIUM FIREFOX DRIVER -----------------------------------------------------
-
-# Documentation 
-# https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location/
-# https://stackoverflow.com/questions/58296262/python-selenium-4-firefox-firefoxbinary-deprecated
-
-# Declare firefox driver to be able to export folium maps to pngs. 
-# On terminal: sudo apt install firefox
-
-#///////////////// Init binary & driver
-geckodriver_path = '/snap/bin/geckodriver/exe'
-firefox_binary_path = '/usr/bin/firefox/exe'
-
-ops = options()
-ops.binary_location = firefox_binary_path
-serv = Service(geckodriver_path)
-browser1 = selenium.webdriver.Firefox(service=serv, options=ops)
 
 # FUNCTIONS -------------------------------------------------------------------
 
@@ -282,11 +273,37 @@ def merge_areas_by_time(gdf_stops_reach_areas: gpd.GeoDataFrame) -> gpd.GeoDataF
 
     return gdf_stop_areas
 
-def plot_paths(gdf): 
-    m = gdf.explore(column = "time_budget", cmap = "OrRd")
-    img_data = m._to_png(30)
-    img = Image.open(io.BytesIO(img_data))
-    img.save("example.png")
+def plot_paths(gdf: gpd.GeoDataFrame): 
+    
+    for stop_id in list(gdf["origin_stop"].unique()): 
+        
+        gdf_stop = gdf[gdf["origin_stop"] == stop_id]
+
+        gdf_stop.sort_values("time_budget")
+
+        # Reorder layers (shortest travel times on top)
+        gdf = gdf.iloc[::-1]
+
+
+        # Generate map 
+        map_viz = gdf.explore(column = "time_budget", cmap = "OrRd")
+
+        # 
+        map_file = "map.html"
+        map_viz.save(map_file)
+        
+        map_url = 'file://{0}/{1}'.format(os.getcwd(), map_file)
+        
+        driver = webdriver.Firefox()
+        driver.get(map_url)
+        time.sleep(5)
+        driver.save_screenshot(f"maps/map_stop_{stop_id}.png")
+        driver.quit()
+
+
+    # img_data = m._to_png(5)
+    # img = Image.open(io.BytesIO(img_data))
+    # img.save("example.png")
 
 
 def main(): 
@@ -317,8 +334,9 @@ def main():
     logging.debug(f"{gdf_stop_areas = }")
     logging.debug(f"{gdf_stop_areas.columns}")
 
-    gdf_stop_areas.to_parquet("accessibility_trial.parquet")
+    # gdf_stop_areas.to_parquet("accessibility_trial.parquet")
 
+    # Plot and store one stop 
     plot_paths(gdf_stop_areas)
 
 
