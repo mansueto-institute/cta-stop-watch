@@ -6,13 +6,12 @@
             # Convert segment into shape 
 
 # TODO
-# Check projection 
 # Address edge cases (stop is start/end of path)
 # Dissolve shapes grouping by bus stop and time budget
 # Add transfers to simulation 
 # Add initial wait based on actual waiting and delay times
 # Add walking time from final bus stop within time budget
-# Format final time as inteer instead of timedelta/string 
+# Format final time as integer instead of timedelta/string 
     # (df['tdColumn'] = pd.to_numeric(df['tdColumn'].dt.days, downcast='integer')) 
     # Source: https://stackoverflow.com/questions/25646200/python-convert-timedelta-to-int-in-a-dataframe
 
@@ -29,9 +28,10 @@ import os
 import logging
 import time
 import datetime
+import folium 
 from selenium import webdriver
 from selenium.webdriver.remote.remote_connection import LOGGER
-
+import seaborn as sns
 
 # Import from module with "-" on its name 
 import importlib  
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(
     filename="stops_dict.log",
     filemode="w",
-    format = "%(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
+    # format = "%(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
     encoding="utf-8",
     level=logging.DEBUG,
     # level=logging.INFO
@@ -85,6 +85,10 @@ NUM_TRANSFERS = 0
 #         pl.col("pid").cast(pl.Int16).cast(pl.String), 
 #         pl.col("stop_id").cast(pl.Int16).cast(pl.String)
 #     )
+
+# Plots colors 
+v_colors = list(sns.color_palette("OrRd").as_hex())
+
 
 
 # FUNCTIONS -------------------------------------------------------------------
@@ -230,21 +234,18 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
     gdf_stops_reach_areas = gpd.GeoDataFrame()
 
     for stop in df_catalogue["stop_id"].unique(): 
-        # TODO remove hard coded STOP ID
-        # stop = "1525"
 
         df_stop = df_catalogue.filter(pl.col("stop_id") == stop)
                     
-        logging.debug(f"Bust stop ID: {stop}")
         stop_pids = df_stop["pid"].to_list()
-        logging.debug(f"Bus stop patterns: {stop_pids}")
+        logging.debug(f"STOP ID: {stop}, bus patterns: {stop_pids}")
 
         for pid in stop_pids: 
             # Compute time for remaining path starting from the stop 
             df_time = compute_travel_time_baseline(df_catalogue, df_stops_metrics, pid = pid, stop = stop)
 
             # Change number format (remove leading zeros)
-            logging.info(f"{pid = }")
+            logging.info(f"\t{pid = }")
 
             # Load pattern, no need to preserve geometry 
             df_pattern = pl.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet"
@@ -253,12 +254,15 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
                                              ).drop(["geometry"])
     
             for time_budget in time_windows:
-                # logging.debug(f"{time_budget = }")
+                logging.debug(f"\t\t{time_budget = }")
                 gdf_dissolved = find_reachable_segment_by_time(df_time, df_pattern, stop = stop, pid = pid, time_budget = time_budget)
                 # logging.debug(f"{gdf_dissolved =}")
                 gdf_stops_reach_areas = pd.concat([gdf_stops_reach_areas, gdf_dissolved])
 
     return gdf_stops_reach_areas
+
+ 
+
 
 def merge_areas_by_time(gdf_stops_reach_areas: gpd.GeoDataFrame) -> gpd.GeoDataFrame: 
     """
@@ -267,26 +271,70 @@ def merge_areas_by_time(gdf_stops_reach_areas: gpd.GeoDataFrame) -> gpd.GeoDataF
     """
     # TODO: Apply dissolved grouped by stop_id and time budget
     
-    # Standardize column names
+        
+
+    # Standardize column names and clean time labels
     gdf_stop_areas = gdf_stops_reach_areas.rename(columns={"stpid": "stop_id"})
-    gdf_stop_areas["time_budget"] = gdf_stop_areas["time_budget"].astype(str)
+    # gdf_stop_areas["time_budget"] = gdf_stop_areas["time_budget"].astype(str)
+    gdf_stop_areas["minutes"] = gdf_stop_areas["time_budget"].transform(
+        lambda x: x.seconds / 60
+    )
+
+
+    # TODO: Pasar implementación a vectores con los valores del tiempo 
+    gdf_stop_areas["time_label"] = gdf_stop_areas["minutes"].case_when(
+        [
+            (gdf_stop_areas.eval(f"minutes == {str(2)}"), "2 minutes"), 
+            (gdf_stop_areas.eval(f"minutes == {str(5)}"), "5 minutes"), 
+            (gdf_stop_areas.eval(f"minutes == {str(10)}"), "10 minutes"), 
+            (gdf_stop_areas.eval(f"minutes == {str(15)}"), "15 minutes")
+        ]
+    )
+
+    gdf_stop_areas["time_label"] = pd.Categorical(gdf_stop_areas["time_label"], 
+                                                  categories = ["2 minutes", 
+                                                                "5 minutes",
+                                                                "10 minutes", 
+                                                                "15 minutes"])
 
     return gdf_stop_areas
 
 def plot_paths(gdf: gpd.GeoDataFrame): 
-    
+
+   
     for stop_id in list(gdf["origin_stop"].unique()): 
         
         gdf_stop = gdf[gdf["origin_stop"] == stop_id]
 
-        gdf_stop.sort_values("time_budget")
-
         # Reorder layers (shortest travel times on top)
-        gdf = gdf.iloc[::-1]
+        gdf_stop = gdf_stop.sort_values("minutes")
+        gdf_stop = gdf_stop.iloc[::-1] # Decreasing order
+
+        
+        # Drop time delta type of columns for folium to work 
+        gdf_stop = gdf_stop.drop(columns = ["time_budget", "minutes"])
+
+        logging.debug(f"{gdf_stop.dtypes}")
+
+        # Generate map with paths
+        map_viz = gdf_stop.explore(column = "time_label", 
+                                   cmap = "OrRd",
+                                   )
 
 
-        # Generate map 
-        map_viz = gdf.explore(column = "time_budget", cmap = "OrRd")
+        # Add bus stop point 
+        stop_point = gdf_stop["ls_geometry"].unique()[0]
+        map_viz.add_child(
+            folium.Circle(location = [stop_point.y, stop_point.x], 
+                        radius = 40, 
+                        color = "red", 
+                        opacity = 1,
+                        fill = True, 
+                        colorFill = "red", 
+                        fill_opacity = 1)
+                        )
+
+
 
         # 
         map_file = "map.html"
@@ -299,11 +347,6 @@ def plot_paths(gdf: gpd.GeoDataFrame):
         time.sleep(5)
         driver.save_screenshot(f"maps/map_stop_{stop_id}.png")
         driver.quit()
-
-
-    # img_data = m._to_png(5)
-    # img = Image.open(io.BytesIO(img_data))
-    # img.save("example.png")
 
 
 def main(): 
