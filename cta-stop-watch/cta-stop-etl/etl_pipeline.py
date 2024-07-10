@@ -123,7 +123,7 @@ def print_timing_at_exit() -> None:
     total_running_time = end_tmstmp - start_tmstmp
     # formatted_time = time.strftime("%H:%M:%S", time.gmtime(total_running_time))
     formatted_time = time.strftime(
-        "%H hours %M minutes %S", time.gmtime(total_running_time)
+        "%H hours %M minutes %S seconds", time.gmtime(total_running_time)
     )
 
     logging.info(f"Total running time: {formatted_time}")

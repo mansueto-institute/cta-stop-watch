@@ -6,6 +6,8 @@
             # Convert segment into shape 
 
 # TODO
+# Update docstrings and typing 
+# Make function for labeling time variable 
 # Address edge cases (stop is start/end of path)
 # Dissolve shapes grouping by bus stop and time budget *** tried 
 # Add transfers to simulation 
@@ -14,10 +16,7 @@
 
 # Tracke all skipped PIDs
 
-# Cambiar implementación de los mapas a matplotlib
 # Run code for the whole data set: ask for stops actual metrics with stop sequence
-
-
 
 
 # IMPORTS ---------------------------------------------------------------------
@@ -29,7 +28,7 @@ import pathlib
 import logging
 import time
 import datetime
-import seaborn as sns
+
 # Import from module with "-" on its name 
 import importlib  
 ppatt = importlib.import_module("cta-stop-watch.cta-stop-etl.process_patterns")
@@ -49,11 +48,10 @@ logging.basicConfig(
     # level=logging.INFO
 )
 
-# formatter = logging.Formatter('[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s','%m-%d %H:%M:%S')
-
 start_tmstmp = time.time()
 start_string = time.asctime(time.localtime())
 logging.info(f"CTA BUSES ETL PIPELINE STARTED AT: {start_string}")
+logging.info(f"{'-'*69}")
 
 # CONTANTS --------------------------------------------------------------------
 
@@ -72,11 +70,6 @@ TIME_WINDOWS = [datetime.timedelta(minutes=t) for t in TIME_WINDOWS]
 NUM_TRANSFERS = 0
 
 # Data 
-# DF_CATALOGUE = pl.read_parquet("../../scrapers/rt_pid_stop.parquet").with_columns(
-#         # Cast types so that ids are the same in both data sets
-#         pl.col("pid").cast(pl.Int16).cast(pl.String), 
-#         pl.col("stop_id").cast(pl.Int16).cast(pl.String)
-#     )
 
 
 # FUNCTIONS -------------------------------------------------------------------
@@ -84,7 +77,7 @@ NUM_TRANSFERS = 0
 
 def prepare_input_dataset():
 
-    logging.info("Mergin infro with bus sequence")
+    logging.info("Merging infro with bus sequence")
 
     # Dictionary for bus stops id, bus stop sequence, and pattern id
     df_stop_seq = pl.read_parquet("df_stop_pid_seq.parquet").with_columns(
@@ -93,10 +86,9 @@ def prepare_input_dataset():
         pl.col("stop_id").cast(pl.Int16).cast(pl.String)
     ).unique()
 
-
     # Stop sequence info: filter for relevant time period 
     df_stops_metrics = pl.read_parquet("actual_stop_metrics_df.parquet")
-    
+
     df_stops_metrics = df_stops_metrics.filter(
         pl.col("period_value") == 2024
     ).with_columns(
@@ -104,7 +96,7 @@ def prepare_input_dataset():
         pl.col("pid").cast(pl.Int16).cast(pl.String),
         pl.col("stop_id").cast(pl.Int16).cast(pl.String)
     )
-
+    
     # Join actual metrics with sequence order of bus stops
     df_stops_metrics = df_stops_metrics.join(
         df_stop_seq,
@@ -117,7 +109,7 @@ def prepare_input_dataset():
 
 
 
-def compute_travel_time_baseline(df_catalogue: pl.DataFrame, df_stops_metrics: pl.DataFrame, stop: str, pid:str) -> pl.DataType:
+def compute_travel_time_baseline(df_catalogue: pl.DataFrame, df_stops_metrics: pl.DataFrame, stop: str, pid: str) -> pl.DataType:
     """ 
     Takes a pair of a stop and a pattern and compute the travel time it would 
     take to go from that stop to the end of that pattern. Notice that the stop
@@ -137,7 +129,7 @@ def compute_travel_time_baseline(df_catalogue: pl.DataFrame, df_stops_metrics: p
         travel time elapsed at different bus stops. 
     """
     
-    # Get route 
+    # Get route when bus stop is present in the catalogue 
     try:
         df_stop_pid_pair = df_catalogue.filter(
             (pl.col("stop_id") == stop) & (pl.col("pid") == pid))
@@ -147,71 +139,57 @@ def compute_travel_time_baseline(df_catalogue: pl.DataFrame, df_stops_metrics: p
         logging.error(e)
         route = None
 
-
-    # Valid pair 
-    # logging.info(f"{df_stop_pid_pair = }")
-
-    # logging.debug(df_stops_metrics.columns)
-    # logging.debug(f"Pid before filtering {pid = }")
-
+    # Filter bus stop' pattern info for corresponding time period a
     df_pid = df_stops_metrics.filter(
         (pl.col("pid") == pid) & 
         (pl.col("period") == "year") & 
         (pl.col("period_value") == 2024) &
         True
-                                    # New metrics data did not include sequence variable
                                     ).with_columns(
                                         pl.col("stop_sequence").cast(pl.Int16)
                                     ).sort(pl.col("stop_sequence")
                                     ).rename({"median_actual_time_to_previous_stop": "time_to_previous"}
-                                    ).select(["rt", "pid", 
-                                            #   "stop_sequence", 
-                                              "stop_id", "period_value", "time_to_previous"]
+                                    ).select(["rt", "pid", "stop_sequence", "stop_id", "period_value", "time_to_previous"]
         )
 
     
+    df_start_stop = df_pid.with_row_index().filter(pl.col("stop_id") == stop)
+
     # Some STOP/PID patterns will not be available for the time period
-
-    # logging.debug(df_pid.with_row_index().filter(pl.col("stop_id") == stop))
-    
-    # # Find index of stop and take it as the start of the path  
-    # logging.debug(f"{df_pid.shape[0] = }")
-    # logging.debug(f"{stop = }")
-    # logging.debug(f"{df_pid['stop_id'].unique() = }")
-
     if df_pid.shape[0] == 0:
-        logging.debug("PID not present")
+        logging.error(f"PID {pid} not present in stop metrics")
         return None
-    elif df_pid.with_row_index().filter(pl.col("stop_id") == stop).shape[0] == 0:
-        logging.debug("Bus stop not present for 2024")
+    elif df_start_stop.shape[0] == 0:
+        logging.debug(f"Bus stop {stop} not present in stop metrics for 2024")
         return None
-    elif df_pid.shape[0] > 1: 
-        logging.debug(f"{df_pid.with_row_index().filter(pl.col('stop_id') == stop)}")
+    elif df_start_stop.shape[0]  > 1: 
+        logging.info("More than one observation found for the stop")
+        logging.debug(f"{df_start_stop = }")
 
-    start = df_pid.with_row_index().filter(pl.col("stop_id") == stop)["index"].item()
+        # Remove duplicates where time is the same
+        df_start_stop = df_start_stop.unique(subset=["time_to_previous"])
+        logging.info("After filtering for duplicate time values:")
+        logging.debug(f"{df_start_stop = }")
+
+                               
+    start = df_start_stop["index"].item()
     end = len(df_pid)
     df_remaining_path = df_pid.slice(start, end)
     
+    # TODO: Decide what to do with single observation paths and 
     # Edge cases (bus stop is the start or the end of the pid)
     if len(df_remaining_path) == 1: 
         pass
 
     # Compute total travel time with bus stop as start of the travel 
     # Note: Be careful handling time operations
-
-    start_time = df_pid.filter(pl.col("stop_id") == stop)["time_to_previous"].item()
+    start_time = df_start_stop["time_to_previous"].item()
     initial_wait = datetime.timedelta(0)
-
-    # logging.debug(f"{type(start_time) = }")
-    # logging.debug(f"{type(initial_wait) = }")
 
     df_travel_time = df_remaining_path.with_columns(
         travel_time_elapsed = pl.cum_sum("time_to_previous") - start_time + initial_wait, 
-        # travel_time_elapsed = pl.cum_sum("time_to_previous"), 
         route = pl.lit(route)
     )
-
-    # logging.debug(df_travel_time)
 
     return df_travel_time
 
@@ -258,7 +236,7 @@ def find_reachable_segment_by_time(df_travel_time: pl.DataFrame, df_pattern: pl.
         # Compute geometry 
         gdf = ppatt.convert_to_geometries(df_pattern_within_reach, pid = pid, write = False)
 
-        # TODO: Add walking distance buffer depending on remaining time
+        # TODO: Add walking distance buffer to stops
 
         # Merge all shapes into a single one and save 
         gdf_dissolved = gdf.dissolve()
@@ -291,22 +269,15 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
         df_stop = df_stops_metrics.filter(pl.col("stop_id") == stop)
         pids_in_stop = df_stop["pid"].unique()
 
-        logging.debug(f"STOP ID: {stop}, bus patterns: {list(pids_in_stop)}")
+        logging.info(f"STOP ID: {stop}, bus patterns: {list(pids_in_stop)}")
 
         for pid in pids_in_stop: 
-            logging.info(f"Computing time for {stop = } and {pid = }")
+            
+            # # TODO remove
+            # stop = '8010'
+            # pid = '8180'
 
-            # # Looks like there are cases of stop/pid pairs in the catalogue that 
-            # # are not present in the metrics data
-            # # Check that stop/pid pair is in both data sets 
-            # pair_in_catalogue = df_catalogue.filter((pl.col("stop_id") == stop) & (pl.col("pid") == pid)).shape[0]
-            # pair_in_metric = df_stops_metrics.filter((pl.col("stop_id") == stop) & (pl.col("pid") == pid)).shape[0]
-
-            # if pair_in_catalogue == 0 or pair_in_metric == 0: 
-            #     logging.info(f"Stop/pid pair {stop}/{pid}  missing from either catalogue or metric dfs")
-            #     logging.debug(f"{pair_in_catalogue = }")
-            #     logging.debug(f"{pair_in_metric = }")
-            #     continue
+            logging.info(f"\tComputing time for {stop = } and {pid = }")
 
             # Compute time for remaining path starting from the stop 
             df_time = compute_travel_time_baseline(df_catalogue, df_stops_metrics, pid = pid, stop = stop)
@@ -315,9 +286,6 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
                 print(f"Skiped pid {pid}")
                 continue
 
-            # Change number format (remove leading zeros)
-            logging.info(f"\t{pid = }")
-
             # Load pattern, no need to preserve geometry 
             df_pattern = pl.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet"
                                          ).with_columns(
@@ -325,19 +293,18 @@ def build_stops_reachable_areas(df_catalogue: pl.DataFrame, df_stops_metrics: pl
                                              ).drop(["geometry"])
     
             for time_budget in time_windows:
-                logging.debug(f"\t\t{time_budget = }")
+                # logging.debug(f"\t\t{time_budget = }")
                 gdf_dissolved = find_reachable_segment_by_time(df_time, df_pattern, stop = stop, pid = pid, time_budget = time_budget)
                 # logging.debug(f"{gdf_dissolved =}")
                 gdf_stops_reach_areas = pd.concat([gdf_stops_reach_areas, gdf_dissolved])
+                logging.info(f"\tFinished processing all times for {stop = } and {pid = }")
             
-            processed_stops += 1
-            logging.info(f"Finished processing all times for {stop = } and {pid = }\n\n")
-            logging.info(f"Processed {processed_stops} out of {len(all_stops)} stops")
+        processed_stops += 1
+        logging.info(f"Processed {processed_stops} out of {len(all_stops)} stops: {(processed_stops*100)/len(all_stops)}%\n\n")
 
-            # TODO: Remove example cap 
-            if processed_stops == 250: 
-                return gdf_stops_reach_areas
-            
+        # # TODO: Remove example cap 
+        # if processed_stops == 2: 
+        #     return gdf_stops_reach_areas
             
     return gdf_stops_reach_areas
 
@@ -358,7 +325,6 @@ def merge_areas_by_time(gdf_stops_reach_areas: gpd.GeoDataFrame) -> gpd.GeoDataF
 
     # logging.info(f"{gdf_dissolved = }")
 
-    # gdf_stop_areas["time_budget"] = gdf_stop_areas["time_budget"].astype(str)
     gdf_dissolved["minutes"] = gdf_dissolved["time_budget"].transform(
         lambda x: x.seconds / 60
     )
@@ -408,7 +374,7 @@ if __name__ == "__main__":
 
 
     # Clean prepare stop metrics for processing 
-    df_stops_metrics =  prepare_input_dataset()
+    df_stops_metrics = prepare_input_dataset()
 
         # Time to previous stop is 
     gdf_stops_reach_areas = build_stops_reachable_areas(df_catalogue, df_stops_metrics)
@@ -418,3 +384,11 @@ if __name__ == "__main__":
     # logging.debug(f"{gdf_stop_areas.columns}")
 
     gdf_stop_areas.to_parquet("stop_access_shapes.parquet")
+
+    # Print running time
+    total_running_time = time.time() - start_tmstmp
+    formatted_time = time.strftime(
+    "%H hours %M minutes %S seconds", time.gmtime(total_running_time)
+)
+    logging.info(f" Total running time {formatted_time}")
+    logging.info(f"{'-'*69}")

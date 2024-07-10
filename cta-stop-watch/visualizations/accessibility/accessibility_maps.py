@@ -1,3 +1,7 @@
+# TODO 
+    # Make implementation for matplotlib
+    # Plot all stops within a community 
+
 
 # IMPORTS ---------------------------------------------------------------------
 
@@ -46,7 +50,7 @@ DIR = pathlib.Path(__file__)
 DIR_INP = DIR.parents[2] / "cta-stop-etl/out/"
 DIR_PID = DIR.parents[2] / "cta-stop-etl/out/"
 DIR_SHAPES = DIR.parents[2] / "shapefiles/"
-
+DIR_MAPS = ""
 # Plots colors 
 v_colors = list(sns.color_palette("OrRd").as_hex())
 
@@ -59,7 +63,12 @@ GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes.parquet")
 
 
 
-def plot_one_path_with_folium(gdf: gpd.GeoDataFrame, stop_id: str):    
+def plot_one_path_with_folium(gdf: gpd.GeoDataFrame, stop_id: str): 
+    """
+    Takes spatial data of all shapes and the stop to map 
+    This uses folium and produces an interactive map
+    It converts it to static maps by taking screenshots with firefox driver
+    """   
 
     gdf_stop = gdf[gdf["origin_stop"] == stop_id]
 
@@ -116,32 +125,15 @@ def plot_one_path_with_matplotlib(gdf: gpd.GeoDataFrame, stop_id: str):
 
     # Generate map with paths
     map_viz = gdf_stop.plot(column = "time_label", 
-                                cmap = "OrRd",
+                            cmap = "OrRd",
                                 )
 
 
     # Add bus stop point 
-    stop_point = gdf_stop["ls_geometry"].unique()[0]
-    map_viz.add_child(
-        folium.Circle(location = [stop_point.y, stop_point.x], 
-                    radius = 40, 
-                    color = "white", 
-                    opacity = 1,
-                    fill = True, 
-                    colorFill = "white", 
-                    fill_opacity = 1)
-                    )
 
-    map_file = "map.html"
-    map_viz.save(map_file)
-    
-    map_url = 'file://{0}/{1}'.format(os.getcwd(), map_file)
-    
-    driver = webdriver.Firefox()
-    driver.get(map_url)
-    time.sleep(5)
-    driver.save_screenshot(f"maps/map_stop_{stop_id}.png")
-    driver.quit()
+    # Save plot 
+    plt.savefig(f"{stop_id}.png")
+
 
 
 def find_community_stops(community_name: str) -> list[int]: 
@@ -167,7 +159,7 @@ def plot_all_community_stops(community_name: str):
     logging.debug(f"{community_stops = }")
     logging.debug(f"{gdf['origin_stop'] = }")
 
-    gdf_communtiy = gdf[gdf["origin_stop"].astype(str).isin(community_stops)]
+    gdf_communtiy = gdf[gdf["origin_stop"].isin(community_stops)]
 
     logging.info(f"{gdf_communtiy}")
 
@@ -194,7 +186,6 @@ if __name__ == "__main__":
 
     # Single community stops 
     plot_all_community_stops(community_name = "BRIDGEPORT")
-    
 
 
     # Notify finished
