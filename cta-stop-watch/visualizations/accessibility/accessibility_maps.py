@@ -55,8 +55,8 @@ DIR_MAPS = ""
 v_colors = list(sns.color_palette("OrRd").as_hex())
 
 # Data 
-GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes.parquet")
-
+# GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes.parquet")
+GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes_bridgeport.parquet")
 
 
 # FUNCTIONS -------------------------------------------------------------------
@@ -124,7 +124,7 @@ def plot_one_path_with_matplotlib(gdf: gpd.GeoDataFrame, stop_id: str):
     gdf_stop = gdf_stop.drop(columns = ["time_budget", "minutes"])
 
     # Generate map with paths
-    map_viz = gdf_stop.plot(column = "time_label", 
+    gdf_stop.plot(column = "time_label", 
                             cmap = "OrRd",
                                 )
 
@@ -144,7 +144,7 @@ def find_community_stops(community_name: str) -> list[int]:
     df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
     
     stops = df_communities.with_columns(
-        stpid = pl.col("stpid").cast(pl.Int16)
+        stpid = pl.col("stpid").cast(pl.String)
     ).filter(pl.col("community") == community_name)["stpid"].to_list()
 
     return stops
@@ -154,23 +154,42 @@ def plot_all_community_stops(community_name: str):
     gdf = GDF_STOP_ACCESSIBILITY_SHAPES
     logging.debug(f"{gdf.columns = }")
 
+
     # Bus stops in community 
     community_stops = find_community_stops(community_name = community_name)
     logging.debug(f"{community_stops = }")
     logging.debug(f"{gdf['origin_stop'] = }")
 
     gdf_communtiy = gdf[gdf["origin_stop"].isin(community_stops)]
+    gdf_communtiy = gdf_communtiy.sort_values("minutes")
 
     logging.info(f"{gdf_communtiy}")
-
+    
+    # PLOT WITH MATPLOTLIB
     gdf_communtiy.plot(column = "time_budget", cmap = "OrRd", aspect=1)
-
     plt.savefig(f"maps/communities/{community_name}.png")
+
+    # PLOT WITH FOLIUM
+    map_viz = gdf_communtiy.explore(column = "time_label", 
+                                cmap = "OrRd",
+                                )
+
+    map_file = "map.html"
+    map_viz.save(map_file)
+    
+    map_url = 'file://{0}/{1}'.format(os.getcwd(), map_file)
+    
+    driver = webdriver.Firefox()
+    driver.get(map_url)
+    time.sleep(5)
+    driver.save_screenshot(f"maps/communities/{community_name}_folium.png")
+    driver.quit()
 
 
 if __name__ == "__main__":
 
     gdf = GDF_STOP_ACCESSIBILITY_SHAPES
+    gdf["time_budget"] = gdf["time_budget"].astype(str)
 
     # All stops 
     every_chicago_stop = list(gdf["origin_stop"].unique())
