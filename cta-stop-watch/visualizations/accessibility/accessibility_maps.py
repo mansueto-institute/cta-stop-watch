@@ -1,22 +1,23 @@
-# TODO 
-    # Make implementation for matplotlib
-    # Plot all stops within a community 
+# TODO
+# Clean and document
+# Make implementation for matplotlib
+# Plot all stops within a community
 
 
 # IMPORTS ---------------------------------------------------------------------
 
-import os 
-import polars as pl 
+import os
+import polars as pl
 import geopandas as gpd
 import pathlib
 import logging
 import time
-import folium 
+import folium
 from selenium import webdriver
 from selenium.webdriver.remote.remote_connection import LOGGER
 import seaborn as sns
 from matplotlib import pyplot as plt
-import contextily as cx
+# import contextily as cx  # To add background maps in matplotlib implementation
 
 # LOGGER ----------------------------------------------------------------------
 
@@ -45,26 +46,29 @@ logging.info(f"SCRIPT STARTED: {start_string}")
 
 # CONTANTS --------------------------------------------------------------------
 
-# Paths 
-DIR = pathlib.Path(__file__) 
+# Paths
+DIR = pathlib.Path(__file__)
 DIR_INP = DIR.parents[2] / "cta-stop-etl/out/"
 DIR_PID = DIR.parents[2] / "cta-stop-etl/out/"
 DIR_SHAPES = DIR.parents[2] / "shapefiles/"
 DIR_MAPS = ""
-# Plots colors 
+# Plots colors
 v_colors = list(sns.color_palette("OrRd").as_hex())
 
-# Data 
+# Data
 # GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes.parquet")
-GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes_bridgeport.parquet")
+GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet(
+    "stop_access_shapes_bridgeport.parquet"
+)
 
 
 # FUNCTIONS -------------------------------------------------------------------
 
-def get_all_communities() -> list[str]: 
+
+def get_all_communities() -> list[str]:
     """
-    Takes the name or id of a community and returns the list of bus stops 
-    from that community. 
+    Takes the name or id of a community and returns the list of bus stops
+    from that community.
     """
     df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
     community_names = list(df_communities["community"].unique())
@@ -72,47 +76,47 @@ def get_all_communities() -> list[str]:
     return community_names
 
 
-
-def plot_one_path_with_folium(gdf: gpd.GeoDataFrame, stop_id: str): 
+def plot_one_path_with_folium(gdf: gpd.GeoDataFrame, stop_id: str):
     """
-    Takes spatial data of all shapes and the stop to map 
+    Takes spatial data of all shapes and the stop to map
     This uses folium and produces an interactive map
     It converts it to static maps by taking screenshots with firefox driver
-    """   
+    """
 
     gdf_stop = gdf[gdf["origin_stop"] == stop_id]
 
     # Reorder layers (shortest travel times on top)
     gdf_stop = gdf_stop.sort_values("minutes")
-    gdf_stop = gdf_stop.iloc[::-1] # Decreasing order
+    gdf_stop = gdf_stop.iloc[::-1]  # Decreasing order
 
-    
-    # Drop time delta type of columns for folium to work 
-    gdf_stop = gdf_stop.drop(columns = ["time_budget", "minutes"])
+    # Drop time delta type of columns for folium to work
+    gdf_stop = gdf_stop.drop(columns=["time_budget", "minutes"])
 
     # Generate map with paths
-    map_viz = gdf_stop.explore(column = "time_label", 
-                                cmap = "OrRd",
-                                )
+    map_viz = gdf_stop.explore(
+        column="time_label",
+        cmap="OrRd",
+    )
 
-
-    # Add bus stop point 
+    # Add bus stop point
     stop_point = gdf_stop["ls_geometry"].unique()[0]
     map_viz.add_child(
-        folium.Circle(location = [stop_point.y, stop_point.x], 
-                    radius = 40, 
-                    color = "white", 
-                    opacity = 1,
-                    fill = True, 
-                    colorFill = "white", 
-                    fill_opacity = 1)
-                    )
+        folium.Circle(
+            location=[stop_point.y, stop_point.x],
+            radius=40,
+            color="white",
+            opacity=1,
+            fill=True,
+            colorFill="white",
+            fill_opacity=1,
+        )
+    )
 
     map_file = "map.html"
     map_viz.save(map_file)
-    
-    map_url = 'file://{0}/{1}'.format(os.getcwd(), map_file)
-    
+
+    map_url = "file://{0}/{1}".format(os.getcwd(), map_file)
+
     driver = webdriver.Firefox()
     driver.get(map_url)
     time.sleep(5)
@@ -120,56 +124,62 @@ def plot_one_path_with_folium(gdf: gpd.GeoDataFrame, stop_id: str):
     driver.quit()
 
 
-
-def plot_one_path_with_matplotlib(gdf: gpd.GeoDataFrame, stop_id: str):    
+def plot_one_path_with_matplotlib(gdf: gpd.GeoDataFrame, stop_id: str):
 
     gdf_stop = gdf[gdf["origin_stop"] == stop_id]
 
     # Reorder layers (shortest travel times on top)
     gdf_stop = gdf_stop.sort_values("minutes")
-    gdf_stop = gdf_stop.iloc[::-1] # Decreasing order
+    gdf_stop = gdf_stop.iloc[::-1]  # Decreasing order
 
-    
-    # Drop time delta type of columns for folium to work 
-    gdf_stop = gdf_stop.drop(columns = ["time_budget", "minutes"])
+    # Drop time delta type of columns for folium to work
+    gdf_stop = gdf_stop.drop(columns=["time_budget", "minutes"])
 
     # Generate map with paths
-    gdf_stop.plot(column = "time_label", 
-                            cmap = "OrRd",
-                                )
+    gdf_stop.plot(
+        column="time_label",
+        cmap="OrRd",
+    )
 
+    # Add bus stop point
 
-    # Add bus stop point 
-
-    # Save plot 
+    # Save plot
     plt.savefig(f"{stop_id}.png")
 
 
-
-def find_community_stops(community_name: str) -> list[int]: 
+def find_community_stops(community_name: str) -> list[int]:
     """
-    Takes the name or id of a community and returns the list of bus stops 
-    from that community. 
+    Takes the name or id of a community and returns the list of bus stops
+    from that community.
     """
     df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
-    
-    stops = df_communities.with_columns(
-        stpid = pl.col("stpid").cast(pl.String)
-    ).filter(pl.col("community") == community_name)["stpid"].to_list()
+
+    stops = (
+        df_communities.with_columns(stpid=pl.col("stpid").cast(pl.String))
+        .filter(pl.col("community") == community_name)["stpid"]
+        .to_list()
+    )
 
     return stops
 
-def plot_all_community_stops(community_name: str): 
+
+def plot_all_community_stops(community_name: str):
     logging.info(f"{'-'*68}")
     logging.info(f"{community_name}\n")
-    
-    # Load data 
-    gdf_boundaries = gpd.read_file("../../shapefiles/Boundaries - Community Areas (current).geojson")
-    gdf_time = gpd.read_parquet(f"out/communities/{community_name}_stops_discrete.parquet")
+
+    # Load data
+    gdf_boundaries = gpd.read_file(
+        "../../shapefiles/Boundaries - Community Areas (current).geojson"
+    )
+    gdf_time = gpd.read_parquet(
+        f"out/communities/{community_name}_stops_discrete.parquet"
+    )
 
     # Filter and preprocess for plot
     gdf_shape_community = gdf_boundaries[gdf_boundaries["community"] == community_name]
-    gdf_time = gdf_time.drop(columns = ["time_budget"]).sort_values(by = "minutes", ascending = False)
+    gdf_time = gdf_time.drop(columns=["time_budget"]).sort_values(
+        by="minutes", ascending=False
+    )
 
     # Base map
     m = folium.Map(
@@ -183,27 +193,26 @@ def plot_all_community_stops(community_name: str):
         min_lon=-87.27481026390364,
         max_lon=-87.981026390364,
         max_bounds=True,
-        tiles = "CartoDB positron"
+        tiles="CartoDB positron",
     )
 
-    m = gdf_shape_community.explore(m = m, 
-                                    name="Boundaries", 
-                                    tiles="CartoDB positron")
+    m = gdf_shape_community.explore(m=m, name="Boundaries", tiles="CartoDB positron")
 
-    m = gdf_time.explore(m = m,
-                    name = "Paths", 
-                    column = "minutes", 
-                    cmap = "summer",
-                    # cmap = "RdYlGn_r",
-                    opacity = 0.1,
-             )
+    m = gdf_time.explore(
+        m=m,
+        name="Paths",
+        column="minutes",
+        cmap="summer",
+        # cmap = "RdYlGn_r",
+        opacity=0.1,
+    )
 
     # PLOT WITH MATPLOTLIB
     map_file = "map.html"
     m.save(map_file)
-    
-    map_url = 'file://{0}/{1}'.format(os.getcwd(), map_file)
-    
+
+    map_url = "file://{0}/{1}".format(os.getcwd(), map_file)
+
     driver = webdriver.Firefox()
     driver.get(map_url)
     time.sleep(5)
@@ -216,26 +225,24 @@ if __name__ == "__main__":
     # gdf = GDF_STOP_ACCESSIBILITY_SHAPES
     # gdf["time_budget"] = gdf["time_budget"].astype(str)
 
-    # All stops 
+    # All stops
     # every_chicago_stop = list(gdf["origin_stop"].unique())
 
-    # for stop_id in every_chicago_stop: 
-    
+    # for stop_id in every_chicago_stop:
+
     #     if os.path.exists(f"maps/map_stop_{stop_id}.png"):
     #         continue
-        
-    #     # Plot and store one stop 
-    #     plot_one_path_with_folium(gdf_stop_areas, stop_id = stop_id)
 
+    #     # Plot and store one stop
+    #     plot_one_path_with_folium(gdf_stop_areas, stop_id = stop_id)
 
     all_communities = get_all_communities()
 
-    for community in all_communities: 
+    for community in all_communities:
         try:
-            plot_all_community_stops(community_name = community)
-        except FileNotFoundError: 
+            plot_all_community_stops(community_name=community)
+        except FileNotFoundError:
             logging.error(f"No data for: {community}\n")
-
 
     # Notify finished
     os.system('spd-say "your program has finished"')
