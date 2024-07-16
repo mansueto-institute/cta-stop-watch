@@ -15,11 +15,12 @@ import pathlib
 import logging
 import time
 import datetime
-from accessibility_maps import find_community_stops
+from accessibility_maps import find_community_stops, get_all_communities
 import importlib  # Import from module with "-" on its name 
 ppatt = importlib.import_module("cta-stop-watch.cta-stop-etl.process_patterns")
 from shapely.geometry import Point
 import folium 
+from polars.exceptions import PanicException
 
 
 # CONTANTS --------------------------------------------------------------------
@@ -78,17 +79,6 @@ logging.info(f"{'-'*68}\n")
 
 
 # FUNCTIONS -------------------------------------------------------------------
-
-def get_all_communities() -> list[str]: 
-    """
-    Takes the name or id of a community and returns the list of bus stops 
-    from that community. 
-    """
-    df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
-    community_names = df_communities["community"].unique()
-
-    return community_names
-
 
 def find_community_stops(community_name: str) -> list[int]: 
     """
@@ -390,10 +380,13 @@ def get_time_shapes_for_stop(df_stops_metrics: pl.DataFrame, stop_id: str, discr
 
 
         # Proces for fixed discrete time windows  
-        if discrete:        
-            gdf_stop_time_shapes_pid = pid_travel_time_discrete(pid, df_stop_travel_times, stop_id)
-        else:
-            gdf_stop_time_shapes_pid = pid_travel_time_continuous(pid, df_stop_travel_times)
+        try:
+            if discrete:        
+                gdf_stop_time_shapes_pid = pid_travel_time_discrete(pid, df_stop_travel_times, stop_id)
+            else:
+                gdf_stop_time_shapes_pid = pid_travel_time_continuous(pid, df_stop_travel_times)
+        except PanicException as e: 
+            logging.error(e, exc_info=True)
 
         df_stop_time_shapes = pd.concat([gdf_stop_time_shapes, gdf_stop_time_shapes_pid])
         gdf_stop_time_shapes = gpd.GeoDataFrame(df_stop_time_shapes, 
@@ -462,14 +455,19 @@ if __name__ == "__main__":
     # Stop in a single community 
     if COMMUNITY:
         logging.info("Process for communities\n")
-        all_communities = get_all_communities()
+        # all_communities = get_all_communities()
+        all_communities = ["HYDE PARK"]
         count = 0
         for community in all_communities:
             count += 1
             logging.info(f"{'-'*68}")
             logging.debug(f"ANALYSIS FOR {community}: {count} / {len(all_communities)} \n")
 
-            get_all_shapes_community(community)
+            try:
+                get_all_shapes_community(community)
+            except Exception as e: 
+                logging.error(f"Failed to compute stops for {community}\n")
+                logging.error(e, exc_info=True)
     else:
         logging.info("Process for all stops\n")
 

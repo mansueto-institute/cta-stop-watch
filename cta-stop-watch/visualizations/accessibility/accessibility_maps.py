@@ -40,7 +40,7 @@ logging.basicConfig(
 
 start_tmstmp = time.time()
 start_string = time.asctime(time.localtime())
-logging.info(f"CTA BUSES ETL PIPELINE STARTED AT: {start_string}")
+logging.info(f"SCRIPT STARTED: {start_string}")
 
 
 # CONTANTS --------------------------------------------------------------------
@@ -60,6 +60,16 @@ GDF_STOP_ACCESSIBILITY_SHAPES = gpd.read_parquet("stop_access_shapes_bridgeport.
 
 
 # FUNCTIONS -------------------------------------------------------------------
+
+def get_all_communities() -> list[str]: 
+    """
+    Takes the name or id of a community and returns the list of bus stops 
+    from that community. 
+    """
+    df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
+    community_names = list(df_communities["community"].unique())
+
+    return community_names
 
 
 
@@ -150,32 +160,47 @@ def find_community_stops(community_name: str) -> list[int]:
     return stops
 
 def plot_all_community_stops(community_name: str): 
-    # All bus stops data 
-    gdf = GDF_STOP_ACCESSIBILITY_SHAPES
-    logging.debug(f"{gdf.columns = }")
-
-
-    # Bus stops in community 
-    community_stops = find_community_stops(community_name = community_name)
-    logging.debug(f"{community_stops = }")
-    logging.debug(f"{gdf['origin_stop'] = }")
-
-    gdf_communtiy = gdf[gdf["origin_stop"].isin(community_stops)]
-    gdf_communtiy = gdf_communtiy.sort_values("minutes")
-
-    logging.info(f"{gdf_communtiy}")
+    logging.info(f"{'-'*68}")
+    logging.info(f"{community_name}\n")
     
+    # Load data 
+    gdf_boundaries = gpd.read_file("../../shapefiles/Boundaries - Community Areas (current).geojson")
+    gdf_time = gpd.read_parquet(f"out/communities/{community_name}_stops_discrete.parquet")
+
+    # Filter and preprocess for plot
+    gdf_shape_community = gdf_boundaries[gdf_boundaries["community"] == community_name]
+    gdf_time = gdf_time.drop(columns = ["time_budget"]).sort_values(by = "minutes", ascending = False)
+
+    # Base map
+    m = folium.Map(
+        location=[41.83491987636846, -87.62004994799588],
+        zoom_start=11,
+        zoomSnap=0.5,
+        min_zoom=10,
+        max_zoom=12,
+        min_lat=41.6,
+        max_lat=42.1,
+        min_lon=-87.27481026390364,
+        max_lon=-87.981026390364,
+        max_bounds=True,
+        tiles = "CartoDB positron"
+    )
+
+    m = gdf_shape_community.explore(m = m, 
+                                    name="Boundaries", 
+                                    tiles="CartoDB positron")
+
+    m = gdf_time.explore(m = m,
+                    name = "Paths", 
+                    column = "minutes", 
+                    cmap = "summer",
+                    # cmap = "RdYlGn_r",
+                    opacity = 0.1,
+             )
+
     # PLOT WITH MATPLOTLIB
-    gdf_communtiy.plot(column = "time_budget", cmap = "OrRd", aspect=1)
-    plt.savefig(f"maps/communities/{community_name}.png")
-
-    # PLOT WITH FOLIUM
-    map_viz = gdf_communtiy.explore(column = "time_label", 
-                                cmap = "OrRd",
-                                )
-
     map_file = "map.html"
-    map_viz.save(map_file)
+    m.save(map_file)
     
     map_url = 'file://{0}/{1}'.format(os.getcwd(), map_file)
     
@@ -188,11 +213,11 @@ def plot_all_community_stops(community_name: str):
 
 if __name__ == "__main__":
 
-    gdf = GDF_STOP_ACCESSIBILITY_SHAPES
-    gdf["time_budget"] = gdf["time_budget"].astype(str)
+    # gdf = GDF_STOP_ACCESSIBILITY_SHAPES
+    # gdf["time_budget"] = gdf["time_budget"].astype(str)
 
     # All stops 
-    every_chicago_stop = list(gdf["origin_stop"].unique())
+    # every_chicago_stop = list(gdf["origin_stop"].unique())
 
     # for stop_id in every_chicago_stop: 
     
@@ -203,8 +228,13 @@ if __name__ == "__main__":
     #     plot_one_path_with_folium(gdf_stop_areas, stop_id = stop_id)
 
 
-    # Single community stops 
-    plot_all_community_stops(community_name = "BRIDGEPORT")
+    all_communities = get_all_communities()
+
+    for community in all_communities: 
+        try:
+            plot_all_community_stops(community_name = community)
+        except FileNotFoundError: 
+            logging.error(f"No data for: {community}\n")
 
 
     # Notify finished
