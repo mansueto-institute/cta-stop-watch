@@ -1,24 +1,59 @@
 # TODO
-    # - Change implementation to process single stops 
-    # - Change discrete approach to continuous
-    # - For discrete processing, make sure times over highest window is not getting filtered out 
+    # For discrete implementation
+        # Add labeling of time 
+        # Make sure times over highest window is not getting filtered out 
+    # For discrete implementation 
+        # Adapt a function to unite shapes instead of having single dots 
 
 # IMPORTS ---------------------------------------------------------------------
 
 import polars as pl 
 import pandas as pd
 import geopandas as gpd
+from pyproj import CRS
 import pathlib
 import logging
 import time
 import datetime
-# from accessibility_maps import find_community_stops
-# Import from module with "-" on its name 
-import importlib  
+from accessibility_maps import find_community_stops
+import importlib  # Import from module with "-" on its name 
 ppatt = importlib.import_module("cta-stop-watch.cta-stop-etl.process_patterns")
-
 from shapely.geometry import Point
 import folium 
+
+
+# CONTANTS --------------------------------------------------------------------
+
+# Simulation parameters
+DISCRETE_TIME_BINS = True
+COMMUNITY = True
+NUM_TRANSFERS = 0
+YEAR = 2024
+COMMUNITY = True
+
+# Paths 
+DIR = pathlib.Path(__file__) 
+DIR_INP = DIR.parents[2] / "cta-stop-etl/out/"
+DIR_PID = pathlib.Path(__file__).parents[2] / "cta-stop-etl/out/"
+DIR_SHAPES = DIR.parents[2] / "shapefiles/"
+
+
+# Simulation parameter: Time in minutes
+TIME_WINDOWS = [5, 10, 15, 30, 60, 90, 120]
+# TIME_WINDOWS = [2, 5, 10, 15]
+TIME_WINDOWS = [datetime.timedelta(minutes=t) for t in TIME_WINDOWS]
+
+# CRS 
+PROJ_4326 = CRS("epsg:4326")
+PROJ_26971 = CRS("epsg:26971")
+
+
+# Data 
+DF_CATALOGUE = pl.read_parquet("../../scrapers/rt_pid_stop.parquet").with_columns(
+    # Cast types so that ids are the same in both data sets
+    pl.col("pid").cast(pl.Int16).cast(pl.String),
+    pl.col("stop_id").cast(pl.Int16).cast(pl.String)
+)
 
 # LOGGER ----------------------------------------------------------------------
 
@@ -36,40 +71,37 @@ logging.basicConfig(
     datefmt='%H:%M', 
     force=True
 )
-
 start_tmstmp = time.time()
 start_string = time.asctime(time.localtime())
-logging.info(f"CTA BUSES ETL PIPELINE STARTED AT: {start_string}")
-logging.info(f"{'-'*69}")
-
-
-# CONTANTS --------------------------------------------------------------------
-
-# Paths 
-DIR = pathlib.Path(__file__) 
-DIR_INP = DIR.parents[2] / "cta-stop-etl/out/"
-DIR_PID = pathlib.Path(__file__).parents[2] / "cta-stop-etl/out/"
-
-
-# Simulation parameter: Time in minutes
-TIME_WINDOWS = [5, 10, 15, 30, 60, 90, 120]
-# TIME_WINDOWS = [2, 5, 10, 15]
-TIME_WINDOWS = [datetime.timedelta(minutes=t) for t in TIME_WINDOWS]
-
-# Simulation parameters
-NUM_TRANSFERS = 0
-YEAR = 2024
-DISCRETE_TIME_BINS = False
-
-# Data 
-DF_CATALOGUE = pl.read_parquet("../../scrapers/rt_pid_stop.parquet").with_columns(
-    # Cast types so that ids are the same in both data sets
-    pl.col("pid").cast(pl.Int16).cast(pl.String),
-    pl.col("stop_id").cast(pl.Int16).cast(pl.String)
-)
+logging.info(f"SCRIPT STARTED AT {start_string}")
+logging.info(f"{'-'*68}\n")
 
 
 # FUNCTIONS -------------------------------------------------------------------
+
+def get_all_communities() -> list[str]: 
+    """
+    Takes the name or id of a community and returns the list of bus stops 
+    from that community. 
+    """
+    df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
+    community_names = df_communities["community"].unique()
+
+    return community_names
+
+
+def find_community_stops(community_name: str) -> list[int]: 
+    """
+    Takes the name or id of a community and returns the list of bus stops 
+    from that community. 
+    """
+    df_communities = pl.read_parquet(f"{DIR_SHAPES}/communities_stops.parquet")
+    
+    stops = df_communities.with_columns(
+        stpid = pl.col("stpid").cast(pl.String)
+    ).filter(pl.col("community") == community_name)["stpid"].to_list()
+
+    return stops
 
 def prepare_input_dataset():
 
@@ -188,6 +220,10 @@ def compute_travel_time_baseline(df_stops_metrics: pl.DataFrame, stop: str, pid:
     df_stop_travel_times = df_remaining_path.with_columns(
         travel_time_elapsed = pl.cum_sum("time_to_previous") - start_time + initial_wait, 
         route = pl.lit(route)
+    ).with_columns(
+        minutes = pl.col("travel_time_elapsed").dt.total_seconds() / 60
+    ).with_columns(
+        pl.col("minutes").cast(pl.Int32)
     )
 
     return df_stop_travel_times
@@ -212,8 +248,7 @@ def find_reachable_segment_by_time(df_travel_time: pl.DataFrame, df_pattern: pl.
         - gdf_dissolved (gpd.GeoDataFrame): A data frame with a single shape 
         of the path that can be reached within the time budget. 
         """
-        # logging.debug(f"{time_budget = }")
-        # logging.debug(f"{df_travel_time = }")
+
 
         # Filter observations based on the windows
         df_within_time = df_travel_time.filter(pl.col("travel_time_elapsed") <= time_budget) 
@@ -237,96 +272,180 @@ def find_reachable_segment_by_time(df_travel_time: pl.DataFrame, df_pattern: pl.
         gdf_dissolved["pid"] = pid
         gdf_dissolved["origin_stop"] = stop 
         gdf_dissolved["time_budget"] = time_budget
+        gdf_dissolved["minutes"] = int(time_budget.total_seconds() / 60)
+
 
         return gdf_dissolved
+
+def label_discrete_times(gdf): 
+    """
+    Takes a gdf with a column of cumulative times in minutes
+    """
+    gdf
+    # TODO: Pasar implementación a vectores con los valores del tiempo 
+    gdf["time_label"] = gdf["minutes"].case_when(
+        [
+            (gdf.eval("minutes == 5"), "5 minutes"), 
+            (gdf.eval("minutes == 15"), "15 minutes"),
+            (gdf.eval("minutes == 30"), "30 minutes"),
+            (gdf.eval("minutes == 60"), "1 hour"),
+            (gdf.eval("minutes == 90"), "1 hour 30 minutes"),
+            (gdf.eval("minutes == 120"), "2 hours")
+        ]
+    )
+
+    gdf["time_label"] = pd.Categorical(gdf["time_label"], 
+                                                  categories = [ 
+                                                                "5 minutes", 
+                                                                "10 minutes", 
+                                                                "15 minutes",
+                                                                "30 minutes",
+                                                                "1 hour",
+                                                                "1 hour 30 minutes",
+                                                                "2 hours"])
+
+    return gdf
+
+
+
+def pid_travel_time_discrete(pid: str, df_stop_travel_times, stop_id): 
+    # Bring global variables to function scope
+    pid_dir = DIR_PID
+    time_windows = TIME_WINDOWS
+
+    # Load pattern, use polars since there's no need to preserve geometry 
+    # Maybe change implementation to include bus stops figure 
+    df_pattern = pl.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet"
+                                ).with_columns(
+                                    stpid = pl.col("stpid").forward_fill()
+                                    ).drop(["geometry"])
+
+    gdf_stop_time_shapes_pid =  gpd.GeoDataFrame()
+    
+    for time_budget in time_windows:
+        gdf_dissolved = find_reachable_segment_by_time(df_stop_travel_times, df_pattern, stop = stop_id, pid = pid, time_budget = time_budget)
+        gdf_stop_time_shapes_pid = pd.concat([gdf_stop_time_shapes_pid, gdf_dissolved])
+
+    logging.info(f"\t\tProcessed all times in discrete bining for {stop_id = } and {pid = }")
+    
+    gdf_stop_time_shapes_pid_labeled = label_discrete_times(gdf_stop_time_shapes_pid)
+
+    return gdf_stop_time_shapes_pid_labeled
+    
+def pid_travel_time_continuous(pid: str, df_stop_travel_times): 
+    # Bring global variables to function scope
+    pid_dir = DIR_PID
+
+    # For continuous analysis just get shapes between points associated to time 
+    # gdf_pattern = gpd.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet").sort_values(by = "seq")
+    gdf_pattern = gpd.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet")
+    gdf_segment = gpd.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_segment.parquet")
+
+    # logging.debug(f"Original segment geometry {gdf_segment['geometry'] = }")
+
+    gdf_pattern = gdf_pattern.ffill(axis="columns").rename(columns = {"seq": "stop_sequence", 
+                                                                      "stpid": "stop_id"})
+    
+    # Add pattern's segments between bus stops shape
+    gdf_pattern = gdf_pattern.drop(columns = ["geometry"])
+    gdf_pattern["geometry"] = gdf_segment["geometry"]
+
+    # logging.debug(f"New pattern geometry {gdf_pattern['geometry'] = }")
+                 # Join segment shapes with time metrics
+    
+    gdf_stop_time_shapes_pid = df_stop_travel_times.to_pandas(
+    ).merge(
+        gdf_pattern,
+        on = ["stop_sequence", "stop_id"]
+        )
+
+    # logging.debug(f"Geometry after merge {gdf_stop_time_shapes_pid['geometry'] = }")
+    logging.info(f"\t\tProcessed continuous times for {stop_id = } and {pid = }")
+
+    return gdf_stop_time_shapes_pid
 
 
 
 def get_time_shapes_for_stop(df_stops_metrics: pl.DataFrame, stop_id: str, discrete = False):
-    
+    """
+    """
+
     # Bring global variables to function scope
-    pid_dir = DIR_PID
-    time_windows = TIME_WINDOWS
     df_catalogue = DF_CATALOGUE 
 
     # Identify PIDS that go through stop using the catalogue 
-    df_stop = df_stops_metrics.filter(pl.col("stop_id") == stop_id)
-    pids_in_stop = df_stop["pid"].unique()
-        
+    pids_in_stop = list(df_stops_metrics.filter(pl.col("stop_id") == stop_id)["pid"].unique())
     logging.info(f"STOP ID: {stop_id}, bus patterns: {list(pids_in_stop)}")
+
+
     gdf_stop_time_shapes = gpd.GeoDataFrame()
 
+    if not pids_in_stop:
+        return None
+
     for pid in pids_in_stop: 
-            # For a pair of stop and pattern, find time to reach to following stops
-            df_stop_travel_times = compute_travel_time_baseline(df_stops_metrics, stop = stop_id, pid = pid, df_catalogue = df_catalogue)
-            df_stop_travel_times["minutes"] = df_stop_travel_times["travel_time_elapsed"].dt.total_seconds() / 60
+        # For a pair of stop and pattern, find time to reach to following stops
+        df_stop_travel_times = compute_travel_time_baseline(df_stops_metrics, stop = stop_id, pid = pid, df_catalogue = df_catalogue)
+        # logging.debug(f"{df_stop_travel_times.columns = }")
 
 
-            # # TODO remove
-            # stop = '8010'
-            # pid = '8180'
-            # logging.info(f"\tComputing time for {stop = } and {pid = }")
+        # Proces for fixed discrete time windows  
+        if discrete:        
+            gdf_stop_time_shapes_pid = pid_travel_time_discrete(pid, df_stop_travel_times, stop_id)
+        else:
+            gdf_stop_time_shapes_pid = pid_travel_time_continuous(pid, df_stop_travel_times)
 
-            # Proces for fixed discrete time windows  
-            if discrete:        
-                # Load pattern, use polars since there's no need to preserve geometry 
-                # Maybe change implementation to include bus stops figure 
-                df_pattern = pl.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet"
-                                            ).with_columns(
-                                                stpid = pl.col("stpid").forward_fill()
-                                                ).drop(["geometry"])
+        df_stop_time_shapes = pd.concat([gdf_stop_time_shapes, gdf_stop_time_shapes_pid])
+        gdf_stop_time_shapes = gpd.GeoDataFrame(df_stop_time_shapes, 
+                                                geometry = df_stop_time_shapes["geometry"], 
+                                                crs = PROJ_4326)
+        
+        # logging.debug(f"Geometry after concat {gdf_stop_time_shapes_pid['geometry'] = }")
 
-                gdf_stop_time_shapes_pid =  gpd.GeoDataFrame()
-                
-                for time_budget in time_windows:
-                    # logging.debug(f"\t\t{time_budget = }")
-                    gdf_dissolved = find_reachable_segment_by_time(df_stop_travel_times, df_pattern, stop = stop_id, pid = pid, time_budget = time_budget)
-                    # logging.debug(f"{gdf_dissolved =}")
-                    gdf_stop_time_shapes_pid = pd.concat([gdf_stops_reach_areas, gdf_dissolved])
-                    logging.info(f"\tFinished processing all times for {stop_id = } and {pid = }")
-
-            else:
-                # For continuous analysis just get shapes between points associated to time 
-                # gdf_pattern = gpd.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet").sort_values(by = "seq")
-                gdf_pattern = gpd.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_stop.parquet")
-                gdf_segment = gpd.read_parquet(f"{pid_dir}/patterns_current/pid_{pid}_segment.parquet")
-
-                gdf_pattern = gdf_pattern.ffill(axis="columns"
-                                                ).rename(columns = {"seq": "stop_sequence", 
-                                                        "stpid": "stop_id"})
-                gdf_pattern["segment_geom"] = gdf_segment["geometry"]
-
-                # logging.debug(f"{gdf_pattern.head(10) = }")
-                # logging.debug(f"{df_stop_travel_times.head(3) = }")
-                # logging.debug(f"{gdf_pattern.columns = }")
-                # logging.debug(f"{df_stop_travel_times.columns = }")
-
-                # Join segment shapes with time metrics
-                gdf_stop_time_shapes_pid = df_stop_travel_times.to_pandas(
-                ).merge(
-                    gdf_pattern,
-                    on = ["stop_sequence", "stop_id"]
-                    )
-                logging.info(f"\tFinished processing continuous times for {stop_id = } and {pid = }")
-
-            df_stop_time_shapes = pd.concat([gdf_stop_time_shapes, gdf_stop_time_shapes_pid])
-            gdf_stop_time_shapes = gpd.GeoDataFrame(df_stop_time_shapes, 
-                                                    geometry = df_stop_time_shapes["segment_geom"])
-    
-    logging.info(f"{discrete = }")
     # Store bus stop accessibility shapes and time
     if discrete: 
-        logging.info(f"Writing discrete data set for {stop_id = }")
-        gdf_stop_time_shapes.to_parquet(
-            f"out/stops_parquets/{stop_id}_discrete.parquet", 
-            geometry_encoding = "geoarrow")
+        logging.info(f"Writing discrete data set for {stop_id = }\n")
+        gdf_stop_time_shapes.to_parquet(f"out/stops_parquets/{stop_id}_discrete.parquet")
     else: 
-        logging.info(f"Writing continuous data set for {stop_id = }")
+        logging.info(f"Writing continuous data set for {stop_id = }\n")
         gdf_stop_time_shapes.to_parquet(
             f"out/stops_parquets/{stop_id}_continuous.parquet", 
             geometry_encoding = "geoarrow")
     
     return gdf_stop_time_shapes
+
+
+def get_all_shapes_community(community_name):
+ 
+    community_stops = find_community_stops(community_name)
+    
+    df_stops_reach_areas = gpd.GeoDataFrame()
+
+    for stop_id in community_stops:
+        gdf_stop_time = get_time_shapes_for_stop(df_stops_metrics = df_stops_metrics, stop_id = stop_id, discrete = DISCRETE_TIME_BINS)
+        
+        if gdf_stop_time is not None:
+            df_stops_reach_areas = pd.concat([df_stops_reach_areas, gdf_stop_time])
+
+    gdf_stops_reach_areas = gpd.GeoDataFrame(df_stops_reach_areas, 
+                                        geometry = df_stops_reach_areas["geometry"], 
+                                        crs = PROJ_4326)
+
+    type_timing = "discrete" if DISCRETE_TIME_BINS else "continuous"
+    
+    logging.info(f"Writing {type_timing} data set for {community_name} stops")
+    gdf_stops_reach_areas.to_parquet(f"out/communities/{community_name}_stops_{type_timing}.parquet")
+
+    return True
+
+def print_script_running_time(start_tmstmp):
+    # Print running time
+    logging.info(f"{'-'*68}")
+    total_running_time = time.time() - start_tmstmp
+    formatted_time = time.strftime(
+    "%H hours %M minutes %S seconds", time.gmtime(total_running_time))
+    logging.info(f"Total running time {formatted_time}")
+    logging.info(f"{'-'*68}")
 
 
 # IMPLEMENTATION --------------------------------------------------------------
@@ -335,33 +454,35 @@ if __name__ == "__main__":
     
     # Clean prepare stop metrics for processing 
     df_stops_metrics = prepare_input_dataset()
-    logging.debug(f"{df_stops_metrics.shape = }")
-
 
     # Utils for looping over stops and storing information 
     all_stops = df_stops_metrics["stop_id"].unique()
-    gdf_stops_reach_areas = gpd.GeoDataFrame()
     processed_stops = 0
 
-    all_stops = ["73"]
+    # Stop in a single community 
+    if COMMUNITY:
+        logging.info("Process for communities\n")
+        all_communities = get_all_communities()
+        count = 0
+        for community in all_communities:
+            count += 1
+            logging.info(f"{'-'*68}")
+            logging.debug(f"ANALYSIS FOR {community}: {count} / {len(all_communities)} \n")
 
-    for stop_id in all_stops:
-        gdf_stop_time = get_time_shapes_for_stop(df_stops_metrics = df_stops_metrics, stop_id = stop_id, discrete = DISCRETE_TIME_BINS)
-        gdf_stops_reach_areas = pd.concat([gdf_stops_reach_areas, gdf_stop_time])
+            get_all_shapes_community(community)
+    else:
+        logging.info("Process for all stops\n")
 
-    logging.debug(f"{gdf_stop_time.columns = }")
-    logging.debug(f"{gdf_stop_time}")
+        df_stops_reach_areas = gpd.GeoDataFrame()
+
+        for stop_id in all_stops:
+            gdf_stop_time = get_time_shapes_for_stop(df_stops_metrics = df_stops_metrics, stop_id = stop_id, discrete = DISCRETE_TIME_BINS)
+            if gdf_stop_time is not None:
+                df_stops_reach_areas = pd.concat([df_stops_reach_areas, gdf_stop_time])
+
+        gdf_stops_reach_areas = gpd.GeoDataFrame(df_stops_reach_areas, 
+                                                geometry = df_stops_reach_areas["geometry"], 
+                                                crs = PROJ_4326)
 
     # gdf_stops_reach_areas.to_parquet("stop_access_shapes.parquet")
-
-    # Loop over all stops 
-        # Compute waiting times 
-        # Dissolve figures 
-        
-    # Print running time
-    total_running_time = time.time() - start_tmstmp
-    formatted_time = time.strftime(
-    "%H hours %M minutes %S seconds", time.gmtime(total_running_time)
-)
-    logging.info(f" Total running time {formatted_time}")
-    logging.info(f"{'-'*69}")
+    print_script_running_time(start_tmstmp)

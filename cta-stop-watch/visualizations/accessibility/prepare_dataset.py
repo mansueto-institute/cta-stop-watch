@@ -335,23 +335,6 @@ def label_times(gdf):
         ]
     )
 
-
-    # gdf["time_label"] = gdf["minutes"].case_when(
-    #     (gdf.eval("minutes < 60"), ), 
-    #     (), 
-    #     ()
-    # )
-    # print(f"{td:%M minutes}")
-    # print(f"{td:%H hour %M minutes}")
-
-
-
-    # gdf["time_label"] = pd.Categorical(gdf["time_label"], 
-    #                                               categories = ["2 minutes", 
-    #                                                             "5 minutes",
-    #                                                             "10 minutes", 
-    #                                                             "15 minutes"])
-
     gdf["time_label"] = pd.Categorical(gdf["time_label"], 
                                                   categories = [ 
                                                                 "5 minutes", 
