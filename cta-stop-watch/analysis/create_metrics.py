@@ -49,25 +49,23 @@ def create_metrics(rts, agg: bool = True):
     actual_full_trips = pl.concat(all_routes_trips_actual)
     schedule_full_trips = pl.concat(all_routes_trips_schedule)
 
-    # trip_metrics = create_combined_metrics_trip_df(
-    #     actual_full_trips, schedule_full_trips
-    # )
+    trip_metrics = create_combined_metrics_trip_df(
+        actual_full_trips, schedule_full_trips
+    )
 
     # export
 
-    actual_full_trips.write_parquet(f"{OUT_DIR}/actual_trip_metrics_df.parquet")
-    schedule_full_trips.write_parquet(f"{OUT_DIR}/schedule_trip_metrics_df.parquet")
+    trip_metrics.write_parquet(f"{OUT_DIR}/trip_metrics_df_addon.parquet")
 
     # combine stop level at routes
     actual_full_stops = pl.concat(all_routes_stops_actual)
     schedule_full_stops = pl.concat(all_routes_stops_schedule)
-    # stop_metrics = create_combined_metrics_stop_df(
-    #     actual_full_stops, schedule_full_stops
-    # )
+    stop_metrics = create_combined_metrics_stop_df(
+        actual_full_stops, schedule_full_stops
+    )
 
     # export
-    actual_full_stops.write_parquet(f"{OUT_DIR}/actual_stop_metrics_df.parquet")
-    schedule_full_stops.write_parquet(f"{OUT_DIR}/schedule_stop_metrics_df.parquet")
+    stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df_addon.parquet")
 
     return True
 
