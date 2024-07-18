@@ -130,6 +130,8 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
         ("week", "1w"),
         ("month", "1mo"),
         ("year", "1y"),
+        ("week_abs", "1w"),
+        ("month_abs", "1mo"),
     ]:
 
         group_list = groupings.copy()
@@ -167,6 +169,12 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
                 (pl.col("start_trip").dt.weekday()).alias("weekday"),
                 (pl.col("start_trip").dt.ordinal_day()).alias("dayofyear"),
                 (pl.col("start_trip").dt.week()).alias("week"),
+                (pl.col("start_trip").dt.truncate(trunc).alias(grouping)).alias(
+                    "week_abs"
+                ),
+                (pl.col("start_trip").dt.truncate(trunc).alias(grouping)).alias(
+                    "month_abs"
+                ),
             )
         else:
             df = trips_df.with_columns(
@@ -176,6 +184,12 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
                 (pl.col("bus_stop_time").dt.weekday()).alias("weekday"),
                 (pl.col("bus_stop_time").dt.ordinal_day()).alias("dayofyear"),
                 (pl.col("bus_stop_time").dt.week()).alias("week"),
+                (pl.col("bus_stop_time").dt.truncate(trunc).alias(grouping)).alias(
+                    "week_abs"
+                ),
+                (pl.col("bus_stop_time").dt.truncate(trunc).alias(grouping)).alias(
+                    "month_abs"
+                ),
             )
 
         grouped_df = df.group_by([*group_list]).agg(
@@ -193,7 +207,7 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
 
         grouped_df = grouped_df.rename({grouping: "period_value"})
 
-        grouped_df = grouped_df.with_columns(pl.col("period_value").cast(pl.Int32))
+        # grouped_df = grouped_df.with_columns(pl.col("period_value").cast(pl.Int32))
 
         all_periods.append(grouped_df)
 
