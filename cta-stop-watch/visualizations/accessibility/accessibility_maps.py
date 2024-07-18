@@ -1,8 +1,7 @@
 # TODO
-# Clean and document
-# Make implementation for matplotlib
-# Plot all stops within a community
-
+    # Clean and document
+    # Make implementation for matplotlib
+    # Plot all stops within a community
 
 # IMPORTS ---------------------------------------------------------------------
 
@@ -13,6 +12,8 @@ import pathlib
 import logging
 import time
 import folium
+from folium.features import DivIcon
+import selenium
 from selenium import webdriver
 from selenium.webdriver.remote.remote_connection import LOGGER
 import seaborn as sns
@@ -175,37 +176,59 @@ def plot_all_community_stops(community_name: str):
         f"out/communities/{community_name}_stops_discrete.parquet"
     )
 
-    # Filter and preprocess for plot
+    # Get community boundaries and find its centroid 
     gdf_shape_community = gdf_boundaries[gdf_boundaries["community"] == community_name]
-    gdf_time = gdf_time.drop(columns=["time_budget"]).sort_values(
-        by="minutes", ascending=False
-    )
+    centroid = list(gdf_shape_community.centroid)[0]
+    
+    gdf_time = gdf_time.drop(columns=["time_budget"]).sort_values(by="minutes", ascending=False)
+    # gdf_time["minutes"] = gdf_time["minutes"].astype(str)
 
     # Base map
     m = folium.Map(
-        location=[41.83491987636846, -87.62004994799588],
+        location=[centroid.y, centroid.x],
         zoom_start=11,
-        zoomSnap=0.5,
-        min_zoom=10,
-        max_zoom=12,
-        min_lat=41.6,
-        max_lat=42.1,
-        min_lon=-87.27481026390364,
-        max_lon=-87.981026390364,
-        max_bounds=True,
+        # zoomSnap=0.5,
+        # min_zoom=10,
+        # max_zoom=12,
+        # min_lat=41.6,
+        # max_lat=42.1,
+        # min_lon=-87.27481026390364,
+        # max_lon=-87.981026390364,
+        # max_bounds=True,
         tiles="CartoDB positron",
     )
 
-    m = gdf_shape_community.explore(m=m, name="Boundaries", tiles="CartoDB positron")
-
+    # Routes / pattern with time
     m = gdf_time.explore(
         m=m,
         name="Paths",
         column="minutes",
-        cmap="summer",
+        cmap="Blues_r",
         # cmap = "RdYlGn_r",
+        legend_kwds=dict(label = "Elapsed travel time (minutes)", 
+                     orientation =  "vertical"),
         opacity=0.1,
     )
+
+    # Coummunity boundaries
+    m = gdf_shape_community.explore(m=m, 
+                                    color = "#DC3220", 
+                                    style_kwds=dict(weight=3,
+                                                    opacity=1, 
+                                                    fillOpacity=0),
+                                    name="Boundaries", 
+                                    tiles="CartoDB positron")
+    
+    # # Community name 
+    # folium.map.Marker(
+    # [centroid.y, centroid.x],
+    # icon=DivIcon(
+    #     icon_size=(250,36),
+    #     icon_anchor=(0,0),
+    #     html=f'<div style="font-size: 15pt;color: white;background-color:#E5E5E5">{community_name}</div>',
+    #     )
+    # ).add_to(m)
+
 
     # PLOT WITH MATPLOTLIB
     map_file = "map.html"
@@ -238,11 +261,20 @@ if __name__ == "__main__":
 
     all_communities = get_all_communities()
 
+    count = 0
+
+    # all_communities = ["LINCOLN PARK", "PULLMAN"]
+    
     for community in all_communities:
+        count += 1
+        logging.info("\n")
+        logging.info(f"{'-'*69}")
+        logging.info(f"Plotting map for {community}: {count} / {len(all_communities)}")
+        
         try:
             plot_all_community_stops(community_name=community)
         except FileNotFoundError:
             logging.error(f"No data for: {community}\n")
+        except selenium.common.exceptions.WebDriverException as e:
+            logging.error(e, exc_info=True)
 
-    # Notify finished
-    os.system('spd-say "your program has finished"')

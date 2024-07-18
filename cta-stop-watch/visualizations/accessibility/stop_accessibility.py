@@ -1,4 +1,5 @@
 # TODO
+# Debug for Hyde Park
 # Clean and document
 # For discrete implementation
 # Make sure times over highest window is not getting filtered out
