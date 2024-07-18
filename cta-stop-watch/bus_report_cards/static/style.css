@@ -1,0 +1,70 @@
+body {
+    height: 100%;
+}
+
+
+
+#app {
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#nav {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin-bottom: 20px;
+}
+#nav-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.nav-button {
+    border: 1px solid black;
+    padding: 5px;
+    padding-left: 15px;
+    padding-right: 15px;
+    vertical-align: center;
+    font-weight: bold;
+    border-radius: 30px;
+    margin: auto;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+#nav-title {
+    font-size: 2em;
+    font-weight: bold;
+
+}
+
+#interface {
+    display: flex;
+    width: 100%;
+    height: auto;
+}
+
+#map-container {
+    flex-basis: 40%;
+
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+
+}
+
+#report-container {
+    flex-basis: 60%;
+    height: 100vh;
+}
+
+#report-cards {
+    height: 100%;
+
+}
