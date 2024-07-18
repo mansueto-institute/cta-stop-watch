@@ -1,19 +1,12 @@
 const ChiLocation = [-87.63211524853163, 41.862161325588076];
 
-// dataPath = "../data/with_era.geojson"
+dataPath = "data/bus_stops.geojson"
 
-// d3.json(dataPath, function (df) {
-//   sessionStorage.setItem("data", JSON.stringify(df));
-// });
+d3.json(dataPath, function (df) {
+  sessionStorage.setItem("data", JSON.stringify(df));
+});
 
-// const dataAll = JSON.parse(sessionStorage.getItem("data"))
-
-// let dataFirst = structuredClone(dataAll);
-// dataFirst.features = dataFirst.features.filter(
-//     (d) => d.properties.year_start <= 1925);
-
-// console.log(dataAll)
-// console.log(dataFirst)
+const stops = JSON.parse(sessionStorage.getItem("data"))
 
 
 
@@ -25,29 +18,35 @@ var map = new maplibregl.Map({
 });  
 
 
-// map.on('load', () => {
-//     map.addSource('maineSource', {
-//         'type': 'geojson',
-//         'data': dataAll
-//     });
-//     map.addLayer({
-//         'id': 'maineLayer',
-//         'type': 'fill',
-//         'source': 'maineSource',
-//         'layout': {},
-//         'paint': {
-//             'fill-color': '#800000',
-//             'fill-opacity': 0.8
-//         },
-//         "filter": ['<', 'year_start',1990]
-//     });
+map.on('load', () => {
+    map.addSource('stops', {
+        'type': 'geojson',
+        'data': stops
+    });
 
-    // todo 
-    //map.setFilter('collisions', ['==', ['number', ['get', 'Hour']], hour]);
+    map.addLayer({
+        'id': 'stops',
+        'type': 'circle',
+        'source': 'stops',
+        'layout': {},
+        'paint': {
+            'circle-color': '#800000',
+            'circle-radius': {
+                        'base': 1.75,
+                        'stops': [
+                            [12, 2],
+                            [22, 180]
+                        ]
+                    },
+        }
+    });
 
-
-    // map.on('mouseenter', 'maineLayer', (e) => {
-    //     // Change the cursor style as a UI indicator.
-    //     map.getCanvas().style.cursor = 'pointer';
-    //     console.log(e)
-    // });
+    map.on('mouseenter', 'stops', (e) => {
+        // Change the cursor style as a UI indicator.
+        map.getCanvas().style.cursor = 'pointer';
+    
+        document.getElementById('report-cards').innerHTML = e.features[0].properties.public_nam;
+        console.log(e)
+ })
+ 
+});
