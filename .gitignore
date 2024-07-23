@@ -10,6 +10,7 @@ env.py
 */scrapers/inp/*/*
 */scrapers/inp/*.zip
 */scrapers/out/*/*
+*/report_automation/data/*
 !.gitkeep
 
 # R files ---------------------------------------------------------------------
