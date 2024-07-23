@@ -3,6 +3,9 @@ body, html {
     padding:0;
   }
 
+button {
+    cursor: pointer
+}
 
 
 #app {
