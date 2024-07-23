@@ -21,7 +21,10 @@ var map = new maplibregl.Map({
     style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', // stylesheet location
     center: ChiLocation, // starting position [lng, lat]
     zoom: 9.5 // starting zoom
-});  
+}); 
+
+map.addControl(new maplibregl.NavigationControl());
+
 
 
 map.on('load', () => {
@@ -145,7 +148,7 @@ map.on('load', () => {
     map.setLayoutProperty('ca', 'visibility', 'visible')
     map.setPaintProperty('ca', 'fill-opacity', ['case',['==', ['get','community'], ca], .5, 0]);
 
-    document.getElementById('report-cards').innerHTML = e.features[0].properties.public_nam + "<br />" + "Services route(s) " + e.features[0].properties.routesstpg;
+    document.getElementById('report-cards').innerHTML = e.features[0].properties.systemstop + ": "  + e.features[0].properties.public_nam  + "<br />" + "Services route(s) " + e.features[0].properties.routesstpg;
 })
 
 map.on('click', 'ca', (e) => {
@@ -177,10 +180,14 @@ map.on('click', 'ca', (e) => {
 map.on('click', 'stop', (e) => {
     // Change the cursor style as a UI indicator.
     map.getCanvas().style.cursor = 'pointer';
+    
 
     // find the community area that the stop is in
     const stop = e.features[0].properties.systemstop;
     const rts  = e.features[0].properties.routesstpg.split(',');
+
+    console.log(stop, 'click')
+    filterStop(parseInt(stop))
 
     // hide all other bus stops
     map.setPaintProperty('stop', 'circle-opacity', ['case', ['==', ['get','systemstop'],  String(stop)], 1, 0]);
@@ -202,7 +209,6 @@ map.on('click', 'stop', (e) => {
     // hide only community area
     map.setLayoutProperty('ca', 'visibility', 'none')});
 
-    
  
 });
 
@@ -235,4 +241,11 @@ function findRoutesForStop(ca) {
 
 function findStopsForRoute(route) {
     return xwalk.features.filter(x => x.properties.routesstpg.includes(route)).map(x => x.properties.stpid);
+}
+
+function filterStop(stop) {
+    console.log(stop)
+    let viz = document.getElementById('tableauViz');
+    let dash = viz.workbook.activeSheet;
+    dash.applyFilterAsync("Stop Id", [stop], "replace");
 }

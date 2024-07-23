@@ -28,12 +28,12 @@
                 <div id='map'></div>
             </div>
             <div id='report-container'>
-                <div id='report-cards'>
-                    
-                    <!-- <tableau-viz id="tableauViz"       
-                    src='https://my-server/views/my-workbook/my-view'>
-                    </tableau-viz> -->
-                </div>
+                <div id='report-cards'></div>
+                <tableau-viz id="tableauViz"       
+                    src='https://public.tableau.com/views/ReportCards_17217478137390/StopTest'
+                    toolbar="bottom" hide-tabs>
+                    <viz-filter field="Stop Id" value="8"> </viz-filter> 
+                    </tableau-viz>
             </div>
         </div>
         
@@ -42,3 +42,6 @@
     <script src='static/main.js'></script>
 </body>
 </html>
+
+
+
