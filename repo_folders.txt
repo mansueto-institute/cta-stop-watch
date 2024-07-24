@@ -1,0 +1,39 @@
+.
+└── cta-stop-watch
+    ├── __pycache__
+    ├── analysis
+    │   └── data
+    ├── cta-stop-etl
+    │   ├── __pycache__
+    │   └── out
+    │       ├── clean_timetables
+    │       ├── parquets
+    │       ├── patterns_current
+    │       ├── patterns_historic
+    │       ├── patterns_raw
+    │       ├── pids
+    │       ├── qc
+    │       ├── timetables_raw
+    │       └── trips
+    ├── deck_viz
+    ├── scrapers
+    │   ├── inp
+    │   │   └── historic_gtfs
+    │   └── out
+    │       └── gtfs
+    ├── scratch
+    ├── shapefiles
+    │   └── CTA_BusStops
+    ├── spatial
+    └── visualizations
+        └── accessibility
+            ├── __pycache__
+            ├── maps
+            │   └── communities
+            │       ├── red_green
+            │       └── summer
+            └── out
+                ├── communities
+                └── stops_parquets
+
+36 directories
