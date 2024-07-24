@@ -1,8 +1,33 @@
 import polars as pl
 import pandas as pd
 import pathlib
+import duckdb
 
 DIR = pathlib.Path(__file__).parent / "data"
+
+
+def create_rt_pid_xwalk() -> bool:
+    """
+    Create a route to pattern id crosswalk called rt_to_pid.parquet
+    """
+
+    df = pl.scan_parquet(f"{DIR}/staging/current_days_download.parquet")
+    xwalk = df.with_columns(pl.col("pid").cast(pl.Int32).cast(pl.String))
+
+    xwalk.select(pl.col(["rt", "pid"])).unique(["rt", "pid"]).sink_parquet(
+        f"{DIR}/staging/rt_to_pid_new.parquet"
+    )
+
+    combine = f"""COPY (SELECT * 
+                        FROM read_parquet('{DIR}/rt_to_pid.parquet')
+                        UNION DISTINCT
+                        SELECT * 
+                        FROM read_parquet("{DIR}/staging/rt_to_pid_new.parquet")
+                        ) 
+                        TO '{DIR}/rt_to_pid.parquet' (FORMAT 'parquet');"""
+    duckdb.execute(combine)
+
+    return True
 
 
 def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
@@ -11,19 +36,19 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
     """
 
     trips = []
-    xwalk = pd.read_parquet("data/rt_to_pid.parquet")
+    xwalk = pd.read_parquet(f"{DIR}/rt_to_pid.parquet")
 
     # just look at the rts for schedule
     if is_schedule:
         iter = [rt]
-        file_DIR = f"{DIR}/timetables/clean_timetables/rt{rt}_timetable.parquet"
+        file_DIR = f"{DIR}/clean_timetables/rt{rt}_timetable.parquet"
         error = "Do not have timetable for route {rt}. Skipping"
     else:
         data_set = xwalk[xwalk["rt"] == rt].groupby(["rt", "pid"]).count().reset_index()
         pids = data_set.itertuples(index=False)
         iter = pids
 
-        file_DIR = f"{DIR}/trips/trips_{pid}_full.parquet"
+        file_DIR = str(DIR) + "/processed_by_pid/trips_{pid}_full.parquet"
         error = "Do not have pattern {pid} for route. Skipping"
 
     for obj in iter:
@@ -114,8 +139,6 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
     for grouping, trunc in [
         ("hour", "1h"),
         ("weekday", "1d"),
-        # ("dayofyear", "1d"),
-        # ("week", "1w"),
         ("month", "1mo"),
         ("year", "1y"),
         ("week_abs", "1w"),
@@ -138,12 +161,6 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
                 df = df.with_columns((pl.col(grouping).dt.hour()).alias(grouping))
             elif grouping == "weekday":
                 df = df.with_columns((pl.col(grouping).dt.weekday()).alias(grouping))
-            elif grouping == "dayofyear":
-                df = df.with_columns(
-                    (pl.col(grouping).dt.ordinal_day()).alias(grouping)
-                )
-            elif grouping == "week":
-                df = df.with_columns((pl.col(grouping).dt.week()).alias(grouping))
             elif grouping == "month":
                 df = df.with_columns((pl.col(grouping).dt.month()).alias(grouping))
             elif grouping == "year":
@@ -155,8 +172,6 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
                 (pl.col("start_trip").dt.month()).alias("month"),
                 (pl.col("start_trip").dt.year()).alias("year"),
                 (pl.col("start_trip").dt.weekday()).alias("weekday"),
-                # (pl.col("start_trip").dt.ordinal_day()).alias("dayofyear"),
-                # (pl.col("start_trip").dt.week()).alias("week"),
                 (pl.col("start_trip").dt.truncate(trunc).alias(grouping)).alias(
                     "week_abs"
                 ),
@@ -170,8 +185,6 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
                 (pl.col("bus_stop_time").dt.month()).alias("month"),
                 (pl.col("bus_stop_time").dt.year()).alias("year"),
                 (pl.col("bus_stop_time").dt.weekday()).alias("weekday"),
-                # (pl.col("bus_stop_time").dt.ordinal_day()).alias("dayofyear"),
-                # (pl.col("bus_stop_time").dt.week()).alias("week"),
                 (pl.col("bus_stop_time").dt.truncate(trunc).alias(grouping)).alias(
                     "week_abs"
                 ),
@@ -195,6 +208,9 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
 
         grouped_df = grouped_df.rename({grouping: "period_value"})
 
+        # retype period value as string
+        grouped_df = grouped_df.with_columns(pl.col("period_value").cast(pl.String))
+
         all_periods.append(grouped_df)
 
         all_periods_df = pl.concat(all_periods)
@@ -210,7 +226,7 @@ def create_trips_df_pid(
     """
     # just look at the rts for schedule
 
-    file_DIR = f"{DIR}/trips/trips_{pid}_full.parquet"
+    file_DIR = f"{DIR}/processed_by_pid/trips_{pid}_full.parquet"
     error = f"Do not have pattern {pid} for route. Skipping"
 
     try:

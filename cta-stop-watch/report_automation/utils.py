@@ -4,8 +4,7 @@ import re
 import json
 from datetime import datetime
 import logging
-import polars as pl
-import duckdb
+import shutil
 
 
 def create_config():
@@ -46,33 +45,24 @@ def create_config():
         json.dump(config, file)
 
 
-def clear_staging():
-    pass
-
-
-def create_rt_pid_xwalk() -> bool:
+def clear_staging(folders: list, files: list):
     """
-    Create a route to pattern id crosswalk called rt_to_pid.parquet
+    Remove all files/ folders from the staging directory
     """
 
-    df = pl.scan_parquet("../cta-stop-etl/out/current_days_download.parquet")
-    xwalk = df.with_columns(pl.col("pid").cast(pl.Int32).cast(pl.String))
+    DIR = pathlib.Path(__file__).parent / "data/staging"
 
-    xwalk.select(pl.col(["rt", "pid"])).unique(["rt", "pid"]).sink_parquet(
-        "rt_to_pid_new.parquet"
-    )
+    for folder in folders:
+        # remove folder
+        if os.path.isdir(DIR / folder):
+            shutil.rmtree(DIR / folder)
 
-    combine = """"COPY (SELECT * 
-                        FROM read_parquet('rt_to_pid.parquet')
-                        UNION DISTINCT
-                        SELECT * 
-                        FROM read_parquet('rt_to_pid_new.parquet')
-                        ) 
-                        TO 'rt_to_pid.parquet' (FORMAT 'parquet');"""
+        # recreate empty folder for next time
+        os.makedirs(DIR / folder)
 
-    duckdb.execute(combine)
-
-    return True
+    for file in files:
+        if os.path.isfile(DIR / file):
+            os.remove(DIR / file)
 
 
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")

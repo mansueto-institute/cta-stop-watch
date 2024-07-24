@@ -286,8 +286,8 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     all_trips_df = pd.DataFrame(all_trips)
     all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
 
-    if not os.path.exists(f"{DIR}/data/qc"):
-        os.makedirs(f"{DIR}/data/qc")
+    if not os.path.exists(f"{DIR}/qc"):
+        os.makedirs(f"{DIR}/qc")
 
     # save issue trips examples
     if len(bad_trips) > 0:

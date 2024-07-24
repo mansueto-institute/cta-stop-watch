@@ -1,7 +1,5 @@
-from trip_processing import process_new_trips
-from update_metrics import update_metrics
-
-# from update_schedule import update_schedule
+from process_trips import process_new_trips
+from process_metrics import process_metrics
 from utils import create_config
 import argparse
 
@@ -40,7 +38,4 @@ if __name__ == "__main__":
         print("Processing new trips")
         process_new_trips()
     elif args.pipeline_step == "metrics":
-
-        pass
-        # update_schedule()
-        # update_metrics("all")
+        process_metrics()

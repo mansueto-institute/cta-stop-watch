@@ -17,16 +17,16 @@ def combine_recent_trips():
 
     for pid in pids:
 
-        if os.path.exists(f"{DIR}/data/processed_by_day/trips_{pid}_full.parquet"):
+        if os.path.exists(f"{DIR}/data/processed_by_pid/trips_{pid}_full.parquet"):
             # combine all the files together
             command = f"""COPY 
                             (SELECT * 
                             FROM read_parquet('data/staging/trips/{pid}/*')
                             UNION ALL
                             SELECT *
-                            from read_parquet('data/processed_by_day/trips_{pid}_full.parquet')
+                            from read_parquet('data/processed_by_pid/trips_{pid}_full.parquet')
                             )  
-                            TO 'data/processed_by_day/trips_{pid}_full.parquet' (FORMAT 'parquet');
+                            TO 'data/processed_by_pid/trips_{pid}_full.parquet' (FORMAT 'parquet');
             """
             duckdb.execute(command)
 
@@ -36,16 +36,16 @@ def combine_recent_trips():
             command = f"""COPY 
                             (SELECT * 
                             FROM read_parquet('data/staging/trips/{pid}/*'))  
-                            TO 'data/processed_by_day/trips_{pid}_full.parquet' (FORMAT 'parquet');
+                            TO 'data/processed_by_pid/trips_{pid}_full.parquet' (FORMAT 'parquet');
             """
             duckdb.execute(command)
 
 
-def update_metrics(rts, agg: bool = True):
+def update_metrics(rts: list | str):
     OUT_DIR = "data/metrics"
 
     if rts == "all":
-        xwalk = pd.read_parquet("rt_to_pid.parquet")
+        xwalk = pd.read_parquet("data/rt_to_pid.parquet")
         rts = xwalk["rt"].unique().tolist()
 
     # for each route
@@ -73,24 +73,6 @@ def update_metrics(rts, agg: bool = True):
 
         all_routes_stops_actual.append(route_metrics_actual)
         all_routes_stops_schedule.append(route_metrics_schedule)
-
-        # create the trip level data
-        # trip_duration_actual = create_trips_metric_df(actual_df, is_schedule=False)
-        # trip_duration_sched = create_trips_metric_df(schedule_df, is_schedule=True)
-
-        # all_routes_trips_actual.append(trip_duration_actual)
-        # all_routes_trips_schedule.append(trip_duration_sched)
-
-    # combine trip level at routes
-    # actual_full_trips = pl.concat(all_routes_trips_actual)
-    # schedule_full_trips = pl.concat(all_routes_trips_schedule)
-
-    # trip_metrics = create_combined_metrics_trip_df(
-    #    actual_full_trips, schedule_full_trips
-    # )
-
-    # export
-    # trip_metrics.write_parquet(f"{OUT_DIR}/trip_metrics_df_addon.parquet")
 
     # combine stop level at routes
     actual_full_stops = pl.concat(all_routes_stops_actual)

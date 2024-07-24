@@ -21,7 +21,7 @@ today_minus_one = str(date.today() - timedelta(days=1))
 today = str(date.today())
 
 
-def update_data(today_minus_one):
+def update_data(today):
 
     # TODO update file path
     full_download(MAX_DATE, today)
@@ -49,8 +49,6 @@ def update_patterns():
             except Exception as e:
                 print(f"Error downloading pattern {pid}: {e}")
                 bad_pids.append(pid)
-
-    # TODO log bad pids that were not downloaded
 
     # process new patterns
     new_raw_patterns = list(set(new_patterns) - set(bad_pids))
@@ -146,7 +144,5 @@ def process_new_trips():
 
     create_config()
 
-    # TODO update xwalk file
-
-    # clear staging data (days abd pids)
-    # clear_staging()
+    # clear staging data (days and pids)
+    clear_staging(folders=["days", "pids"], files=["current_days_download.parquet"])
