@@ -2,6 +2,43 @@ from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_d
 from metrics_utils import create_trips_df
 import polars as pl
 import pandas as pd
+import os
+import pathlib
+import duckdb
+
+DIR = pathlib.Path(__file__).parent
+
+
+def combine_recent_trips():
+    # take whats in staging/trips combine it with processes_by_pid
+
+    # get all the pids in the staging/trips
+    pids = [name for name in os.listdir(f"{DIR}/data/staging/trips")]
+
+    for pid in pids:
+
+        if os.path.exists(f"{DIR}/data/processed_by_day/trips_{pid}_full.parquet"):
+            # combine all the files together
+            command = f"""COPY 
+                            (SELECT * 
+                            FROM read_parquet('data/staging/trips/{pid}/*')
+                            UNION ALL
+                            SELECT *
+                            from read_parquet('data/processed_by_day/trips_{pid}_full.parquet')
+                            )  
+                            TO 'data/processed_by_day/trips_{pid}_full.parquet' (FORMAT 'parquet');
+            """
+            duckdb.execute(command)
+
+        else:
+            # copy over to storage folder
+            # grab all days from the folder
+            command = f"""COPY 
+                            (SELECT * 
+                            FROM read_parquet('data/staging/trips/{pid}/*'))  
+                            TO 'data/processed_by_day/trips_{pid}_full.parquet' (FORMAT 'parquet');
+            """
+            duckdb.execute(command)
 
 
 def update_metrics(rts, agg: bool = True):

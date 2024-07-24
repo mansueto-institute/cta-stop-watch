@@ -5,21 +5,6 @@ import pathlib
 DIR = pathlib.Path(__file__).parent / "data"
 
 
-def create_rt_pid_xwalk() -> bool:
-    """
-    Create a route to pattern id crosswalk called rt_to_pid.parquet
-    """
-
-    df = pl.scan_parquet("../cta-stop-etl/out/current_days_download.parquet")
-    xwalk = df.with_columns(pl.col("pid").cast(pl.Int32).cast(pl.String))
-
-    xwalk.select(pl.col(["rt", "pid"])).unique(["rt", "pid"]).sink_parquet(
-        "rt_to_pid.parquet"
-    )
-
-    return True
-
-
 def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
     """
     Given rts to pids xwalk and a list of rts, create a df for all the trips for the rts

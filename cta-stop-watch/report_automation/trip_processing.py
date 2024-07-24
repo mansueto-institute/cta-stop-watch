@@ -1,9 +1,9 @@
 from download import full_download, extract_routes, query_cta_api
 from process_patterns import process_patterns
 from calculate_stop_time import calculate_patterns
-from utils import create_config, clear_staging
+from utils import create_config, clear_staging, process_logger
 
-from datetime import date
+from datetime import date, timedelta
 import polars as pl
 import pandas as pd
 import duckdb
@@ -17,10 +17,11 @@ MAX_DATE = config["MAX_DATE"]
 EXISTING_PATTERNS = config["EXISTING_PATTERNS"]
 
 STAGING_PATH = "data/staging"
+today_minus_one = str(date.today() - timedelta(days=1))
+today = str(date.today())
 
 
-def update_data():
-    today = str(date.today())
+def update_data(today_minus_one):
 
     # TODO update file path
     full_download(MAX_DATE, today)
@@ -35,11 +36,13 @@ def update_patterns():
     # get all processed patterns (#EXISITNG_PATTERNS)
 
     # compare the two if there are new patterns, download from api and add them to the database
-    new_patterns = list(set(new_trip_pids["pid"].tolist()) - set(EXISTING_PATTERNS))
-
+    new_patterns = list(
+        set(new_trip_pids["pid"].astype(str).tolist()) - set(EXISTING_PATTERNS)
+    )
+    bad_pids = []
     if len(new_patterns) > 0:
         # for any new patterns, try to download from the api
-        bad_pids = []
+
         for pid in new_patterns:
             try:
                 query_cta_api(pid, "data/patterns/patterns_raw")
@@ -52,6 +55,13 @@ def update_patterns():
     # process new patterns
     new_raw_patterns = list(set(new_patterns) - set(bad_pids))
     process_patterns(new_raw_patterns)
+
+    process_logger.info(
+        f""" Found {len(new_patterns)} new pattern(s) in data \n
+             Downloaded {len(new_patterns) - len(bad_pids)} new patterns \n
+             Issues with {len(bad_pids)} pattern(s): {bad_pids}
+        """
+    )
 
     return new_trip_pids
 
@@ -112,26 +122,31 @@ def process_new_trips():
     # 1 download data from ghost buses from max_date to today
     # saves currently to data/raw_trips
     # also saves staging in staging/days, staging/pids
-    update_data()
+    process_logger.info(
+        f"Trying to download ghost bus data from data from {MAX_DATE} to {today_minus_one}"
+    )
+    update_data(today_minus_one)
 
     # 2 check if there are new patterns in the new data
     # download raw patterns to data/patters/patterns_raw
     # process the raw patterns and save them to data/patterns/patterns_current
+    process_logger.info(
+        f"Attempting to find and download any missing patterns from new data"
+    )
     update_patterns()
 
-    all_pids_df = pl.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
+    all_pids_df = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 
     # 3 calculate the stop time for all the patterns
     # puts the processed trips by pattern in staging/trips
-    calculate_patterns(all_pids_df)
 
-    # converts the trips by pattenr to by day
-    # saves them in processed_by_day
-    trip_to_day()
+    calculate_patterns(all_pids_df["pid"].astype(str).tolist())
 
     # recreate updated config file
-    # TODO update xwalk file
+
     create_config()
 
-    # clear staging data
-    clear_staging()
+    # TODO update xwalk file
+
+    # clear staging data (days abd pids)
+    # clear_staging()

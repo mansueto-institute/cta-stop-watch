@@ -6,9 +6,10 @@ import duckdb
 import requests
 import json
 import pandas as pd
+from utils import process_logger
 
 STAGING_PATH = "data/staging"
-RAW_PATH = "data/raw_trips"
+RAW_PATH = "data/raw_trips/"
 
 dtype_map = {
     "vid": pl.UInt32,
@@ -43,10 +44,9 @@ def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
     URL_HEAD = "https://dmu5hq5f7fk32.cloudfront.net/bus_full_day_data_v2/"
 
     # TODO update paths
-    out_path = f"{RAW_PATH}/"
     out_staging_path = f"{STAGING_PATH}/days/"
 
-    os.makedirs(out_path, exist_ok=True)
+    os.makedirs(RAW_PATH, exist_ok=True)
 
     failed = []
     success = []
@@ -55,22 +55,23 @@ def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
         day_csv = day_f + ".csv"
         day_parquet = day_f + ".parquet"
         url_day = URL_HEAD + day_csv
+        if Path(RAW_PATH + day_parquet).exists():
+            process_logger.info(f"Skipping {day_f} as it already exists")
+            continue
 
         try:
-            print(url_day)
             df = pl.read_csv(url_day, dtypes=dtype_map)
             success.append(day_f)
         except Exception as e:
-            print(f"No data for {day_f}")
             failed.append(day_f)
 
         # save file
-        df.write_parquet(out_path + day_parquet)
+        df.write_parquet(RAW_PATH + day_parquet)
 
         # save for staging
         df.write_parquet(out_staging_path + day_parquet)
 
-        return success, failed
+    return success, failed
 
 
 def save_partitioned_parquet(in_folder, out_file: str):
@@ -97,10 +98,12 @@ def full_download(start: str = "2023-1-1", end: str = "2024-12-31"):
     success, failed = download_full_day_csv_to_parquet(start, end, delta)
 
     save_partitioned_parquet(
-        f"{STAGING_PATH}/days/", f"{STAGING_PATH}/current_days_download.parquet"
+        f"{STAGING_PATH}/days", f"{STAGING_PATH}/current_days_download.parquet"
     )
 
     # log success and failed TODO
+    process_logger.info(f"Downloaded {len(success)} days: {success}")
+    process_logger.info(f"Issues with {len(failed)} days: {failed}")
 
     return success
 
@@ -133,7 +136,6 @@ def extract_routes():
     all_pids_df = pl.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 
     for row in all_pids_df.iter_rows(named=True):
-        print(row["pid"])
         extract_pid(row["pid"])
 
 
@@ -155,7 +157,7 @@ def query_cta_api(pid: str, out_path) -> bool | pd.DataFrame:
     # TODO CTA API KEY
 
     if os.path.exists(out_path + "/patterns_raw/pid_" + pid + "_raw.parquet"):
-        print(f"Skipping PID {pid} as it already exists")
+        process_logger.info(f"Skipping PID {pid} as it already exists")
 
     url = f"http://www.ctabustracker.com/bustime/api/v2/getpatterns?format=json&key=TUQ6YJLvcvetigeaWEWEwq23h&pid={pid}"
     response = requests.get(url)

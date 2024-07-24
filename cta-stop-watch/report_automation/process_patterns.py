@@ -3,7 +3,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely import LineString
 import pathlib
-import logging
+from utils import process_logger
 from pyproj import Proj, CRS
 
 ## CONSTANTS
@@ -111,10 +111,10 @@ def process_patterns(pids: list):
             continue
         else:
             convert_to_geometries(df_raw, pid)
-            print(f"Success in converting pattern {pid} to geometry")
+            process_logger.info(f"Success in converting pattern {pid} to geometry")
 
     if len(bad_pids) > 0:
-        print(
+        process_logger.info(
             f"Missing {len(bad_pids)} PIDs from ghost bus data that we do not have. List here: {bad_pids}"
         )
 

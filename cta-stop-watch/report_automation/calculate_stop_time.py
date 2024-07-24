@@ -6,12 +6,13 @@ import pathlib
 from shapely import box
 import pickle
 import os
-import logging
 import time
+from datetime import date
+from utils import process_logger
 
 from interpolation import interpolate_stoptime
 
-logger_calculate = logging.getLogger(__name__)
+logging = process_logger
 
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -41,7 +42,7 @@ def prepare_trips(pid: str):
     """
 
     # load trips for a pattern
-    trips_df = pd.read_parquet(f"{DIR}/staging//pids/{pid}.parquet")
+    trips_df = pd.read_parquet(f"{DIR}/staging/pids/{pid}.parquet")
 
     trips_gdf = gpd.GeoDataFrame(
         trips_df,
@@ -94,8 +95,7 @@ def prepare_trips(pid: str):
     filtered_trips_gdf = filtered_trips_gdf.groupby("unique_trip_vehicle_day").filter(
         lambda x: len(x) > 1
     )
-
-    logging.info(f"Originally {og_trips_count} trips")
+    logging.debug(f"Originally {og_trips_count} trips for Pattern {pid}")
 
     filtered_trips_gdf.to_crs(epsg=4326, inplace=True)
 
@@ -238,10 +238,11 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     processed_trips_count = 0
 
     bad_trips = []
+    today_date = str(date.today())
 
     filtered_trips_count = trips_gdf["unique_trip_vehicle_day"].nunique()
 
-    logging.info(
+    logging.debug(
         f"Trying to process {filtered_trips_count} trips for Pattern {pid} after filtering"
     )
 
@@ -285,9 +286,12 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     all_trips_df = pd.DataFrame(all_trips)
     all_trips_df["bus_stop_time"] = pd.to_datetime(all_trips_df["bus_stop_time"])
 
+    if not os.path.exists(f"{DIR}/data/qc"):
+        os.makedirs(f"{DIR}/data/qc")
+
     # save issue trips examples
     if len(bad_trips) > 0:
-        with open(f"{DIR}/qc/bad_trips_{pid}.pickle", "wb") as f:
+        with open(f"{DIR}/qc/bad_trips_{pid}_{today_date}.pickle", "wb") as f:
             # Pickle the 'data' using the highest protocol available.
             pickle.dump(bad_trips, f, pickle.HIGHEST_PROTOCOL)
 
@@ -299,12 +303,11 @@ def calculate_patterns(pids: list):
     calculate stop times for all the patterns
     """
 
-    if not os.path.exists(f"{DIR}/trips"):
-        os.makedirs(f"{DIR}/trips")
-
     all_og_trips_count = 0
     all_processed_trips_count = 0
     all_bad_trips_count = 0
+
+    today_date = str(date.today())
 
     for pid in pids:
         try:
@@ -317,7 +320,15 @@ def calculate_patterns(pids: list):
 
         if result is None:
             continue
-        result.to_parquet(f"{DIR}/staging/trips/trips_{pid}_full.parquet", index=False)
+
+        # check if file exist and create if not
+        if not os.path.exists(f"{DIR}/staging/trips/{pid}"):
+            os.makedirs(f"{DIR}/staging/trips/{pid}")
+
+        result.to_parquet(
+            f"{DIR}/staging/trips/{pid}/trips_{pid}_{today_date}.parquet",
+            index=False,
+        )
 
         all_og_trips_count += og_trips_count
         all_processed_trips_count += processed_trips_count
