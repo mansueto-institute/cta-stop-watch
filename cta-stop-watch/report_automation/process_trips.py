@@ -1,7 +1,7 @@
 from download import full_download, extract_routes, query_cta_api
 from process_patterns import process_patterns
 from calculate_stop_time import calculate_patterns
-from utils import create_config, clear_staging, process_logger
+from utils import create_config, clear_staging, process_logger, create_rt_pid_xwalk
 
 from datetime import date, timedelta
 import polars as pl
@@ -9,6 +9,7 @@ import pandas as pd
 import duckdb
 import json
 import os
+from datetime import datetime, timedelta
 
 with open("config.json", "r") as file:
     config = json.load(file)
@@ -17,16 +18,34 @@ MAX_DATE = config["MAX_DATE"]
 EXISTING_PATTERNS = config["EXISTING_PATTERNS"]
 
 STAGING_PATH = "data/staging"
+
+# get today's date and yesterday's date
 today_minus_one = str(date.today() - timedelta(days=1))
 today = str(date.today())
+
+# first date is MAX_DATE + 1
+date = datetime.strptime(MAX_DATE, "%Y-%m-%d")
+modified_date = date + timedelta(days=1)
+start_date = datetime.strftime(modified_date, "%Y-%m-%d")
 
 
 def update_data(today):
 
     # TODO update file path
-    full_download(MAX_DATE, today)
+
+    # first date is MAX_DATE + 1
+    date = datetime.strptime(MAX_DATE, "%Y-%m-%d")
+    modified_date = date + timedelta(days=1)
+    start_date = datetime.strftime(modified_date, "%Y-%m-%d")
+
+    check = full_download(start_date, today)
+
+    if not check:
+        return False
     # covert to by pattern
     extract_routes()
+
+    return True
 
 
 def update_patterns():
@@ -121,9 +140,12 @@ def process_new_trips():
     # saves currently to data/raw_trips
     # also saves staging in staging/days, staging/pids
     process_logger.info(
-        f"Trying to download ghost bus data from data from {MAX_DATE} to {today_minus_one}"
+        f"Trying to download ghost bus data from data from {start_date} to {today_minus_one}"
     )
-    update_data(today_minus_one)
+    check = update_data(today_minus_one)
+
+    if not check:
+        return False
 
     # 2 check if there are new patterns in the new data
     # download raw patterns to data/patters/patterns_raw
@@ -141,8 +163,10 @@ def process_new_trips():
     calculate_patterns(all_pids_df["pid"].astype(str).tolist())
 
     # recreate updated config file
-
     create_config()
+
+    # update crosswalk
+    create_rt_pid_xwalk()
 
     # clear staging data (days and pids)
     clear_staging(folders=["days", "pids"], files=["current_days_download.parquet"])

@@ -1,5 +1,6 @@
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
 from metrics_utils import create_trips_df
+from utils import metrics_logger
 import polars as pl
 import pandas as pd
 import os
@@ -15,8 +16,26 @@ def combine_recent_trips():
     # get all the pids in the staging/trips
     pids = [name for name in os.listdir(f"{DIR}/data/staging/trips")]
 
-    for pid in pids:
+    # stats before merging
+    stats_command = """
+    SELECT COUNT(*) as total_rows,
+           COUNT(DISTINCT unique_trip_vehicle_day) as total_trips,  
+           COUNT(DISTINCT pid) as total_pids,
+           count(distinct CAST(bus_stop_time AS DATE)) as total_days,
+           max(CAST(bus_stop_time AS DATE)) as max_date
+    from read_parquet('data/processed_by_pid/*.parquet')"""
 
+    stats_before = duckdb.execute(stats_command).df()
+
+    metrics_logger.info(
+        f"""Before merging, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
+        {stats_before['total_trips'].to_list()[0]:,} trips, 
+        {stats_before['total_pids'].to_list()[0]:,} pids, 
+        and {stats_before['total_days'].to_list()[0]:,} unique days. 
+        The max date is {stats_before['max_date'].to_list()[0]}."""
+    )
+
+    for pid in pids:
         if os.path.exists(f"{DIR}/data/processed_by_pid/trips_{pid}_full.parquet"):
             # combine all the files together
             command = f"""COPY 
@@ -40,9 +59,34 @@ def combine_recent_trips():
             """
             duckdb.execute(command)
 
+    # stats after merging
+    stats_after = duckdb.execute(stats_command).df()
+
+    metrics_logger.info(
+        f"""After merging, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
+        {stats_after['total_trips'].to_list()[0]:,} trips, 
+        {stats_after['total_pids'].to_list()[0]:,} pids, 
+        and {stats_after['total_days'].to_list()[0]:,} unique days. 
+        The max date is {stats_after['max_date'].to_list()[0]}."""
+    )
+
 
 def update_metrics(rts: list | str):
     OUT_DIR = "data/metrics"
+
+    # metric states before
+    mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    total_rows = mertics_df.shape[0]
+    total_months = mertics_df[mertics_df["period"] == "month_abs"][
+        "period_value"
+    ].nunique()
+    max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
+
+    metrics_logger.info(
+        f"""Before updating metrics, there were {total_rows:,} rows, 
+        and {total_months:,} unique months. 
+        The max month is {max_month}."""
+    )
 
     if rts == "all":
         xwalk = pd.read_parquet("data/rt_to_pid.parquet")
@@ -53,11 +97,7 @@ def update_metrics(rts: list | str):
     all_routes_stops_actual = []
     all_routes_stops_schedule = []
 
-    # all_routes_trips_actual = []
-    # all_routes_trips_schedule = []
-
     for rt in rts:
-
         # prep schedule and actual
         print(f"Processing route {rt}")
         try:
@@ -83,6 +123,20 @@ def update_metrics(rts: list | str):
 
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+
+    # metric states before
+    mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    total_rows = mertics_df.shape[0]
+    total_months = mertics_df[mertics_df["period"] == "month_abs"][
+        "period_value"
+    ].nunique()
+    max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
+
+    metrics_logger.info(
+        f"""After updating metrics, there were {total_rows:,} rows, 
+        and {total_months:,} unique months. 
+        The max month is {max_month}."""
+    )
 
     return True
 

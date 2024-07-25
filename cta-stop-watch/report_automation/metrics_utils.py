@@ -6,30 +6,6 @@ import duckdb
 DIR = pathlib.Path(__file__).parent / "data"
 
 
-def create_rt_pid_xwalk() -> bool:
-    """
-    Create a route to pattern id crosswalk called rt_to_pid.parquet
-    """
-
-    df = pl.scan_parquet(f"{DIR}/staging/current_days_download.parquet")
-    xwalk = df.with_columns(pl.col("pid").cast(pl.Int32).cast(pl.String))
-
-    xwalk.select(pl.col(["rt", "pid"])).unique(["rt", "pid"]).sink_parquet(
-        f"{DIR}/staging/rt_to_pid_new.parquet"
-    )
-
-    combine = f"""COPY (SELECT * 
-                        FROM read_parquet('{DIR}/rt_to_pid.parquet')
-                        UNION DISTINCT
-                        SELECT * 
-                        FROM read_parquet("{DIR}/staging/rt_to_pid_new.parquet")
-                        ) 
-                        TO '{DIR}/rt_to_pid.parquet' (FORMAT 'parquet');"""
-    duckdb.execute(combine)
-
-    return True
-
-
 def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
     """
     Given rts to pids xwalk and a list of rts, create a df for all the trips for the rts
@@ -75,6 +51,9 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
         df_trips = df_trips.with_columns(
             pl.col("pid").cast(pl.Float64).cast(pl.Int32).cast(pl.String).alias("pid")
         )
+
+        # convert bus_stop_time to nanoseconds
+        df_trips = df_trips.with_columns(pl.col("bus_stop_time").cast(pl.Datetime))
 
         trips.append(df_trips)
 

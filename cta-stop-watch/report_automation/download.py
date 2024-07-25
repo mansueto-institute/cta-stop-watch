@@ -35,7 +35,7 @@ dtype_map = {
 
 def get_date_range(start: date, end: date, delta: timedelta):
     cur_date = start
-    while cur_date < end:
+    while cur_date <= end:
         yield cur_date
         cur_date += delta
 
@@ -50,6 +50,7 @@ def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
 
     failed = []
     success = []
+
     for day in get_date_range(start, end, delta):
         day_f = day.strftime("%Y-%m-%d")
         day_csv = day_f + ".csv"
@@ -62,14 +63,14 @@ def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
         try:
             df = pl.read_csv(url_day, dtypes=dtype_map)
             success.append(day_f)
+            # save file
+            df.write_parquet(RAW_PATH + day_parquet)
+
+            # save for staging
+            df.write_parquet(out_staging_path + day_parquet)
         except Exception as e:
+            process_logger.error(f"Failed to download {day_f}: {e}")
             failed.append(day_f)
-
-        # save file
-        df.write_parquet(RAW_PATH + day_parquet)
-
-        # save for staging
-        df.write_parquet(out_staging_path + day_parquet)
 
     return success, failed
 
@@ -97,13 +98,17 @@ def full_download(start: str = "2023-1-1", end: str = "2024-12-31"):
     delta = timedelta(days=1)
     success, failed = download_full_day_csv_to_parquet(start, end, delta)
 
+    # log success and failed TODO
+    process_logger.info(f"Downloaded {len(success)} day(s): {success}")
+    process_logger.info(f"Issues with {len(failed)} day(s): {failed}")
+
+    if len(success) == 0:
+        process_logger.info(f"No days downloaded. Exiting")
+        return False
+
     save_partitioned_parquet(
         f"{STAGING_PATH}/days", f"{STAGING_PATH}/current_days_download.parquet"
     )
-
-    # log success and failed TODO
-    process_logger.info(f"Downloaded {len(success)} days: {success}")
-    process_logger.info(f"Issues with {len(failed)} days: {failed}")
 
     return success
 

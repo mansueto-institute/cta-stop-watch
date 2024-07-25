@@ -1,10 +1,9 @@
-import polars as pl
 import pandas as pd
 import geopandas as gpd
 from shapely import LineString
 import pathlib
 from utils import process_logger
-from pyproj import Proj, CRS
+from pyproj import CRS
 
 ## CONSTANTS
 M_TO_FT = 3.280839895

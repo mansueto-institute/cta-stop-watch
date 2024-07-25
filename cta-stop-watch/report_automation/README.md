@@ -13,11 +13,12 @@ This was process was built to be run daily or weekly. To process all of the data
 Run `python -m main -p process`. (`main.process_new_trips()`)
 
 1. `process_trips.update_data(config.MAX_DATE, today)`: Downloads all data from max date of downloaded data to present. Keeps an archive in `data/raw_trips`. Also saves staging data to use for the daily script in `data/staging/days/*`, `data/staging/pids/*` and `data/staging/current_days_download`.parquet`
-2. `process_trips.update_patterns()`: Attempts to download and process new patterns that are in the data that are not present. Adds patterns to `data/patterns/raw_patterns/*`. Processes patterns and adds to `data/patterns/current_patterns`
-3. `calculate_stop_time.calculate_patterns(pids)`: Interpolates bus stop times for new trips. Adds files for each pattern to store for the month in `data/staging/trips/{pid}/*`. File format is `trips_{pid}_{pull_date}.parquet`
-4. Run `utils.create_config()` to update max date and the list of existing patterns.
-5. Run `utils.clear_staging(folders=["days", "pids"], files=["current_days_download.parquet"])` to clear staging files for the next run.
-6. push to s3
+1. `process_trips.update_patterns()`: Attempts to download and process new patterns that are in the data that are not present. Adds patterns to `data/patterns/raw_patterns/*`. Processes patterns and adds to `data/patterns/current_patterns`
+1. `calculate_stop_time.calculate_patterns(pids)`: Interpolates bus stop times for new trips. Adds files for each pattern to store for the month in `data/staging/trips/{pid}/*`. File format is `trips_{pid}_{pull_date}.parquet`
+1. Run `utils.create_config()` to update max date and the list of existing patterns.
+1. Update rt to pid xwalk with `util.create_rt_pid_xwalk()`
+1. Run `utils.clear_staging(folders=["days", "pids"], files=["current_days_download.parquet"])` to clear staging files for the next run.
+1. push to s3
 
 See `process.log` for details of a run
 
@@ -39,6 +40,14 @@ TODO
 * metrics add last month
 * add log statements for metrics run
 * full run of each
-* time is tomorrow, today, yesterday, a week ago
+* time is 
+    * tomorrow done
+    * today done
+    * yesterday done
+    * a week ago done
+    * adding on correctly
 
 
+
+day started, trips processed
+csv by hand, open files with write, 

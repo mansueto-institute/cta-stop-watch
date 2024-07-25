@@ -8,13 +8,16 @@ import gtfs_kit as gk
 import pathlib
 import os
 import duckdb
-import sys
 import numpy as np
 import urllib.request
 from datetime import date
+from utils import metrics_logger
 
 
 def download_current_feed():
+    """
+    Download the current gtfs feed from CTA
+    """
 
     today = str(date.today())
 
@@ -90,7 +93,7 @@ def create_timetables():
     a = feed.compute_trip_activity(all_dates)
 
     for rt in rts:
-        print(f"creating timetable for route {rt}")
+        metrics_logger.info(f"creating timetable for route {rt}")
 
         timetables_df = process_route_timetable(feed, rt, all_dates, merged_df, a)
         timetables_df["pid"] = timetables_df["shape_id"].str.slice(-5)
@@ -116,12 +119,11 @@ def create_timetables():
         rts_count += 1
 
         if rts_count % 40 == 0:
-            print(f"{round((rts_count/len(rts)) * 100,3)} complete")
+            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
 
         if not os.path.exists("data/staging/timetables/current_timetables"):
             os.makedirs("data/staging/timetables/current_timetables")
 
-        print("Writing to parquet file")
         timetables_df.to_parquet(
             f"data/staging/timetables/current_timetables/rt{rt}_timetable.parquet",
             index=False,
@@ -136,17 +138,32 @@ def dedupe_schedules():
     scheduled trips from a schedule in which there was not an update
 
     """
-    # get all route
-    rt_DIR = pathlib.Path(__file__).parent / ("data/rt_to_pid.parquet")
-    rt_to_pid = pd.read_parquet(rt_DIR)
-    rts = rt_to_pid["rt"].unique()
+    # get all route in current schedule
+    command = """select distinct route_id 
+                 from read_parquet('data/staging/timetables/current_timetables/*.parquet')"""
 
+    rts = duckdb.execute(command).df()["route_id"].to_list()
     # testing
-    rts = [21]
+    # rts = [21]
+
+    # metric states before
+    command = """
+            SELECT  COUNT(*) as total_rows,
+                    COUNT( DISTINCT cast(bus_stop_time as date)) as total_months,
+                    MAX(cast(bus_stop_time as date)) as max_month
+            FROM    read_parquet('data/clean_timetables/*.parquet')"""
+
+    stats_before = duckdb.execute(command).df()
+
+    metrics_logger.info(
+        f"""Before updating schedule, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
+        and {stats_before['total_months'].to_list()[0]:,} unique months. 
+        The max month is {stats_before['max_month'].to_list()[0]}."""
+    )
 
     for rt in rts:
 
-        print(f"De-duping timetable for route {rt}")
+        metrics_logger.info(f"De-duping timetable for route {rt}")
 
         # find min date of current schedule
         current = pd.read_parquet(
@@ -154,12 +171,7 @@ def dedupe_schedules():
         )
 
         current["date_type"] = pd.to_datetime(current["date"])
-
         min_date = current["date_type"].min()
-
-        # for historic schedule, remove anything never than this date
-        historic = pd.read_parquet(f"data/clean_timetables/rt{rt}_timetable.parquet")
-        historic = historic[historic["bus_stop_time"] < min_date]
 
         # issue with this documented in issue #21
         # create an actual bus_stop_time column using date and arrival_time
@@ -196,8 +208,19 @@ def dedupe_schedules():
             inplace=True,
         )
 
-        # combine current and historic
-        deduped_timetable = pd.concat([current, historic])
+        # if historic exists, then combine
+        if os.path.exists(f"data/clean_timetables/rt{rt}_timetable.parquet"):
+            # for historic schedule, remove anything never than this date
+            historic = pd.read_parquet(
+                f"data/clean_timetables/rt{rt}_timetable.parquet"
+            )
+            historic = historic[historic["bus_stop_time"] < min_date]
+
+            # combine current and historic
+            deduped_timetable = pd.concat([current, historic])
+        else:
+            # historic is not just the current
+            deduped_timetable = current
 
         # convert stop seq to str
         deduped_timetable["stop_sequence"] = deduped_timetable["stop_sequence"].astype(
@@ -206,14 +229,31 @@ def dedupe_schedules():
 
         deduped_timetable.to_parquet(f"data/clean_timetables/rt{rt}_timetable.parquet")
 
+    stats_after = duckdb.execute(command).df()
+
+    metrics_logger.info(
+        f"""After updating schedule, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
+        and {stats_after['total_months'].to_list()[0]:,} unique months. 
+        The max month is {stats_after['max_month'].to_list()[0]}."""
+    )
+
 
 def update_schedule():
-    pass
+    """
+    full process to update schedule
+        1. download the current schedule
+        2. create timetables
+        3. dedupe and combine with historic
+    """
     # download current schedule
+
+    metrics_logger.info("Downloading current feed")
     download_current_feed()
 
     # create time table of current schedule
+    metrics_logger.info("Creating timetables")
     create_timetables()
 
     # dedupe with historic schedule
+    metrics_logger.info("Deduping timetables")
     dedupe_schedules()

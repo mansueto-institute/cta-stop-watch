@@ -5,6 +5,10 @@ import json
 from datetime import datetime
 import logging
 import shutil
+import duckdb
+import polars as pl
+
+DIR = pathlib.Path(__file__).parent / "data"
 
 
 def create_config():
@@ -25,17 +29,19 @@ def create_config():
         pid = numbers[0]
         pids.append(pid)
 
-    config["EXISTING_PATTERNS"] = pids
-
     DIR_b = pathlib.Path(__file__).parent / "data/raw_trips"
 
-    dates_file = [x.split(".")[0] for x in os.listdir(DIR_b)]
+    dates_file = [x.split(".")[0] for x in os.listdir(DIR_b) if x.endswith(".parquet")]
 
     dates_file.sort(key=lambda date: datetime.strptime(date, "%Y-%m-%d"))
 
     MAX_DATE = dates_file[-1]
 
+    if not MAX_DATE:
+        MAX_DATE = "2022-05-20"  # first day of data collection
+
     config["MAX_DATE"] = MAX_DATE
+    config["EXISTING_PATTERNS"] = pids
 
     process_logger.info(
         f"Updating config file. New max date: {MAX_DATE}. Now have {len(pids)} patterns."
@@ -66,6 +72,30 @@ def clear_staging(folders: list, files: list):
 
 
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+
+
+def create_rt_pid_xwalk() -> bool:
+    """
+    Create a route to pattern id crosswalk called rt_to_pid.parquet
+    """
+
+    df = pl.scan_parquet(f"{DIR}/staging/current_days_download.parquet")
+    xwalk = df.with_columns(pl.col("pid").cast(pl.Int32).cast(pl.String))
+
+    xwalk.select(pl.col(["rt", "pid"])).unique(["rt", "pid"]).sink_parquet(
+        f"{DIR}/staging/rt_to_pid_new.parquet"
+    )
+
+    combine = f"""COPY (SELECT * 
+                        FROM read_parquet('{DIR}/rt_to_pid.parquet')
+                        UNION DISTINCT
+                        SELECT * 
+                        FROM read_parquet("{DIR}/staging/rt_to_pid_new.parquet")
+                        ) 
+                        TO '{DIR}/rt_to_pid.parquet' (FORMAT 'parquet');"""
+    duckdb.execute(combine)
+
+    return True
 
 
 def setup_logger(name, log_file, level=logging.INFO):

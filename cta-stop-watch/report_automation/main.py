@@ -1,5 +1,5 @@
-from process_trips import process_new_trips
 from process_metrics import process_metrics
+from process_trips import process_new_trips
 from utils import create_config
 import argparse
 
