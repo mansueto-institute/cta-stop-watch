@@ -4,9 +4,10 @@ This was process was built to be run daily or weekly. To process all of the data
 
 ### Recommended Setup
 1. Add any raw pattern data already downloaded to `data/patterns_raw/`. Download our archive here.
-2. Add all raw_trip data you want to start with (can also only add the most recent one) to `data/raw_trips/`
-2. Download any historic processed data and add to `data/processed_by_pid/`. See our archive here.
-3. Run `python -m main -s config` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`
+1. Add all raw_trip data you want to start with (can also only add the most recent one) to `data/raw_trips/`
+1. Download any historic processed data and add to `data/processed_by_pid/`. See our archive here.
+1. Download a rt to pid xwalk to start and add to `data/`
+1. Run `python -m main -s config` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`
 
 
 ### The Daily Process

@@ -59,23 +59,25 @@ def update_patterns():
         set(new_trip_pids["pid"].astype(str).tolist()) - set(EXISTING_PATTERNS)
     )
     bad_pids = []
+    found_pids = []
     if len(new_patterns) > 0:
         # for any new patterns, try to download from the api
 
         for pid in new_patterns:
             try:
                 query_cta_api(pid, "data/patterns/patterns_raw")
+                found_pids.append(pid)
             except Exception as e:
                 print(f"Error downloading pattern {pid}: {e}")
                 bad_pids.append(pid)
 
-    # process new patterns
-    new_raw_patterns = list(set(new_patterns) - set(bad_pids))
-    process_patterns(new_raw_patterns)
+    # process all patterns
+    all_patterns = list(set(new_patterns) + set(found_pids))
+    process_patterns(all_patterns)
 
     process_logger.info(
         f""" Found {len(new_patterns)} new pattern(s) in data \n
-             Downloaded {len(new_patterns) - len(bad_pids)} new patterns \n
+             Downloaded {len(found_pids)} new patterns \n
              Issues with {len(bad_pids)} pattern(s): {bad_pids}
         """
     )
@@ -154,6 +156,8 @@ def process_new_trips():
         f"Attempting to find and download any missing patterns from new data"
     )
     update_patterns()
+
+    process_logger.info(f"Processing new trips")
 
     all_pids_df = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 

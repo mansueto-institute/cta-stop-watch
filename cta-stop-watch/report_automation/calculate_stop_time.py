@@ -276,7 +276,7 @@ def calculate_pattern(pid: str, tester: str = float("inf")):
     diff = end_tmstmp - start_tmstm
     formatted_time = time.strftime("%H hours %M minutes %S", time.gmtime(diff))
 
-    logging.info(
+    logging.debug(
         f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors. Time elapsed: {formatted_time}"
     )
 
