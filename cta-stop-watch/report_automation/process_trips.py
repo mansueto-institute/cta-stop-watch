@@ -9,34 +9,14 @@ import pandas as pd
 import duckdb
 import json
 import os
-from datetime import datetime, timedelta
-
-with open("config.json", "r") as file:
-    config = json.load(file)
-
-MAX_DATE = config["MAX_DATE"]
-EXISTING_PATTERNS = config["EXISTING_PATTERNS"]
+from datetime import datetime, timedelta, date
 
 STAGING_PATH = "data/staging"
 
-# get today's date and yesterday's date
-today_minus_one = str(date.today() - timedelta(days=1))
-today = str(date.today())
 
-# first date is MAX_DATE + 1
-date = datetime.strptime(MAX_DATE, "%Y-%m-%d")
-modified_date = date + timedelta(days=1)
-start_date = datetime.strftime(modified_date, "%Y-%m-%d")
-
-
-def update_data(today):
+def update_data(start_date: str, today: str):
 
     # TODO update file path
-
-    # first date is MAX_DATE + 1
-    date = datetime.strptime(MAX_DATE, "%Y-%m-%d")
-    modified_date = date + timedelta(days=1)
-    start_date = datetime.strftime(modified_date, "%Y-%m-%d")
 
     check = full_download(start_date, today)
 
@@ -48,7 +28,7 @@ def update_data(today):
     return True
 
 
-def update_patterns():
+def update_patterns(EXISTING_PATTERNS: list):
     # get all patterns in the database from new data
     new_trip_pids = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 
@@ -72,8 +52,9 @@ def update_patterns():
                 bad_pids.append(pid)
 
     # process all patterns
-    all_patterns = list(set(new_patterns) + set(found_pids))
-    process_patterns(all_patterns)
+    all_patterns = set(new_patterns + found_pids)
+    process_logger.info(f"Processing {len(all_patterns)} patterns")
+    process_patterns(list(all_patterns))
 
     process_logger.info(
         f""" Found {len(new_patterns)} new pattern(s) in data \n
@@ -136,17 +117,37 @@ def trip_to_day():
             by_day.sink_parquet(f"data/processed_by_day/{day}.parquet")
 
 
-def process_new_trips():
+def process_new_trips(test: bool = False):
 
     # 1 download data from ghost buses from max_date to today
     # saves currently to data/raw_trips
     # also saves staging in staging/days, staging/pids
+
+    if test:
+        create_config(test)
+
+    with open("config.json", "r") as file:
+        config = json.load(file)
+
+    MAX_DATE = config["MAX_DATE"]
+    EXISTING_PATTERNS = config["EXISTING_PATTERNS"]
+
+    # get today's date and yesterday's date
+    today_minus_one = str(date.today() - timedelta(days=1))
+    today = str(date.today())
+
+    # first date is MAX_DATE + 1
+    MAX_DATE = datetime.strptime(MAX_DATE, "%Y-%m-%d")
+    modified_date = MAX_DATE + timedelta(days=1)
+    start_date = datetime.strftime(modified_date, "%Y-%m-%d")
+
     process_logger.info(
         f"Trying to download ghost bus data from data from {start_date} to {today_minus_one}"
     )
-    check = update_data(today_minus_one)
+    check = update_data(start_date, today)
 
     if not check:
+        create_config()
         return False
 
     # 2 check if there are new patterns in the new data
@@ -155,7 +156,7 @@ def process_new_trips():
     process_logger.info(
         f"Attempting to find and download any missing patterns from new data"
     )
-    update_patterns()
+    update_patterns(EXISTING_PATTERNS)
 
     process_logger.info(f"Processing new trips")
 

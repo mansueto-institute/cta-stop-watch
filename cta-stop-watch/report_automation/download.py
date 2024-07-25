@@ -35,7 +35,7 @@ dtype_map = {
 
 def get_date_range(start: date, end: date, delta: timedelta):
     cur_date = start
-    while cur_date <= end:
+    while cur_date < end:
         yield cur_date
         cur_date += delta
 

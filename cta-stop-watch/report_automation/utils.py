@@ -2,7 +2,7 @@ import pathlib
 import os
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import shutil
 import duckdb
@@ -11,7 +11,7 @@ import polars as pl
 DIR = pathlib.Path(__file__).parent / "data"
 
 
-def create_config():
+def create_config(test: bool = False):
     """
     Create a configuration file from a dictionary
     """
@@ -39,6 +39,10 @@ def create_config():
 
     if not MAX_DATE:
         MAX_DATE = "2022-05-20"  # first day of data collection
+
+    if test:
+        # max date is yesterday
+        MAX_DATE = str(datetime.today().date() - timedelta(days=1))
 
     config["MAX_DATE"] = MAX_DATE
     config["EXISTING_PATTERNS"] = pids
