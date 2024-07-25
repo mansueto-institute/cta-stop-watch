@@ -1,4 +1,3 @@
-from metrics_utils import create_rt_pid_xwalk
 from utils import metrics_logger, clear_staging
 from update_metrics import update_metrics, combine_recent_trips
 from update_schedule import update_schedule
