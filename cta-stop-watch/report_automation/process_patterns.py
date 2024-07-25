@@ -110,7 +110,7 @@ def process_patterns(pids: list):
             continue
         else:
             convert_to_geometries(df_raw, pid)
-            process_logger.info(f"Success in converting pattern {pid} to geometry")
+            process_logger.debug(f"Success in converting pattern {pid} to geometry")
 
     if len(bad_pids) > 0:
         process_logger.info(

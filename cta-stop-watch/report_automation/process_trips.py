@@ -173,5 +173,8 @@ def process_new_trips(test: bool = False):
     # update crosswalk
     create_rt_pid_xwalk()
 
-    # clear staging data (days and pids)
-    clear_staging(folders=["days", "pids"], files=["current_days_download.parquet"])
+    # clear staging data (days and pids, and raw_trips)
+    clear_staging(
+        folders=["staging/days", "staging/pids", "raw_trips"],
+        files=["staging/current_days_download.parquet"],
+    )

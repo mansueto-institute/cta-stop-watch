@@ -57,10 +57,10 @@ def create_config(test: bool = False):
 
 def clear_staging(folders: list, files: list):
     """
-    Remove all files/ folders from the staging directory
+    Remove all files/ folders from the indicated directory
     """
 
-    DIR = pathlib.Path(__file__).parent / "data/staging"
+    DIR = pathlib.Path(__file__).parent / "data"
 
     for folder in folders:
         # remove folder
