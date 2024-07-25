@@ -87,7 +87,7 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write=True) -> bool:
     df_pattern["p_stp_id"] = str(pid) + "-" + df_pattern["stpid"]
 
     if write:
-        logging.debug(
+        process_logger.debug(
             f"Writing patterns_current/pid_{pid}_stop.parquet and patterns_current/pid_{pid}_segment.parquet"
         )
         df_pattern.to_parquet(f"{PID_DIR}/patterns_current/pid_{pid}_stop.parquet")
