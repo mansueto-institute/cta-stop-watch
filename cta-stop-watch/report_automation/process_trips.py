@@ -52,7 +52,7 @@ def update_patterns(EXISTING_PATTERNS: list):
                 bad_pids.append(pid)
 
     # process all patterns
-    all_patterns = set(new_patterns + found_pids)
+    all_patterns = set(found_pids + EXISTING_PATTERNS)
     process_logger.info(f"Processing {len(all_patterns)} patterns")
     process_patterns(list(all_patterns))
 
