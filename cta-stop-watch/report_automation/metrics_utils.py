@@ -1,7 +1,7 @@
 import polars as pl
 import pandas as pd
 import pathlib
-import duckdb
+from utils import metrics_logger
 
 DIR = pathlib.Path(__file__).parent / "data"
 
@@ -37,10 +37,9 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
             template_values = {"pid": pid}
 
         try:
-            print(template_values)
             df_trips = pl.read_parquet(file_DIR.format(**template_values))
         except FileNotFoundError:
-            print(error.format(**template_values))
+            metrics_logger.info(error.format(**template_values))
             continue
 
         if "stop_dist" in df_trips.columns:

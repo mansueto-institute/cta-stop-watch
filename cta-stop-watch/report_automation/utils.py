@@ -55,7 +55,7 @@ def create_config(test: bool = False):
         json.dump(config, file)
 
 
-def clear_staging(folders: list, files: list):
+def clear_staging(folders: list = [], files: list = []):
     """
     Remove all files/ folders from the indicated directory
     """

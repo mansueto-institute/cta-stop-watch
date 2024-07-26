@@ -93,7 +93,7 @@ def create_timetables():
     a = feed.compute_trip_activity(all_dates)
 
     for rt in rts:
-        metrics_logger.info(f"creating timetable for route {rt}")
+        metrics_logger.debug(f"creating timetable for route {rt}")
 
         timetables_df = process_route_timetable(feed, rt, all_dates, merged_df, a)
         timetables_df["pid"] = timetables_df["shape_id"].str.slice(-5)
@@ -161,9 +161,11 @@ def dedupe_schedules():
         The max month is {stats_before['max_month'].to_list()[0]}."""
     )
 
+    rts_count = 0
+
     for rt in rts:
 
-        metrics_logger.info(f"De-duping timetable for route {rt}")
+        metrics_logger.debug(f"De-duping timetable for route {rt}")
 
         # find min date of current schedule
         current = pd.read_parquet(
@@ -228,6 +230,10 @@ def dedupe_schedules():
         )
 
         deduped_timetable.to_parquet(f"data/clean_timetables/rt{rt}_timetable.parquet")
+
+        if rts_count % 40 == 0:
+            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
+        rts_count += 1
 
     stats_after = duckdb.execute(command).df()
 

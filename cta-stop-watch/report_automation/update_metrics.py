@@ -14,7 +14,9 @@ def combine_recent_trips():
     # take whats in staging/trips combine it with processes_by_pid
 
     # get all the pids in the staging/trips
-    pids = [name for name in os.listdir(f"{DIR}/data/staging/trips")]
+    pids = [
+        name for name in os.listdir(f"{DIR}/data/staging/trips") if name != ".gitkeep"
+    ]
 
     # stats before merging
     stats_command = """
@@ -75,18 +77,23 @@ def update_metrics(rts: list | str):
     OUT_DIR = "data/metrics"
 
     # metric states before
-    mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
-    total_rows = mertics_df.shape[0]
-    total_months = mertics_df[mertics_df["period"] == "month_abs"][
-        "period_value"
-    ].nunique()
-    max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
+    if os.path.exists(f"{OUT_DIR}/stop_metrics_df.parquet"):
+        mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+        total_rows = mertics_df.shape[0]
+        total_months = mertics_df[mertics_df["period"] == "month_abs"][
+            "period_value"
+        ].nunique()
+        max_month = mertics_df[mertics_df["period"] == "month_abs"][
+            "period_value"
+        ].max()
 
-    metrics_logger.info(
-        f"""Before updating metrics, there were {total_rows:,} rows, 
-        and {total_months:,} unique months. 
-        The max month is {max_month}."""
-    )
+        metrics_logger.info(
+            f"""Before updating metrics, there were {total_rows:,} rows, 
+            and {total_months:,} unique months. 
+            The max month is {max_month}."""
+        )
+    else:
+        metrics_logger.info("No metrics file found")
 
     if rts == "all":
         xwalk = pd.read_parquet("data/rt_to_pid.parquet")
@@ -97,14 +104,16 @@ def update_metrics(rts: list | str):
     all_routes_stops_actual = []
     all_routes_stops_schedule = []
 
+    rts_count = 0
+
     for rt in rts:
         # prep schedule and actual
-        print(f"Processing route {rt}")
+        metrics_logger.debug(f"Processing route {rt}")
         try:
             actual_df = create_trips_df(rt=rt, is_schedule=False)
             schedule_df = create_trips_df(rt=rt, is_schedule=True)
         except Exception as e:
-            print(f"issue with rt {rt}: {e}")
+            metrics_logger.info(f"issue with rt {rt}: {e}")
             continue
 
         # create the stop level data
@@ -113,6 +122,11 @@ def update_metrics(rts: list | str):
 
         all_routes_stops_actual.append(route_metrics_actual)
         all_routes_stops_schedule.append(route_metrics_schedule)
+
+        rts_count += 1
+
+        if rts_count % 40 == 0:
+            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
 
     # combine stop level at routes
     actual_full_stops = pl.concat(all_routes_stops_actual)
