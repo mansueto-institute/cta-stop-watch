@@ -17,7 +17,6 @@ def process_metrics():
     metrics_logger.info("Updating schedule")
     update_schedule()
     metrics_logger.info("Done updating schedule")
-    clear_staging(folders=["staging/timetables/current_timetables"])
 
     # update metrics
     metrics_logger.info("Updating metrics")
@@ -27,3 +26,6 @@ def process_metrics():
     # push all date to s3
     metrics_logger.info("Pushing data to s3")
     store_all_data()
+
+    # delete staging
+    clear_staging(folders=["staging/timetables/current_timetables", "staging/trips"])
