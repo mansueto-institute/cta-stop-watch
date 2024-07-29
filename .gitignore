@@ -11,6 +11,7 @@ env.py
 */scrapers/inp/*.zip
 */scrapers/out/*/*
 !.gitkeep
+*/bus_report_cards/data/*
 
 # R files ---------------------------------------------------------------------
 

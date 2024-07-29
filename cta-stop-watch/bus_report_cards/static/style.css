@@ -1,0 +1,58 @@
+body, html {
+    height: 100%;
+    padding:0;
+  }
+
+button {
+    cursor: pointer
+}
+
+
+#app {
+    width: 100%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+#nav {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    margin-bottom: 20px;
+}
+#nav-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.nav-button {
+    border: 1px solid black;
+    padding: 5px;
+    padding-left: 15px;
+    padding-right: 15px;
+    vertical-align: center;
+    font-weight: bold;
+    border-radius: 30px;
+    margin: auto;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+#nav-title {
+    font-size: 2em;
+    font-weight: bold;
+
+}
+
+#interface {
+    width: 100%;
+    flex-grow: 1;
+}
+
+#tableauViz {
+    height: 100%;
+    width: 100%;
+}
