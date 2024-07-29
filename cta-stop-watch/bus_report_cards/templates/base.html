@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>StopWatch</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js'></script>
+    <script type="module" src="https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
+    <link href='https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css' rel='stylesheet' />
+    <!-- my styling is supreme -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}" />
+    
+</head>
+<body>
+    <div id="app">
+        <div id="nav">
+            <div id="nav-title">StopWatch</div>
+            <div id="nav-buttons">
+                <a class="nav-button" href ="{{ url_for('home') }}" class="">
+                    <div>Home</div>
+                </a>
+                <a class="nav-button" href ="{{ url_for('report') }}" class="">
+                    <div>Bus Report Cards</div>
+                </a>
+                <a class="nav-button" href ="{{ url_for('about') }}" class="">
+                    <div>About</div>
+                </a>
+            </div>
+        </div>
+        {% block content %} 
+        {% endblock %} 
+
+    </body>
+    </html>

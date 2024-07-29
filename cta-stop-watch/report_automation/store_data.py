@@ -38,6 +38,10 @@ def store_file(s3_path, file_path, s3_location, delete=True):
 
 
 def store_all_data():
+    """
+    push data to s3 bucket, trips by pid, patterns, and timetables
+
+    """
     s3_path = "s3://cta-stop-watch-bucket-do/cta-stop-watch-files/"
     today = str(date.today())
 

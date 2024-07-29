@@ -11,7 +11,10 @@ DIR = pathlib.Path(__file__).parent
 
 
 def combine_recent_trips():
-    # take whats in staging/trips combine it with processes_by_pid
+    """
+    take whats in staging/trips combine it with processes_by_pid
+
+    """
 
     # get all the pids in the staging/trips
     pids = [
@@ -74,6 +77,10 @@ def combine_recent_trips():
 
 
 def update_metrics(rts: list | str):
+    """
+    combine new trips and then calculate new metrics
+
+    """
     OUT_DIR = "data/metrics"
 
     # metric states before

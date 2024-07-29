@@ -15,6 +15,9 @@ STAGING_PATH = "data/staging"
 
 
 def update_data(start_date: str, today: str):
+    """
+    download raw trip data and prepare to process
+    """
 
     # TODO update file path
 
@@ -29,6 +32,9 @@ def update_data(start_date: str, today: str):
 
 
 def update_patterns(EXISTING_PATTERNS: list):
+    """
+    check for new patterns in the data and download them from CTA API if doesnt exist.
+    """
     # get all patterns in the database from new data
     new_trip_pids = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 
@@ -118,6 +124,14 @@ def trip_to_day():
 
 
 def process_new_trips(test: bool = False):
+    """
+    1. Download data
+    2. check for new patterns
+    3. calculate stop time for all trips
+    4. Make a new config file
+    5. create a new xwalk
+    6. Clear staging data
+    """
 
     # 1 download data from ghost buses from max_date to today
     # saves currently to data/raw_trips

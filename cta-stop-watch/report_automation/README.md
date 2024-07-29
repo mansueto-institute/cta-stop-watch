@@ -32,7 +32,7 @@ Run `python -m main -p metrics` (`main.process_metrics()`)
 1. `update_schedule.update_schedule()`: Downloads the current schedule to `data/timetables/feed_{date}.zip`. Creates timetables from the schedule in `data/timetables/current_timetables`. Then appends the new schedule to the historic schedules in `data/clean_timetables/*`.
 1. `utils.clear_staging(["timetables/current_timetables"])`: Remove current schedules to prepare for subsequent run. 
 1. `update_metrics.update_metrics('all')`: Grabs the processed trips from `data/processed_by_pid/` and re calculates metrics. Metrics tables is sent to  `data/metrics/*`
-1. Store processed_by_pid to `s3://../processed_by_pid`, clean_timetables to `s3://../clean_timetables`, patterns/patterns_raw to `s3://../patterns_raw`, and staging/timetables/feed_{today}.zip to `s3://../historic_feeds` ( need to create this folder) using `store_data.store_all_data()`
+1. Store processed_by_pid to `s3://../processed_by_pid`, clean_timetables to `s3://../clean_timetables`, patterns/patterns_raw to `s3://../patterns_raw`, and staging/timetables/feed_{today}.zip to `s3://../historic_feeds` (need to create this folder) using `store_data.store_all_data()`
 
 See `metrics.log` for details of run
 

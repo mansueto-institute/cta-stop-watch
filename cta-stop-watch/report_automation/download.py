@@ -41,6 +41,9 @@ def get_date_range(start: date, end: date, delta: timedelta):
 
 
 def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
+    """
+    Download full day data from the CTA API and save as parquet
+    """
     URL_HEAD = "https://dmu5hq5f7fk32.cloudfront.net/bus_full_day_data_v2/"
 
     # TODO update paths
@@ -76,6 +79,9 @@ def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
 
 
 def save_partitioned_parquet(in_folder, out_file: str):
+    """
+    create one big parquet file with a unique trip id for all downloaded days
+    """
     cmd_number = f"""COPY
     (SELECT
         *,
@@ -89,6 +95,9 @@ def save_partitioned_parquet(in_folder, out_file: str):
 
 
 def full_download(start: str = "2023-1-1", end: str = "2024-12-31"):
+    """
+    download full days from start to end, then save them and log results.
+    """
 
     start = start.split("-")
     end = end.split("-")

@@ -6,6 +6,9 @@ def time_to_next_stop(
     trips_df: pl.DataFrame,
     is_daytime: bool = True,
 ):
+    """
+    calculate time to next stop and other metrics for each bus stop
+    """
 
     if is_daytime:
         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
