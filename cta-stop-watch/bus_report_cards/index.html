@@ -17,24 +17,18 @@
         <div id="nav">
             <div id="nav-title">StopWatch</div>
             <div id="nav-buttons">
-                <button class="nav-button" onclick="showLayer('route')">Route</button>
-                <button class="nav-button" onclick="showLayer('ca')">Community Area</button>
-                <button class="nav-button" onclick="showLayer('stop')">Bus Stop</button>
+                <button class="nav-button" >Home</button>
+                <button class="nav-button">Report Cards</button>
+                <button class="nav-button">Download Data</button>
+                <button class="nav-button">About</button>
             </div>
         </div>
 
         <div id="interface">
-            <div id="map-container">
-                <div id='map'></div>
-            </div>
-            <div id='report-container'>
-                <div id='report-cards'></div>
                 <tableau-viz id="tableauViz"       
-                    src='https://public.tableau.com/views/ReportCards_17217478137390/StopTest'
+                    src='https://public.tableau.com/views/ReportCards_17218488150890/MapDashboard'
                     toolbar="bottom" hide-tabs>
-                    <viz-filter field="Stop Id" value="8"> </viz-filter> 
                     </tableau-viz>
-            </div>
         </div>
         
     

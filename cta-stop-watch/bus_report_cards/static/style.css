@@ -10,11 +10,11 @@ button {
 
 #app {
     width: 100%;
-    margin: 0;
+    margin: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 90vh;
+    height: 100%;
 }
 
 #nav {
@@ -48,33 +48,11 @@ button {
 }
 
 #interface {
-    display: flex;
     width: 100%;
-    height: 100%;
-}
-
-#map-container {
-    flex-basis: 40%;
-
-}
-
-#map {
-    width: 100%;
-    height: 100%;
-
-}
-
-#report-container {
-    flex-basis: 60%;
-    height: 100vh;
-}
-
-#report-cards {
-    height: 50px;
-    width: 100%;
+    flex-grow: 1;
 }
 
 #tableauViz {
-    width: 100%;
     height: 100%;
+    width: 100%;
 }
