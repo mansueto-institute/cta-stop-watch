@@ -148,7 +148,7 @@ def update_metrics(rts: list | str):
     stop_metrics_pd = stop_metrics.to_pandas()
     stop_metrics_pd.write_csv(f"{OUT_DIR}/stop_metrics_df.csv")
 
-    # metric states before
+    # metric states after
     mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
     total_rows = mertics_df.shape[0]
     total_months = mertics_df[mertics_df["period"] == "month_abs"][

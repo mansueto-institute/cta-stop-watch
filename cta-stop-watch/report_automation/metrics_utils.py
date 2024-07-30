@@ -2,6 +2,7 @@ import polars as pl
 import pandas as pd
 import pathlib
 from utils import metrics_logger
+from datetime import date, timedelta
 
 DIR = pathlib.Path(__file__).parent / "data"
 
@@ -114,77 +115,134 @@ def group_metrics(trips_df: pl.DataFrame, metric: str):
         groupings = ["rt", "pid", "stop_id"]
 
     all_periods = []
-    for grouping, trunc in [
-        ("hour", "1h"),
-        ("weekday", "1d"),
-        ("month", "1mo"),
-        ("year", "1y"),
-        ("week_abs", "1w"),
-        ("month_abs", "1mo"),
+
+    last_month = (date.today().replace(day=1) - timedelta(days=1)).replace(day=1)
+
+    for name, grouping, trunc in [
+        ("hour", "hour", "1h"),
+        ("weekday", "weekday", "1d"),
+        ("month", "month", "1mo"),
+        ("year", "year", "1y"),
+        # ("week_abs", "1w"),
+        ("month_abs", "month_abs", "1mo"),
+        # adding more groupings
+        ("year_hour", ["year", "hour"], "1h"),  # year hour
+        ("year_weekday", ["year", "weekday"], "1d"),  # year weekday
+        ("last_full_month", "last_full_month", "something"),  # last month
     ]:
 
         group_list = groupings.copy()
-        group_list.append(grouping)
+
+        if isinstance(grouping, list):
+            group_list = group_list + grouping
+        else:
+            group_list.append(grouping)
 
         if "num_buses" in metric:
-            df = trips_df.with_columns(
-                pl.col("bus_stop_time").dt.truncate(trunc).alias(grouping)
-            )
+            if isinstance(grouping, list):
+                trunc_name = grouping[1]
+            else:
+                trunc_name = grouping
+
+            if grouping == "last_full_month":
+                df = trips_df.filter(
+                    pl.col("bus_stop_time").dt.year() == last_month.year
+                ).filter(pl.col("bus_stop_time").dt.month() == last_month.month)
+
+                df = df.with_columns(pl.lit(grouping).alias(grouping))
+            else:
+                df = trips_df.with_columns(
+                    pl.col("bus_stop_time").dt.truncate(trunc).alias(trunc_name)
+                )
 
             df = df.group_by([*group_list]).agg(
                 pl.col("bus_stop_time").count().alias(metric)
             )
 
+            # this becomes the period_value
             if grouping == "hour":
-                df = df.with_columns((pl.col(grouping).dt.hour()).alias(grouping))
+                df = df.with_columns((pl.col(trunc_name).dt.hour()).alias(name))
             elif grouping == "weekday":
-                df = df.with_columns((pl.col(grouping).dt.weekday()).alias(grouping))
+                df = df.with_columns((pl.col(trunc_name).dt.weekday()).alias(name))
             elif grouping == "month":
-                df = df.with_columns((pl.col(grouping).dt.month()).alias(grouping))
+                df = df.with_columns((pl.col(trunc_name).dt.month()).alias(name))
             elif grouping == "year":
-                df = df.with_columns((pl.col(grouping).dt.year()).alias(grouping))
+                df = df.with_columns((pl.col(trunc_name).dt.year()).alias(name))
+            elif grouping == ["year", "hour"]:
+                df = df.with_columns(
+                    pl.concat_str(
+                        [pl.col(trunc_name).dt.year(), pl.col(trunc_name).dt.hour()],
+                        separator="-",
+                    ).alias(name),
+                )
+            elif grouping == ["year", "weekday"]:
+                df = df.with_columns(
+                    pl.concat_str(
+                        [pl.col(trunc_name).dt.year(), pl.col(trunc_name).dt.weekday()],
+                        separator="-",
+                    ).alias(name),
+                )
+            elif grouping == "last_full_month":
+                # already added this so can
+                pass
 
-        elif "trip_duration" in metric:
-            df = trips_df.with_columns(
-                (pl.col("start_trip").dt.hour()).alias("hour"),
-                (pl.col("start_trip").dt.month()).alias("month"),
-                (pl.col("start_trip").dt.year()).alias("year"),
-                (pl.col("start_trip").dt.weekday()).alias("weekday"),
-                (pl.col("start_trip").dt.truncate(trunc).alias(grouping)).alias(
-                    "week_abs"
-                ),
-                (pl.col("start_trip").dt.truncate(trunc).alias(grouping)).alias(
-                    "month_abs"
-                ),
-            )
         else:
-            df = trips_df.with_columns(
-                (pl.col("bus_stop_time").dt.hour()).alias("hour"),
-                (pl.col("bus_stop_time").dt.month()).alias("month"),
-                (pl.col("bus_stop_time").dt.year()).alias("year"),
-                (pl.col("bus_stop_time").dt.weekday()).alias("weekday"),
-                (pl.col("bus_stop_time").dt.truncate(trunc).alias(grouping)).alias(
-                    "week_abs"
-                ),
-                (pl.col("bus_stop_time").dt.truncate(trunc).alias(grouping)).alias(
-                    "month_abs"
-                ),
-            )
+            if "trip_duration" in metric:
+                time_col = "start_trip"
+            else:
+                time_col = "bus_stop_time"
 
-        grouped_df = df.group_by([*group_list]).agg(
+            # this becomes the period_value
+            if grouping == "hour":
+                df = trips_df.with_columns((pl.col(time_col).dt.hour()).alias(name))
+            elif grouping == "weekday":
+                df = trips_df.with_columns((pl.col(time_col).dt.weekday()).alias(name))
+            elif grouping == "month":
+                df = trips_df.with_columns((pl.col(time_col).dt.month()).alias(name))
+            elif grouping == "year":
+                df = trips_df.with_columns((pl.col(time_col).dt.year()).alias(name))
+            elif grouping == "month_abs":
+                df = trips_df.with_columns(
+                    pl.col(time_col).dt.truncate(trunc).alias("month_abs")
+                )
+            elif grouping == "week_abs":
+                df = trips_df.with_columns(
+                    pl.col(time_col).dt.truncate(trunc).alias("week_abs")
+                )
+            elif grouping == ["year", "hour"]:
+                df = trips_df.with_columns(
+                    pl.concat_str(
+                        [pl.col(time_col).dt.year(), pl.col(time_col).dt.hour()],
+                        separator="-",
+                    ).alias(name),
+                )
+            elif grouping == ["year", "weekday"]:
+                df = trips_df.with_columns(
+                    pl.concat_str(
+                        [pl.col(time_col).dt.year(), pl.col(time_col).dt.weekday()],
+                        separator="-",
+                    ).alias(name),
+                )
+            elif grouping == "last_full_month":
+                df = trips_df.filter(
+                    pl.col("bus_stop_time").dt.year() == last_month.year
+                ).filter(pl.col("bus_stop_time").dt.month() == last_month.month)
+
+                df = df.with_columns(pl.lit(grouping).alias(grouping))
+
+        final_group = groupings.copy()
+        final_group.append(name)
+
+        grouped_df = df.group_by([*final_group]).agg(
             pl.count(metric).alias(f"count_{metric}"),
             pl.median(metric).alias(f"median_{metric}"),
-            # pl.mean(metric).alias(f"mean_{metric}"),
-            # pl.max(metric).alias(f"max_{metric}"),
-            # pl.min(metric).alias(f"min_{metric}"),
-            # pl.std(metric).alias(f"std_{metric}"),
             pl.col(metric).quantile(0.25).alias(f"q25_{metric}"),
             pl.col(metric).quantile(0.75).alias(f"q75_{metric}"),
         )
 
-        grouped_df = grouped_df.with_columns((pl.lit(grouping).alias("period")))
+        grouped_df = grouped_df.with_columns((pl.lit(name).alias("period")))
 
-        grouped_df = grouped_df.rename({grouping: "period_value"})
+        grouped_df = grouped_df.rename({name: "period_value"})
 
         # retype period value as string
         grouped_df = grouped_df.with_columns(pl.col("period_value").cast(pl.String))
