@@ -35,10 +35,10 @@ def create_config(test: bool = False):
 
     dates_file.sort(key=lambda date: datetime.strptime(date, "%Y-%m-%d"))
 
-    MAX_DATE = dates_file[-1]
-
-    if not MAX_DATE:
-        MAX_DATE = "2022-05-20"  # first day of data collection
+    try:
+        MAX_DATE = dates_file[-1]
+    except IndexError:
+        MAX_DATE = input("No existing files. Enter start date as string YYYY-MM-DD: ")
 
     if test:
         # max date is yesterday

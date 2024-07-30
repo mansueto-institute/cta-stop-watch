@@ -3,15 +3,14 @@
 A pipeline to continuously process ghost bus data. Trips are currently being processed daily and metrics are recalculated at the beginning of the month.
 
 ### Recommended Setup
-1. Create an CTA Bus Tracker API Key [here](https://www.ctabustracker.com/home). Add the key as a environment variable name
-* `BUS_API_KEY="[key]"` in terminal
+1. Create an CTA Bus Tracker API Key [here](https://www.ctabustracker.com/home). Add the key as a variable in a `.env` file locally named in the format `BUS_API_KEY="[key]"`
 1. Install poetry 
 1. cd into repo and run `poerty install`
 1. Add any raw pattern data already downloaded to `data/patterns_raw/`. Download our archive here.
 1. Add all raw_trip data you want to start with (can also only add the most recent one) to `data/raw_trips/`
 1. Download any historic processed data and add to `data/processed_by_pid/`. See our archive here.
 1. Download a `rt_to_pid.parquet` xwalk and add to `data/`
-1. Run `python -m main -s config` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`
+1. Run `python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`
 
 
 ### Processing Trips
@@ -43,7 +42,6 @@ This function runs the following:
 
 See `metrics.log` for details of run
 
-
 TODO
 * update metrics script 
     * add last month
@@ -54,9 +52,9 @@ TODO
     1. git hub key issue
     1. connect to remote server
     1. download old stuff 
-        * s3cmd get * s3://cta-stop-watch-bucket-do/cta-stop-watch-files/clean_timetables/ --recursive
-        * s3cmd get * s3://cta-stop-watch-bucket-do/cta-stop-watch-files/patterns_raw/ --recursive
-        * s3cmd get * s3://cta-stop-watch-bucket-do/cta-stop-watch-files/processed_by_pid/ --recursive
+        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/clean_timetables/ --recursive
+        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/patterns_raw/ --recursive
+        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/processed_by_pid/ --recursive
         * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/rt_to_pid.parquet
     1. edit config to just run yesterday
     1. set environ variable with api key

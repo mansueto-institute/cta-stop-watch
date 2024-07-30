@@ -7,6 +7,7 @@ import requests
 import json
 import pandas as pd
 from utils import process_logger
+from dotenv import load_dotenv
 
 STAGING_PATH = "data/staging"
 RAW_PATH = "data/raw_trips/"
@@ -167,6 +168,8 @@ def query_cta_api(pid: str, out_path) -> bool | pd.DataFrame:
 
     """
     # Make call to API for given pid and obtain pattern point data
+
+    load_dotenv()
 
     BUS_API_KEY = os.environ["BUS_API_KEY"]
 
