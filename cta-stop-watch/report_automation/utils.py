@@ -63,19 +63,14 @@ def clear_staging(folders: list = [], files: list = []):
     DIR = pathlib.Path(__file__).parent / "data"
 
     for folder in folders:
-        # remove folder
-        if os.path.isdir(DIR / folder):
-            shutil.rmtree(DIR / folder)
-
-        # recreate empty folder for next time
-        os.makedirs(DIR / folder)
+        for path, _, files in os.walk(DIR / folder):
+            for f in files:
+                if f != ".gitkeep":
+                    os.remove(os.path.join(path, f))
 
     for file in files:
         if os.path.isfile(DIR / file):
             os.remove(DIR / file)
-
-
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 
 
 def create_rt_pid_xwalk() -> bool:
