@@ -15,6 +15,8 @@ app.mount(
 
 templates = Jinja2Templates(directory="templates")
 
+# fastapi dev app.py
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
