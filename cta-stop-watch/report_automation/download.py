@@ -168,8 +168,6 @@ def query_cta_api(pid: str, out_path) -> bool | pd.DataFrame:
     """
     # Make call to API for given pid and obtain pattern point data
 
-    # TODO CTA API KEY
-
     BUS_API_KEY = os.environ["BUS_API_KEY"]
 
     if os.path.exists(out_path + "/patterns_raw/pid_" + pid + "_raw.parquet"):
