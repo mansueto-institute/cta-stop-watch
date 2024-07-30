@@ -170,10 +170,12 @@ def query_cta_api(pid: str, out_path) -> bool | pd.DataFrame:
 
     # TODO CTA API KEY
 
+    BUS_API_KEY = os.environ["BUS_API_KEY"]
+
     if os.path.exists(out_path + "/patterns_raw/pid_" + pid + "_raw.parquet"):
         process_logger.info(f"Skipping PID {pid} as it already exists")
 
-    url = f"http://www.ctabustracker.com/bustime/api/v2/getpatterns?format=json&key=TUQ6YJLvcvetigeaWEWEwq23h&pid={pid}"
+    url = f"http://www.ctabustracker.com/bustime/api/v2/getpatterns?format=json&key={BUS_API_KEY}&pid={pid}"
     response = requests.get(url)
     pattern = json.loads(response.content)
 

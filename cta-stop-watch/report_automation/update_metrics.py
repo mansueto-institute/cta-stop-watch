@@ -145,6 +145,9 @@ def update_metrics(rts: list | str):
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
+    stop_metrics_pd = stop_metrics.to_pandas()
+    stop_metrics_pd.write_csv(f"{OUT_DIR}/stop_metrics_df.csv")
+
     # metric states before
     mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
     total_rows = mertics_df.shape[0]

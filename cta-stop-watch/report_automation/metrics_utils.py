@@ -39,7 +39,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
         try:
             df_trips = pl.read_parquet(file_DIR.format(**template_values))
         except FileNotFoundError:
-            metrics_logger.info(error.format(**template_values))
+            metrics_logger.debug(error.format(**template_values))
             continue
 
         if "stop_dist" in df_trips.columns:

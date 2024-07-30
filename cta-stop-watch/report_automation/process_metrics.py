@@ -6,7 +6,7 @@ from update_schedule import update_schedule
 from datetime import date
 
 
-def process_metrics():
+def process_metrics(local: bool = True):
 
     # combine recent trips
     metrics_logger.info("Combining trips")
@@ -24,8 +24,9 @@ def process_metrics():
     metrics_logger.info("Done updating metrics")
 
     # push all date to s3
-    metrics_logger.info("Pushing data to s3")
-    store_all_data()
+    if not local:
+        metrics_logger.info("Pushing data to s3")
+        store_all_data()
 
     # delete staging
     clear_staging(folders=["staging/timetables/current_timetables", "staging/trips"])

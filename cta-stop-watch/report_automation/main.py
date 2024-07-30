@@ -23,6 +23,14 @@ def parse_arguments():
         ],
         help="Specify which part of the pipeline to run",
     )
+    parser.add_argument(
+        "-p",
+        "--pipeline_step",
+        type=str,
+        nargs=2,
+        choices=["process", "metrics", "local", "remote"],
+        help="Specify which part of the pipeline to run",
+    )
 
     args = parser.parse_args()
     return args
@@ -37,4 +45,7 @@ if __name__ == "__main__":
         print("Processing new trips")
         process_new_trips()
     elif args.pipeline_step == "metrics":
-        process_metrics()
+        if args.pipeline_step[1] == "local":
+            process_metrics(local=True)
+        elif args.pipeline_step[1] == "remote":
+            process_metrics(local=False)
