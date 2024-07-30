@@ -146,7 +146,7 @@ def update_metrics(rts: list | str):
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
     stop_metrics_pd = stop_metrics.to_pandas()
-    stop_metrics_pd.write_csv(f"{OUT_DIR}/stop_metrics_df.csv")
+    stop_metrics_pd.to_csv(f"{OUT_DIR}/stop_metrics_df.csv", index=False)
 
     # metric states after
     mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
