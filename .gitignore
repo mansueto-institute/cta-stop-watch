@@ -7,12 +7,14 @@ __pycache__/
 env.py
 *.log
 */analysis/out/
+*/analysis/data/*
 */scrapers/inp/*/*
 */scrapers/inp/*.zip
 */scrapers/out/*/*
 */report_automation/data/*
 !.gitkeep
 */bus_report_cards/data/*
+
 
 
 # R files ---------------------------------------------------------------------
