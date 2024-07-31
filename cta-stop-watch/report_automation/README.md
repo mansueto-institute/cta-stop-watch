@@ -3,14 +3,15 @@
 A pipeline to continuously process ghost bus data. Trips are currently being processed daily and metrics are recalculated at the beginning of the month.
 
 ### Recommended Setup
-1. Create an CTA Bus Tracker API Key [here](https://www.ctabustracker.com/home). Add the key as a variable in a `.env` file locally named in the format `BUS_API_KEY="[key]"`
+1. Clone repo
 1. Install poetry 
-1. cd into repo and run `poerty install`
+1. cd into repo and run `poetry install`
+1. cd to cta-stop-watch/cta-stop-watch/report_automation
+1. Create an CTA Bus Tracker API Key [here](https://www.ctabustracker.com/home). Add the key as a variable in a `.env` file locally named in the format `BUS_API_KEY="[key]"`
 1. Add any raw pattern data already downloaded to `data/patterns_raw/`. Download our archive here.
-1. Add all raw_trip data you want to start with (can also only add the most recent one) to `data/raw_trips/`
 1. Download any historic processed data and add to `data/processed_by_pid/`. See our archive here.
 1. Download a `rt_to_pid.parquet` xwalk and add to `data/`
-1. Run `python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`
+1. Run `python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`. When prompted, enter in date you want to start download.
 
 
 ### Processing Trips
@@ -24,6 +25,9 @@ This function runs the following:
 1. Run `utils.create_config()` to update max date and the list of existing patterns.
 1. Update rt to pid xwalk with `util.create_rt_pid_xwalk()`
 1. Run `clear_staging(folders=["staging/days", "staging/pids", "raw_trips"],files=["staging/current_days_download.parquet"])` to clear staging files for the next run.
+
+Outputs
+* a folder of processed trips for that run in `data/staging/trips/{pid}/`. File format is `trips_{pid}_{pull_date}.parquet`
 
 See `process.log` for details of a run
 
@@ -40,44 +44,11 @@ This function runs the following:
 1. `update_metrics.update_metrics('all')`: Grabs the processed trips from `data/processed_by_pid/` and re calculates metrics. Metrics tables is sent to  `data/metrics/*`
 1. [For internal use only] If run with second arg as `remote` instead of `local`, will store processed_by_pid to `s3://../processed_by_pid`, clean_timetables to `s3://../clean_timetables`, patterns/patterns_raw to `s3://../patterns_raw`, and staging/timetables/feed_{today}.zip to `s3://../historic_feeds` (need to create this folder) using `store_data.store_all_data()`
 
+Outputs
+* update historic timetables in `data/clean_timetables/` with current timetable. Overwrites existing files.
+* combines new processed trips with historic processed trips in `data/processed_by_pid`. Overwrites existing files.
+* Downloads a snapshot of the current schedule in `data/timetables/feed_{date}.zip`
+* 
+
 See `metrics.log` for details of run
-
-TODO
-* update metrics script 
-    * add last month
-    * by hour by year
-    * something to make hist
-
-* Test new server
-    1. git hub key issue
-    1. connect to remote server
-    1. download old stuff 
-        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/clean_timetables/ --recursive
-        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/patterns_raw/ --recursive
-        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/processed_by_pid/ --recursive
-        * s3cmd get s3://cta-stop-watch-bucket-do/cta-stop-watch-files/rt_to_pid.parquet
-    1. edit config to just run yesterday
-    1. set environ variable with api key
-    1. run process
-    1. run metrics 
-    1. profit
-
-
-
-
-
-to set up server for real
-1. delete everything locally
-1. download all of 
-    * s3://cta-stop-watch-bucket-do/cta-stop-watch-files//clean_timetables/
-    * s3://cta-stop-watch-bucket-do/cta-stop-watch-files//patterns_raw/
-    * s3://cta-stop-watch-bucket-do/cta-stop-watch-files//processed_by_pid/
-    * s3://cta-stop-watch-bucket-do/cta-stop-watch-files/rt_to_pid.parquet
-1. run config creater `python -m main -s config`
-1. set environ variable with bus key
-1. set up cron jobs
-1. hope and pray (check tomorrow )
-
-
-
 
