@@ -1,4 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
 body, html {
+    font-family: 'Montserrat', sans-serif;
     height: 100%;
     padding:0;
   }
@@ -22,15 +25,17 @@ button {
     justify-content: space-between;
     width: 90%;
     margin-bottom: 20px;
+    border-bottom: solid #800000 4px;
 }
+
 #nav-buttons {
     display: flex;
     justify-content: space-between;
 }
 
 .nav-button {
-    border: 1px solid black;
-    padding: 5px;
+    border: 2px solid #800000;
+    padding: 3px;
     padding-left: 15px;
     padding-right: 15px;
     font-weight: bold;
@@ -40,12 +45,32 @@ button {
     margin-right: 5px;
     color: black;
     text-decoration: none;
-    background-color: rgba(211, 211, 211, 0.523);
+}
+
+.nav-button:hover {
+    background-color: #800000;
+    color: white;
 }
 
 #nav-title {
     font-size: 2em;
-    font-weight: bold;
+    font-weight: 600;
+}
+
+.sw-title {
+    color:#800000; 
+    font-weight: 700;
+}
+
+p a {
+    text-decoration: none;
+    color: black;
+    font-weight: 600;
+
+}
+p a:hover {
+    color: #800000;
+    text-decoration: underline;
 }
 
 .header-container {
@@ -62,4 +87,9 @@ button {
 #tableauViz {
     height: 100%;
     width: 100%;
+}
+
+#footer {
+    border-top: solid #800000 4px;
+    width: 90%;
 }
