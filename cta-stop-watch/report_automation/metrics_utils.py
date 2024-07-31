@@ -4,7 +4,12 @@ import pathlib
 from utils import metrics_logger
 from datetime import date, timedelta
 
+# Contants --------------------------------------------------------------------
+
+# Paths
 DIR = pathlib.Path(__file__).parent / "data"
+
+# Functions -------------------------------------------------------------------
 
 
 def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
@@ -104,7 +109,7 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
     return df_trips_all
 
 
-def group_metrics(trips_df: pl.DataFrame, metric: str):
+def group_metrics(trips_df: pl.DataFrame, metric: str) -> pl.DataFrame:
     """
     Given a metric and a trips dataframe, this function will group the data by hour, day, week, month and year.
     """
@@ -286,3 +291,6 @@ def create_trips_df_pid(
     )
 
     return df_trips
+
+
+# End -------------------------------------------------------------------------

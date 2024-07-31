@@ -1,11 +1,13 @@
 import polars as pl
 from metrics_utils import group_metrics
 
+# Functions -------------------------------------------------------------------
+
 
 def time_to_next_stop(
     trips_df: pl.DataFrame,
     is_daytime: bool = True,
-):
+) -> pl.DataFrame:
     """
     calculate time to next stop and other metrics for each bus stop
     """
@@ -50,9 +52,12 @@ def time_to_next_stop(
     return trips_df
 
 
-def join_metrics(all_metrics: list[pl.DataFrame]):
+def join_metrics(all_metrics: list[pl.DataFrame]) -> pl.DataFrame:
+    """
+    Takes a list of data frames with metrics and joins them into a single one
+    """
 
-    for i, df in enumerate(all_metrics):
+    for i, _ in enumerate(all_metrics):
         if i == 0:
             static = all_metrics[i]
             continue
@@ -67,7 +72,7 @@ def join_metrics(all_metrics: list[pl.DataFrame]):
     return static
 
 
-def create_route_metrics_df(route_df, is_schedule: bool):
+def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.DataFrame:
     """
     create stop metrics for one route
     """
@@ -109,7 +114,9 @@ def create_route_metrics_df(route_df, is_schedule: bool):
     return one_route
 
 
-def create_combined_metrics_stop_df(scheduled_df, actual_df):
+def create_combined_metrics_stop_df(
+    scheduled_df: pl.DataFrame, actual_df: pl.DataFrame
+) -> pl.DataFrame:
     """
     For all the routes, create a combined DataFrame with all the metrics for both scheduled and actual data.
     """
@@ -129,3 +136,6 @@ def create_combined_metrics_stop_df(scheduled_df, actual_df):
     )
 
     return combined_df
+
+
+# End -------------------------------------------------------------------------

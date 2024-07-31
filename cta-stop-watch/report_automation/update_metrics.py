@@ -7,13 +7,18 @@ import os
 import pathlib
 import duckdb
 
+# Contants --------------------------------------------------------------------
+
+# Paths
 DIR = pathlib.Path(__file__).parent
+OUT_DIR = DIR / "data" / "metrics"
+
+# Functions -------------------------------------------------------------------
 
 
-def combine_recent_trips():
+def combine_recent_trips() -> None:
     """
     take whats in staging/trips combine it with processes_by_pid
-
     """
 
     # get all the pids in the staging/trips
@@ -76,12 +81,17 @@ def combine_recent_trips():
     )
 
 
-def update_metrics(rts: list | str):
+def update_metrics(rts: list[str] | str = "all") -> bool:
     """
     combine new trips and then calculate new metrics
 
+    Arguments:
+        - rts: Can either be a list with the specific routes to be processed
+        (represented as strings) or the string value "all" for processing
+        all available routes.
+
+    Returns: a boolean to confirm execution and writes data sets
     """
-    OUT_DIR = "data/metrics"
 
     # metric states before
     if os.path.exists(f"{OUT_DIR}/stop_metrics_df.parquet"):
@@ -165,5 +175,9 @@ def update_metrics(rts: list | str):
     return True
 
 
+# Implementation --------------------------------------------------------------
+
 if __name__ == "__main__":
     update_metrics("all")
+
+# End -------------------------------------------------------------------------

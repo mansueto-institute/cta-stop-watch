@@ -8,18 +8,21 @@ import pickle
 import os
 import logging
 import time
-
 from interpolation import interpolate_stoptime
-
-logger_calculate = logging.getLogger(__name__)
-
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+# Logger ----------------------------------------------------------------------
+
+logger_calculate = logging.getLogger(__name__)
+
+# Constants -------------------------------------------------------------------
+
 DIR = pathlib.Path(__file__).parent / "out"
 
+# Functions -------------------------------------------------------------------
 
-def prepare_segment(pid: str):
+def prepare_segment(pid: str) -> GeoDataFrame:
     """
     prepares the created segments from a pattern (pid) for use with the bus location.
     """
@@ -35,7 +38,7 @@ def prepare_segment(pid: str):
     return segments_gdf
 
 
-def prepare_trips(pid: str):
+def prepare_trips(pid: str) -> tuple[GeoDataFrame, int]:
     """
     prepare the real trips from a pattern (pid) for use with the segments
     """
@@ -105,7 +108,7 @@ def prepare_trips(pid: str):
     )
 
 
-def prepare_stops(pid: str):
+def prepare_stops(pid: str) -> GeoDataFrame:
     """
     Prepares the stops from a pattern (pid) for use with the bus location
     """
@@ -124,7 +127,7 @@ def prepare_stops(pid: str):
     return stops_gdf
 
 
-def merge_segments_trip(trip_gdf, segments_gdf, stops_gdf):
+def merge_segments_trip(trip_gdf: GeoDataFrame, segments_gdf: GeoDataFrame, stops_gdf: GeoDataFrame) -> GeoDataFrame:
     """
     Confirm bus locations are on route and then create route df with bus location
     """
@@ -195,7 +198,7 @@ def process_one_trip(
     trip_gdf: GeoDataFrame,
     segments_gdf: GeoDataFrame,
     stops_gdf: GeoDataFrame,
-):
+) -> GeoDataFrame:
     """
     process one trip to return a df with the time a bus is at each stop.
     for one trip, only keep points that are on route, then create route df
@@ -219,7 +222,7 @@ def process_one_trip(
     return gdf
 
 
-def calculate_pattern(pid: str, tester: str = float("inf")):
+def calculate_pattern(pid: str, tester: str = float("inf")) -> tuple[GeoDataFrame, int, int, int]:
     """
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
@@ -341,3 +344,5 @@ def pattern_opener(pid: str, type: str):
         gdf = gpd.read_parquet(f"{DIR}/patterns_historic/pid_{pid}_{type}.parquet")
 
     return gdf
+
+# End ------------------------------------------------------------------------

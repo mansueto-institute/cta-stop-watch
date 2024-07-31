@@ -1,19 +1,29 @@
 import pathlib
 import warnings
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import pandas as pd
 import gtfs_kit as gk
-import pathlib
 import os
 import duckdb
 import sys
 import numpy as np
+import logging
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
+# Contants --------------------------------------------------------------------
+
+# Paths
+DIR = pathlib.Path(__file__).parent / "../scrapers/inp/historic_gtfs"
+rt_DIR = pathlib.Path(__file__).parent / ("../analysis/rt_to_pid.parquet")
+tt_DIR = pathlib.Path(__file__).parent / ("out/timetables_raw/*.parquet")
+finished_rts_path = pathlib.Path(__file__).parent / ("out/clean_timetables")
+OUT = pathlib.Path(__file__).parent / "out/clean_timetables"
+
+# Functions -------------------------------------------------------------------
 
 
 def process_route_timetable(
-    feed: "Feed", route_id: str, dates: list[str], merged_df: pd.DataFrame, a
+    feed: gk.feed.Feed, route_id: str, dates: list[str], merged_df: pd.DataFrame, a
 ) -> pd.DataFrame:
     """
     Return a timetable for the given route and dates (YYYYMMDD date strings).
@@ -57,12 +67,11 @@ def process_route_timetable(
     return f.drop(["min_dt", "dt"], axis=1)
 
 
-def create_timetables(max_feeds: int = 100):
+def create_timetables(max_feeds: int = 100) -> bool:
     """
     creates a time table from a feed for each route using the process_route_timetable
     function, an adaption of gtfs_kit.build_route_timetable
     """
-    DIR = pathlib.Path(__file__).parent / "../scrapers/inp/historic_gtfs"
 
     feed_count = 1
 
@@ -76,7 +85,8 @@ def create_timetables(max_feeds: int = 100):
         full_path = str(DIR) + "/" + path
         sha1 = path.split("/")[-1].split(".")[0]
 
-        print(f"Reading feed {sha1}")
+        logging.info(f"Reading feed {sha1}")
+
         feed = gk.read_feed(full_path, dist_units="m")  # in meters
         rts = feed.routes[feed.routes["route_short_name"].notna()]["route_id"]
         all_dates = feed.get_dates()
@@ -93,7 +103,7 @@ def create_timetables(max_feeds: int = 100):
         a = feed.compute_trip_activity(all_dates)
 
         for rt in rts:
-            print(f"creating timetable for route {rt}")
+            logging.info(f"creating timetable for route {rt}")
 
             timetables_df = process_route_timetable(feed, rt, all_dates, merged_df, a)
             timetables_df["pid"] = timetables_df["shape_id"].str.slice(-5)
@@ -119,9 +129,10 @@ def create_timetables(max_feeds: int = 100):
             rts_count += 1
 
             if rts_count % 40 == 0:
-                print(f"{round((rts_count/len(rts)) * 100,3)} complete")
+                logging.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
 
-        print("Merging all routes into one dataframe")
+        logging.info("Merging all routes into one dataframe")
+
         one_feed_df = pd.DataFrame(one_feed_all_rts, dtype=str)
         one_feed_df["sha1"] = sha1
         one_feed_df["fetched_date"] = fetched_date
@@ -129,7 +140,8 @@ def create_timetables(max_feeds: int = 100):
         if not os.path.exists("out/timetables_raw"):
             os.makedirs("out/timetables_raw")
 
-        print("Writing to parquet file")
+        logging.info("Writing to parquet file")
+
         # one_feed_df.to_parquet(f"out/timetables_test/{sha1}.parquet", index=False)
         one_feed_df.to_parquet(f"out/timetables_raw/{sha1}.parquet", index=False)
 
@@ -140,20 +152,15 @@ def create_timetables(max_feeds: int = 100):
     return True
 
 
-def dedupe_schedules():
+def dedupe_schedules() -> None:
     """
     given all the historic schedules, dedupe them by date and time by taking only
     scheduled trips from a schedule in which there was not an update
 
     """
     # get all route
-    rt_DIR = pathlib.Path(__file__).parent / ("../analysis/rt_to_pid.parquet")
     rt_to_pid = pd.read_parquet(rt_DIR)
     rts = rt_to_pid["rt"].unique()
-
-    tt_DIR = pathlib.Path(__file__).parent / ("out/timetables_raw/*.parquet")
-
-    finished_rts_path = pathlib.Path(__file__).parent / ("out/clean_timetables")
 
     rts_finished = []
     for file_name in os.listdir(finished_rts_path):
@@ -165,10 +172,10 @@ def dedupe_schedules():
 
     for rt in rts:
         if str(rt) in rts_finished:
-            print(f"Route {rt} already finished")
+            logging.info(f"Route {rt} already finished")
             continue
 
-        print(f"De-duping timetable for route {rt}")
+        logging.info(f"De-duping timetable for route {rt}")
         # combine with duckdb
         cmd_number = f"""
         SELECT *
@@ -233,16 +240,19 @@ def dedupe_schedules():
             ],
             inplace=True,
         )
-        out = pathlib.Path(__file__).parent / "out/clean_timetables"
 
-        if not os.path.exists(f"{out}"):
-            os.makedirs(f"{out}")
+        if not os.path.exists(f"{OUT}"):
+            os.makedirs(f"{OUT}")
 
         deduped_timetable.to_parquet(f"out/clean_timetables/rt{rt}_timetable.parquet")
 
+
+# Implementation --------------------------------------------------------------
 
 if __name__ == "__main__":
     if sys.argv[1] == "--create_timetables":
         create_timetables()
     elif sys.argv[1] == "--dedupe":
         dedupe_schedules()
+
+# END -------------------------------------------------------------------------
