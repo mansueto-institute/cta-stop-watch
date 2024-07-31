@@ -62,13 +62,13 @@ button {
     font-weight: 700;
 }
 
-p a {
+p a, li a {
     text-decoration: none;
-    color: black;
-    font-weight: 600;
+    color: #800000;
+    font-weight: 500;
 
 }
-p a:hover {
+p a:hover, li a:hover {
     color: #800000;
     text-decoration: underline;
 }

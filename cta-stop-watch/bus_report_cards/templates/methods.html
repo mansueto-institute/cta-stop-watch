@@ -1,17 +1,191 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 
 <div class="content-continer w-50">
-    <h2 class="text-center">Data and Methods Page</h2> 
-    <hr>
+  <h2 class="text-center">Data and Methods Page</h2>
+  <hr />
 
-    <div class="body-container text-left">
-        <p>As part of the <a href="https://miurban.uchicago.edu/opportunities/local-data-journalism-initiative/">2024 Mansueto Data Journalism Initiative</a>, this project analyzes historic real time bus location data as collected by the <a href="https://ghostbuses.com/">Chi Hack Night Ghost Bus</a> project to investigate Chicago Transit Authority (CTA) bus service since May 2022. The goal of this project was to understand how bus service changed over time in the city of Chicago after the disruptions of the COVID-19 pandemic and across the city’s community areas.</p>
-        <p>As part of the analyze we have provided Bus Report Cards—an interactive platform with indicator at the community, route and bus stop level to allow riders to explore relevant metrics about the stops and routes that they use. The report cards will update monthly with up to date metrics. Explore the Report Cards here.</p>
-        <p>Reviewing the real time bus loactiosn as compared to the schedule, we found that the CTA initially opted to decrease scheduled service to match performance and then increased it, but these changes were disproportionately felt across Chicago’s community areas. Read our full report <a href="link">here</a> to explore our methodology and additional findings in depth.</p>
-        <p>Read more about our methodology and download the data in order to make your own findings here.</p>
-        <p>Credits / created by ...</p>
-    </div>
+  <div class="body-container text-left">
+    <p>
+      We build our analysis on a bus stop level. We picked this unit since they
+      constitute the main point of contact between users and bus service: it’s
+      the place where users wait for the bus and it determines how close the
+      service is from their trip origin and destination. Since there is no
+      public data that precisely shows when a bus stopped at a bus stop, our
+      first and major technical challenge was to build such data set. This would
+      then be building block for the aggregated metrics. To produce the data
+      set, we took a variety of steps to process community, bus stop and route
+      shapefiles, historic bus location pings, and the historic bus schedule
+      data. 
+    </p>
+    <p>
+      For the breakdown of how we process these inputs, we follow the
+      terminology used by the CTA API:
+    </p>
+    <ul>
+      <li>Route: A collection of patterns</li>
+      <li>Pattern: One possible set of stops that a bus can travel on</li>
+      <li>
+        Trip: For a given pattern, a buses journey from the first stop to the
+        last stop
+      </li>
+    </ul>
+    <p>
+      We began with over 110 million real time bus locations from June 1st 2022
+      to July 28th 2024 as provided by the
+      <a href="https://github.com/chihacknight/chn-ghost-buses"
+        >Chi Hack Night Ghost Bus</a
+      >
+      project.  These bus locations are real-time data from the
+      <a href="https://www.transitchicago.com/developers/bustracker/"
+        >CTA bus tracker API</a
+      >
+      <code>get vehicles</code> feed every five minutes. Each bus location ping
+      includes metadata such as vehicle number, route, pattern id, and a trip
+      id. Due to the lack of uniqueness of the existing trip ID provided, we
+      created a unique trip ID to group a collection of bus locations together.
+      Each trip represents a specific bus on a specific pattern and route at a
+      certain time of the day (for example, bus with vehicle ID 4654 traveling
+      northbound on pattern 1456 on route 6 on June 30th, 2023.) While this
+      method is not perfect, this created trip ID allows us to group bus pings
+      into one trip which allows for analysis of service. Using this method,
+      there were 10,235,984 unique trips in the original data set.  For our
+      analysis, it was necessary to transform the raw bus location data into the
+      desired bus stop view. The original data represents 5-minute snapshots of
+      every bus in the CTA system which was converted to the times that each bus
+      passes a bus stop. For example, if two buses pass a stop within a 5-minute
+      snapshot, there will be two rows, each listing the estimated time the
+      first bus passed a stop and the estimated time since the last bus. This
+      transformation is necessary as it allows us to derive performance metrics
+      that are more interpretable and easier to localize than bus positions. 
+    </p>
+    <p>To do this, we  </p>
+    <ol>
+      <li>
+        Determined the bus stops for a particular trip by using the pattern ID
+        and bus stop locations as provided by the CTA
+      </li>
+      <li>
+        Combined bus locations and bus stop locations for a trip spatially
+      </li>
+      <li>Removed bus locations that were not on route</li>
+      <li>
+        Interpolate the time a bus arrived at a bus stop by using the time and
+        distance between bus locations and the distance from bus stops between
+        the bus locations
+      </li>
+    </ol>
+    <p>
+      We processed historic schedules of bus service to contrast it with the
+      actual service provided. For this purpose, we used
+      <a href="https://gtfs.org/">General Transit Feed Specification (GTFS)</a>
+      data. The CTA only allows for the download of the current schedule.
+      However,
+      <a href="https://www.transit.land/feeds/f-dp3-cta">Transit land</a>, an
+      open data platform that collects GTFS data, maintains historic archive of
+      all feeds. Historic feeds back to May 2022 were downloaded. Schedules were
+      recreated from this historic GTFS data using
+      <a href="https://github.com/mrcagney/gtfs_kit">GTFS Kit</a>, an
+      open-source Python library to work with GTFS data. 
+    </p>
+    <p>
+      In addition to bus pings and schedules, the analysis relies on shapefiles
+      of three main units of analysis: community areas, bus stops and routes.
+      These shapefiles are mainly used for visualizations and for spatial
+      operations. More specifically, we performed point-in-polygon operations to
+      aggregate service performance metrics at the community level—by
+      identifying the bus stops that serve each of the 77 community areas.
+      Up-to-date shapefiles are available at the
+      <a href="https://data.cityofchicago.org/">Chicago Data Portal</a> for the
+      following spatial units:  
+    </p>
+    <ul>
+      <li>
+        <a
+          href="https://data.cityofchicago.org/Transportation/CTA-Bus-Routes-Shapefile/d5bx-dr8z"
+          >Routes</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://data.cityofchicago.org/Transportation/CTA-Bus-Stops-Shapefile/pxug-u72f/about_data"
+          >Bus stops</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Community-Areas-current-/cauq-8yn6"
+          >Community areas</a
+        >
+      </li>
+    </ul>
+    <p>
+      Using both the historic real-time bus location and the historic schedule
+      data bus stop level, we then calculated the following metrics for
+      different time periods including hour of the day, day of the week, week of
+      the year, month of the year, year, week for each given year and month for
+      each given year.
+    </p>
+    <p>Metrics include:</p>
+    <ul>
+      <li>
+        Time to next bus stop 
+        <ul>
+          <li>
+            Given a bus is at a bus stop, the time until the next bus on the
+            same route arrives. 
+          </li>
+        </ul>
+      </li>
+      <li>
+        Excess Time to Next Bus 
+        <ul>
+          <li>
+            The actual time to next bus minus the scheduled time to next bus 
+          </li>
+        </ul>
+      </li>
+      <li>
+        Trip Duration 
+        <ul>
+          <li>The time difference between the first and last stop. </li>
+        </ul>
+      </li>
+      <li>
+        Trip Delay 
+        <ul>
+          <li>The actual trip duration minus the scheduled trip duration. </li>
+        </ul>
+      </li>
+      <li>
+        Number of buses 
+        <ul>
+          <li>How many buses passed a bus stop in each time interval </li>
+        </ul>
+      </li>
+      <li>
+        Excess number of buses 
+        <ul>
+          <li>
+            Actual number of buses in each time interval minus scheduled number
+            of buses 
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <p>To calculate the metrics, we: </p>
+    <ol>
+      <li>First filter to only trips with stops between 6am and 8pm</li>
+      <li>
+        Then calculate the median, mean, standard dedication, max, min, 25
+        quartile, and 75 quartiles for each metric.  
+      </li>
+      <li>
+        Aggregate to the route and community area level to varying time periods
+        by findings the weighted median value of the metric for each stop using
+        the number of buses that pass each bus stop in the aggregation unit.
+      </li>
+    </ol>
+  </div>
 </div>
 
 {% endblock %}
