@@ -9,7 +9,7 @@ import pandas as pd
 import duckdb
 import json
 import os
-from datetime import datetime, timedelta, date
+from datetime import datetime
 
 STAGING_PATH = "data/staging"
 
@@ -168,11 +168,11 @@ def process_new_trips(test: bool = False):
     # download raw patterns to data/patters/patterns_raw
     # process the raw patterns and save them to data/patterns/patterns_current
     process_logger.info(
-        f"Attempting to find and download any missing patterns from new data"
+        "Attempting to find and download any missing patterns from new data"
     )
     update_patterns(EXISTING_PATTERNS)
 
-    process_logger.info(f"Processing new trips")
+    process_logger.info("Processing new trips")
 
     all_pids_df = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 

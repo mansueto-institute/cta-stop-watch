@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import geopandas as gpd
 
 
 def interpolate_stoptime(trip_df):

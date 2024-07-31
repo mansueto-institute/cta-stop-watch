@@ -113,7 +113,7 @@ def full_download(start: str = "2023-1-1", end: str = "2024-12-31"):
     process_logger.info(f"Issues with {len(failed)} day(s): {failed}")
 
     if len(success) == 0:
-        process_logger.info(f"No days downloaded. Exiting")
+        process_logger.info("No days downloaded. Exiting")
         return False
 
     save_partitioned_parquet(

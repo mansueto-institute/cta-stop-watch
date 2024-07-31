@@ -1,14 +1,46 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="header-container text-center position-relative width-100">
+{% extends "base.html" %} {% block content %}
 
-    <h1 class = 'left'>StopWatch</h1> 
-    <h2>Mansueto Logo</h2> 
+<div class="content-continer w-50">
+    <div class="header-container position-relative text-center">
+        <h2 class = ''>StopWatch: Exploring Bus Service in Chicago</h2>
+        <h3>Mansueto Logo</h3>
+    </div>
+        <hr />
+    <div class="body-container text-left">
+        <p >
+            This project investigates how the Chicago Transit Authority (CTA) bus
+            service changed after the 2020-2021 COVID-19 pandemic across the city of
+            Chicago. We aim to answer (1) how CTA bus service has changed over time from
+            June 2022 to May 2024 and (2) how bus service varies across Chicago’s
+            community areas. Through this, we reveal which community areas and bus
+            routes have recovered quickest after the decline of service during the
+            COVID-19 pandemic. To answer these questions, we built a novel data set that
+            allows us to know when every bus stopped at every bus stop in the City of
+            Chicago for the past two years. 
+            
+        </p>
+        <p>
+            From this data set, this data set, we computed several
+            metrics that aim to capture the concepts of service reliability and
+            accessibility. Source data is categorized into either actual or scheduled
+            bus service data. The actual bus service data contains 110 million real-time
+            bus locations, representing over 10 million bus trips from June 1, 2022, to
+            May 2024. The scheduled data processed contains… Each trip in the bus data
+            corresponds to one of 10,760 bus stops, 1,750 patterns, and 120 bus routes,
+            within Chicago’s 77 Community Areas.
+        </p>
+        <p>
+            The Mansueto Stop Watch belongs to
+            the Summer 2024 Mansueto Data Journalism Initiative In addition to this
+            report, we published the comprehensive novel data sets of the CTA bus
+            service, the Bus Report Cards (a platform that allows users to interact
+            with), along with a repository of code and documentation for analysis
+            replication.
+        </p>
+    </div>
 
-    <hr>
-
- 
 
 </div>
+
 
 {% endblock %}

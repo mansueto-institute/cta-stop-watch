@@ -5,7 +5,6 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import pandas as pd
 import gtfs_kit as gk
-import pathlib
 import os
 import duckdb
 import numpy as np

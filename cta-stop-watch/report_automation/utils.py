@@ -4,7 +4,6 @@ import re
 import json
 from datetime import datetime, timedelta
 import logging
-import shutil
 import duckdb
 import polars as pl
 

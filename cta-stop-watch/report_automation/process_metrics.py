@@ -3,8 +3,6 @@ from store_data import store_all_data
 from update_metrics import update_metrics, combine_recent_trips
 from update_schedule import update_schedule
 
-from datetime import date
-
 
 def process_metrics(local: bool = True):
 
