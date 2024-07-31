@@ -4,7 +4,14 @@ from utils import create_config
 import argparse
 
 
-def parse_arguments():
+# Functions -------------------------------------------------------------------
+
+
+def parse_arguments() -> argparse.Namespace:
+    """
+    parse terminal arguments into python objects needed for pipeline workflow.
+    """
+
     parser = argparse.ArgumentParser(description="Run the StopWatch pipeline.")
 
     parser.add_argument(
@@ -29,6 +36,9 @@ def parse_arguments():
     return args
 
 
+# Implementation --------------------------------------------------------------
+
+
 if __name__ == "__main__":
 
     args = parse_arguments()
@@ -42,3 +52,5 @@ if __name__ == "__main__":
             process_metrics(local=True)
         elif args.pipeline_step[1] == "remote":
             process_metrics(local=False)
+
+# End -------------------------------------------------------------------------
