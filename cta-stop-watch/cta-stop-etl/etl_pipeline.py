@@ -38,8 +38,6 @@ logging.info(f"CTA BUSES ETL PIPELINE STARTED AT: {start_string}")
 DIR = pathlib.Path(__file__).parent / "out"
 PID_DIR = DIR / "pids"
 
-# PID_DIR = f"{DIR}/pids"
-
 # Functions -------------------------------------------------------------------
 
 

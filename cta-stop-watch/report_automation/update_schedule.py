@@ -1,8 +1,5 @@
 import pathlib
 import warnings
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import pandas as pd
 import gtfs_kit as gk
 import os
@@ -12,8 +9,12 @@ import urllib.request
 from datetime import date
 from utils import metrics_logger
 
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
-def download_current_feed():
+# Functions -------------------------------------------------------------------
+
+
+def download_current_feed() -> bool:
     """
     Download the current gtfs feed from CTA
     """
@@ -27,7 +28,7 @@ def download_current_feed():
 
 
 def process_route_timetable(
-    feed: "Feed", route_id: str, dates: list[str], merged_df: pd.DataFrame, a
+    feed: gk.feed.Feed, route_id: str, dates: list[str], merged_df: pd.DataFrame, a
 ) -> pd.DataFrame:
     """
     Return a timetable for the given route and dates (YYYYMMDD date strings).
@@ -54,11 +55,11 @@ def process_route_timetable(
     t = merged_df[merged_df["route_id"] == route_id].copy()
 
     frames = []
-    for date in dates:
+    for day in dates:
         # Slice to trips active on date
-        ids = a.loc[a[date] == 1, "trip_id"]
+        ids = a.loc[a[day] == 1, "trip_id"]
         f = t[t["trip_id"].isin(ids)].copy()
-        f["date"] = date
+        f["date"] = day
         # Groupby trip ID and sort groups by their minimum departure time.
         # For some reason NaN departure times mess up the transform below.
         # So temporarily fill NaN departure times as a workaround.
@@ -71,7 +72,7 @@ def process_route_timetable(
     return f.drop(["min_dt", "dt"], axis=1)
 
 
-def create_timetables():
+def create_timetables() -> bool:
     """
     creates a time table from a feed for each route using the process_route_timetable
     function, an adaption of gtfs_kit.build_route_timetable
@@ -131,7 +132,7 @@ def create_timetables():
     return True
 
 
-def dedupe_schedules():
+def dedupe_schedules() -> None:
     """
     given all the historic schedules, dedupe them by date and time by taking only
     scheduled trips from a schedule in which there was not an update
@@ -243,7 +244,7 @@ def dedupe_schedules():
     )
 
 
-def update_schedule():
+def update_schedule() -> None:
     """
     full process to update schedule
         1. download the current schedule
@@ -262,3 +263,6 @@ def update_schedule():
     # dedupe with historic schedule
     metrics_logger.info("Deduping timetables")
     dedupe_schedules()
+
+
+# End -------------------------------------------------------------------------

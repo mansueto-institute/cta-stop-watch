@@ -7,18 +7,23 @@ import logging
 import duckdb
 import polars as pl
 
+# Constants -------------------------------------------------------------------
+
+# Paths
 DIR = pathlib.Path(__file__).parent / "data"
+DIR_p = DIR / "patterns/patterns_raw"
+DIR_b = DIR / "raw_trips"
+
+# Functions -------------------------------------------------------------------
 
 
-def create_config(test: bool = False):
+def create_config(test: bool = False) -> None:
     """
     Create a configuration file from a dictionary
     """
 
     config = {}
     pids = []
-
-    DIR_p = pathlib.Path(__file__).parent / "data/patterns/patterns_raw"
 
     for pid_file in os.listdir(DIR_p):
         if not pid_file.endswith(".parquet"):
@@ -27,8 +32,6 @@ def create_config(test: bool = False):
         numbers = re.findall(r"\d+", pid_file)
         pid = numbers[0]
         pids.append(pid)
-
-    DIR_b = pathlib.Path(__file__).parent / "data/raw_trips"
 
     dates_file = [x.split(".")[0] for x in os.listdir(DIR_b) if x.endswith(".parquet")]
 
@@ -54,12 +57,10 @@ def create_config(test: bool = False):
         json.dump(config, file)
 
 
-def clear_staging(folders: list = [], files: list = []):
+def clear_staging(folders: list = [], files: list = []) -> None:
     """
     Remove all files/ folders from the indicated directory
     """
-
-    DIR = pathlib.Path(__file__).parent / "data"
 
     for folder in folders:
         for path, _, files in os.walk(DIR / folder):
@@ -96,8 +97,9 @@ def create_rt_pid_xwalk() -> bool:
     return True
 
 
-def setup_logger(name, log_file, level=logging.INFO):
-    """To setup as many loggers as you want
+def setup_logger(name: str, log_file: str, level=logging.INFO) -> logging.Logger:
+    """
+    To setup as many loggers as you want
     # from https://stackoverflow.com/questions/11232230/logging-to-two-files-with-different-settings
     """
 
@@ -111,9 +113,14 @@ def setup_logger(name, log_file, level=logging.INFO):
     return logger
 
 
+# Loggers ---------------------------------------------------------------------
+
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+
 # first file logger
 process_logger = setup_logger("process", "process.log")
 
 # second file logger
 metrics_logger = setup_logger("metrics", "metrics.log")
+
+# End -------------------------------------------------------------------------

@@ -5,18 +5,23 @@ import pathlib
 from utils import process_logger
 from pyproj import CRS
 
-## CONSTANTS
+# Constants -------------------------------------------------------------------
+
+# Units for buffers and conversion
 M_TO_FT = 3.280839895
 BUFFER_DIST = 50
 
-# TODO
+# Paths
 PID_DIR = pathlib.Path(__file__).parent / "data/patterns"
 
+# Projections
 PROJ_4326 = CRS("epsg:4326")
 PROJ_26971 = CRS("epsg:26971")
 
+# Functions -------------------------------------------------------------------
 
-def load_raw_pattern(pid: str) -> pd.DataFrame | bool:
+
+def load_raw_pattern(pid: str) -> tuple[bool, pd.DataFrame] | tuple[bool, bool]:
     try:
         df_raw = pd.read_parquet(f"{PID_DIR}/patterns_raw/pid_{pid}_raw.parquet")
         return True, df_raw
@@ -24,7 +29,9 @@ def load_raw_pattern(pid: str) -> pd.DataFrame | bool:
         return False, False
 
 
-def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write=True) -> bool:
+def convert_to_geometries(
+    df_raw: pd.DataFrame, pid: str, write: bool = True
+) -> bool | gpd.GeoDataFrame:
     """
      and converts
     it into route polygones that can be used to asses if a bus is inside it's
@@ -97,7 +104,7 @@ def convert_to_geometries(df_raw: pd.DataFrame, pid: str, write=True) -> bool:
     return df_segment
 
 
-def process_patterns(pids: list):
+def process_patterns(pids: list[str]):
     """
     process all the patterns
     """
@@ -118,5 +125,10 @@ def process_patterns(pids: list):
         )
 
 
+# Implementation --------------------------------------------------------------
+
 if __name__ == "__main__":
+    # Test process on a single pid
     process_patterns(["14103"])
+
+# End -------------------------------------------------------------------------

@@ -3,8 +3,13 @@ from store_data import store_all_data
 from update_metrics import update_metrics, combine_recent_trips
 from update_schedule import update_schedule
 
+# Functions -------------------------------------------------------------------
 
-def process_metrics(local: bool = True):
+
+def process_metrics(local: bool = True) -> None:
+    """
+    Implement workflow to process metrics data
+    """
 
     # combine recent trips
     metrics_logger.info("Combining trips")
@@ -28,3 +33,6 @@ def process_metrics(local: bool = True):
 
     # delete staging
     clear_staging(folders=["staging/timetables/current_timetables", "staging/trips"])
+
+
+# End -------------------------------------------------------------------------

@@ -3,18 +3,22 @@ from process_patterns import process_patterns
 from calculate_stop_time import calculate_patterns
 from utils import create_config, clear_staging, process_logger, create_rt_pid_xwalk
 
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import polars as pl
 import pandas as pd
 import duckdb
 import json
 import os
-from datetime import datetime
 
+# Constants -------------------------------------------------------------------
+
+# Paths
 STAGING_PATH = "data/staging"
 
+# Functions -------------------------------------------------------------------
 
-def update_data(start_date: str, today: str):
+
+def update_data(start_date: str, today: str) -> bool:
     """
     download raw trip data and prepare to process
     """
@@ -31,7 +35,7 @@ def update_data(start_date: str, today: str):
     return True
 
 
-def update_patterns(EXISTING_PATTERNS: list):
+def update_patterns(EXISTING_PATTERNS: list) -> set[str]:
     """
     check for new patterns in the data and download them from CTA API if doesnt exist.
     """
@@ -72,7 +76,7 @@ def update_patterns(EXISTING_PATTERNS: list):
     return new_trip_pids
 
 
-def trip_to_day():
+def trip_to_day() -> None:
     """
     convert the current trip data into day data
     """
@@ -123,7 +127,7 @@ def trip_to_day():
             by_day.sink_parquet(f"data/processed_by_day/{day}.parquet")
 
 
-def process_new_trips(test: bool = False):
+def process_new_trips(test: bool = False) -> None:
     """
     1. Download data
     2. check for new patterns
@@ -192,3 +196,6 @@ def process_new_trips(test: bool = False):
         folders=["staging/days", "staging/pids", "raw_trips"],
         files=["staging/current_days_download.parquet"],
     )
+
+
+# End ------------------------------------------------------------------------

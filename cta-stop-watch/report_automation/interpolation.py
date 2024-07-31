@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 
+# Functions -------------------------------------------------------------------
 
-def interpolate_stoptime(trip_df):
+
+def interpolate_stoptime(trip_df: pd.DataFrame) -> pd.DataFrame:
     """
     given a route df with stops and bus location, interpolate the time when the bus is at each stop
     """
