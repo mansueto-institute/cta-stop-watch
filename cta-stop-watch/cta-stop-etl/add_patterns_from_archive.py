@@ -5,9 +5,6 @@ from shapely import LineString
 import pathlib
 import re
 import logging
-import time
-import pyarrow
-
 
 # Logging set up --------------------------------------------------------------
 
@@ -105,12 +102,13 @@ def convert_to_geometries(df_raw: pd.DataFrame) -> tuple[pd.DataFrame]:
 
 def write_patterns(
     pid: str, df_pattern: pd.DataFrame, df_segment: pd.DataFrame, path: pathlib.Path
-):
+) -> bool:
 
     # Parse id as integers to remove leading zeros
     try:
         pid = int(pid)
-    except ValueError:
+    except ValueError as e:
+        logging.error(e)
         pass
 
     print(f"Writing {path}/pid_{pid}_stop.parquet and {path}/pid_{pid}_segment.parquet")
@@ -123,7 +121,7 @@ def write_patterns(
 # Implementation (main) -------------------------------------------------------
 
 
-def main():
+def main() -> None:
 
     logging.info("Running pattern processor from archival GTFS data:")
 

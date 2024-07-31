@@ -32,10 +32,22 @@ start_string = time.asctime(time.localtime())
 logging.info(f"CTA BUSES ETL PIPELINE STARTED AT: {start_string}")
 
 
+# Constants -------------------------------------------------------------------
+
+# Paths
+DIR = pathlib.Path(__file__).parent / "out"
+PID_DIR = DIR / "pids"
+
+# PID_DIR = f"{DIR}/pids"
+
 # Functions -------------------------------------------------------------------
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse terminal arguments into python objects needed for pipeline workflow.
+    """
+
     parser = argparse.ArgumentParser(
         description="Run the full or partial ETL pipeline."
     )
@@ -65,13 +77,12 @@ def parse_arguments():
     return args
 
 
-def all_pids(DIR, type):
+def all_pids(DIR: pathlib.Path, type: str) -> set[str]:
     """
     Find list of all pids currently available.
     """
 
     if type == "trip_data":
-        PID_DIR = f"{DIR}/pids"
         pids = []
         for pid_file in os.listdir(PID_DIR):
             # Skip auxiliary files in folder, only process parquets
@@ -129,7 +140,7 @@ def print_timing_at_exit() -> None:
     logging.info(f"Total running time: {formatted_time}")
 
 
-def execute_download_trips(print=True):
+def execute_download_trips(print: bool = True) -> tuple[str] | None:
     logging.info("\tDownloading trips\n")
     tmstmp1 = time.time()
     full_download("2022-6-1", "2024-6-1")
@@ -175,7 +186,9 @@ def execute_download_patterns(print=True):
     return execution_time
 
 
-def execute_process_patterns(pids_pattern, print=True):
+def execute_process_patterns(
+    pids_pattern: list[str], print: bool = True
+) -> None | tuple[str]:
     # print(f"Processing {len(pids_pattern)} pattern(s)")
     logging.info(f"\tProcessing {len(pids_pattern)} pattern(s) \n")
     tmstmp1 = time.time()
@@ -199,11 +212,13 @@ def execute_process_patterns(pids_pattern, print=True):
     return execution_time1, execution_time2
 
 
-def execute_stop_time(pids_calculate, print=True):
+def execute_stop_time(
+    pids_calculate: list[str], print: bool = True
+) -> None | tuple[str]:
     # print(f"Calculating stop time for {len(pids_calculate)} pattern(s)")
     # find already completed trips
 
-    DIR_OUT = pathlib.Path(__file__).parent / "out"
+    DIR_OUT = DIR
     completed_patterns_files = os.listdir(DIR_OUT / "trips")
     completed_patterns = [re.sub("[^0-9]", "", p) for p in completed_patterns_files]
 
@@ -230,7 +245,7 @@ def execute_stop_time(pids_calculate, print=True):
     return execution_time
 
 
-def execute_qc(pids_calculate, print=True):
+def execute_qc(pids_calculate: list[str], print: bool = True) -> None | tuple[str]:
     # print(f"Running QC for for {len(pids_calculate)} pattern(s)")
     logging.info(f"\tRunning QC for for {len(pids_calculate)} pattern(s)\n")
     tmstmp1 = time.time()
@@ -251,7 +266,6 @@ def execute_qc(pids_calculate, print=True):
 
 if __name__ == "__main__":
 
-    DIR = pathlib.Path(__file__).parent / "out"
     args = parse_arguments()
     logging.info(f"\tPipeline Step  : {args.pipeline_step}")
 
@@ -293,3 +307,5 @@ if __name__ == "__main__":
         logging.info(time_stoptime)
         logging.info(time_qc)
         logging.info(f"{'-'*69}")
+
+# End -------------------------------------------------------------------------
