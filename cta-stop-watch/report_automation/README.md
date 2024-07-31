@@ -8,11 +8,16 @@ A pipeline to continuously process ghost bus data. Trips are currently being pro
 1. cd into repo and run `poetry install`
 1. cd to cta-stop-watch/cta-stop-watch/report_automation
 1. Create an CTA Bus Tracker API Key [here](https://www.ctabustracker.com/home). Add the key as a variable in a `.env` file locally named in the format `BUS_API_KEY="[key]"`
-1. Add any raw pattern data already downloaded to `data/patterns_raw/`. Download our archive here.
-1. Download any historic processed data and add to `data/processed_by_pid/`. See our archive here.
+1. Add any raw pattern data already downloaded to `data/patterns_raw/`. 
+    * Download our archive [here](https://cta-stop-watch-bucket-do.nyc3.cdn.digitaloceanspaces.com/cta-stop-watch-files/public/patterns_raw.zip).
+1. Download any historic processed data and add to `data/processed_by_pid/`. 
+    * Download our archive [here](https://cta-stop-watch-bucket-do.nyc3.cdn.digitaloceanspaces.com/cta-stop-watch-files/public/processed_by_pid.zip)
 1. Download a `rt_to_pid.parquet` xwalk and add to `data/`
-1. Run `python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`. When prompted, enter in date you want to start download.
+    * Download our version [here](https://cta-stop-watch-bucket-do.nyc3.cdn.digitaloceanspaces.com/cta-stop-watch-files/public/rt_to_pid.parquet)
+1. Add any timetable data already downloaded to `data/clean_timetables/`. 
+    * Download our archive [here](https://cta-stop-watch-bucket-do.nyc3.cdn.digitaloceanspaces.com/cta-stop-watch-files/public/clean_timetables.zip).
 
+1. Run `python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`. When prompted, enter in date you want to start download. (for testing, put two days ago.)
 
 ### Processing Trips
 Run `python -m main -p process`
