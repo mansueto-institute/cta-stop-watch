@@ -1,6 +1,6 @@
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
 from metrics_utils import create_trips_df
-from utils import metrics_logger
+from utils import metrics_logger, clear_staging
 import polars as pl
 import pandas as pd
 import os
@@ -123,6 +123,12 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 
     rts_count = 0
 
+    # create staging folders
+    if not os.path.exists(OUT_DIR / "staging_actual"):
+        os.mkdir(OUT_DIR / "staging_actual")
+    if not os.path.exists(OUT_DIR / "staging_sched"):
+        os.mkdir(OUT_DIR / "staging_sched")
+
     for rt in rts:
         # prep schedule and actual
         metrics_logger.debug(f"Processing route {rt}")
@@ -137,17 +143,38 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
         route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
 
-        all_routes_stops_actual.append(route_metrics_actual)
-        all_routes_stops_schedule.append(route_metrics_schedule)
+        # all_routes_stops_actual.append(route_metrics_actual)
+        # all_routes_stops_schedule.append(route_metrics_schedule)
+
+        # write out to file
+        route_metrics_actual.write_parquet(
+            f"{OUT_DIR}/staging_actual/route{rt}_metrics_actual.parquet"
+        )
+
+        route_metrics_schedule.write_parquet(
+            f"{OUT_DIR}/staging_sched/route{rt}_metrics_schedule.parquet"
+        )
 
         rts_count += 1
-
         if rts_count % 40 == 0:
             metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
 
     # combine stop level at routes
-    actual_full_stops = pl.concat(all_routes_stops_actual)
-    schedule_full_stops = pl.concat(all_routes_stops_schedule)
+    a_command = f""" select *
+                    from read_parquet('{OUT_DIR}/staging_actual/*.parquet')
+                    """
+    actual_full_stops = duckdb.execute(a_command).pl()
+
+    s_command = f""" select *
+                    from read_parquet('{OUT_DIR}/staging_sched/*.parquet')
+                    """
+    actual_full_stops = duckdb.execute(a_command).pl()
+
+    schedule_full_stops = duckdb.execute(s_command).pl()
+
+    # actual_full_stops = pl.concat(all_routes_stops_actual)
+    # schedule_full_stops = pl.concat(all_routes_stops_schedule)
+
     stop_metrics = create_combined_metrics_stop_df(
         actual_full_stops, schedule_full_stops
     )
@@ -171,6 +198,8 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         and {total_months:,} unique months. 
         The max month is {max_month}."""
     )
+
+    clear_staging(folders=["metrics/staging_actual", "metrics/staging_sched"])
 
     return True
 

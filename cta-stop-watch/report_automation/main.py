@@ -1,6 +1,6 @@
 from process_metrics import process_metrics
 from process_trips import process_new_trips
-from utils import create_config
+from utils import create_config, metrics_logger
 import argparse
 
 
@@ -51,6 +51,9 @@ if __name__ == "__main__":
         if args.pipeline_step[1] == "local":
             process_metrics(local=True)
         elif args.pipeline_step[1] == "remote":
-            process_metrics(local=False)
+            try:
+                process_metrics(local=False)
+            except Exception as e:
+                metrics_logger.error(f"Error: {e}")
 
 # End -------------------------------------------------------------------------

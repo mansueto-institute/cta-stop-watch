@@ -157,7 +157,7 @@ def dedupe_schedules() -> None:
 
     metrics_logger.info(
         f"""Before updating schedule, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
-        and {stats_before['total_months'].to_list()[0]:,} unique months. 
+        and {stats_before['total_months'].to_list()[0]:,} unique days. 
         The max month is {stats_before['max_month'].to_list()[0]}."""
     )
 
@@ -239,7 +239,7 @@ def dedupe_schedules() -> None:
 
     metrics_logger.info(
         f"""After updating schedule, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
-        and {stats_after['total_months'].to_list()[0]:,} unique months. 
+        and {stats_after['total_months'].to_list()[0]:,} unique days. 
         The max month is {stats_after['max_month'].to_list()[0]}."""
     )
 

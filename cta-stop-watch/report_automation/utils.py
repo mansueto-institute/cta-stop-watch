@@ -97,7 +97,7 @@ def create_rt_pid_xwalk() -> bool:
     return True
 
 
-def setup_logger(name: str, log_file: str, level=logging.INFO) -> logging.Logger:
+def setup_logger(name: str, log_file: str, level=logging.DEBUG) -> logging.Logger:
     """
     To setup as many loggers as you want
     # from https://stackoverflow.com/questions/11232230/logging-to-two-files-with-different-settings

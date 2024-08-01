@@ -15,11 +15,13 @@ def process_metrics(local: bool = True) -> None:
     metrics_logger.info("Combining trips")
     combine_recent_trips()
     metrics_logger.info("Done combining trips")
+    clear_staging(folders=["staging/trips"])
 
     # update schedule
     metrics_logger.info("Updating schedule")
     update_schedule()
     metrics_logger.info("Done updating schedule")
+    clear_staging(folders=["staging/timetables/current_timetables"])
 
     # update metrics
     metrics_logger.info("Updating metrics")
@@ -30,9 +32,6 @@ def process_metrics(local: bool = True) -> None:
     if not local:
         metrics_logger.info("Pushing data to s3")
         store_all_data()
-
-    # delete staging
-    clear_staging(folders=["staging/timetables/current_timetables", "staging/trips"])
 
 
 # End -------------------------------------------------------------------------
