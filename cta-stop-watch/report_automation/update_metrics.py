@@ -22,9 +22,12 @@ def combine_recent_trips() -> None:
     """
 
     # get all the pids in the staging/trips
-    pids = [
-        name for name in os.listdir(f"{DIR}/data/staging/trips") if name != ".gitkeep"
-    ]
+    # make sure folder id not empty
+    pids = []
+    for folder in os.listdir(f"{DIR}/data/staging/trips"):
+        if folder != ".gitkeep":
+            if os.listdir(f"{DIR}/data/staging/trips/{folder}/") != []:
+                pids.append(folder)
 
     # stats before merging
     stats_command = """
@@ -103,11 +106,18 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         max_month = mertics_df[mertics_df["period"] == "month_abs"][
             "period_value"
         ].max()
+        # max month of actual data
+        max_month_actual = mertics_df[
+            (mertics_df["period"] == "month_abs")
+            & (mertics_df["median_actual_time_till_next_bus"].notna())
+        ]["period_value"].max()
 
         metrics_logger.info(
             f"""Before updating metrics, there were {total_rows:,} rows, 
             and {total_months:,} unique months. 
-            The max month is {max_month}."""
+            The max month is {max_month}.
+            The max actual month is {max_month_actual}
+            """
         )
     else:
         metrics_logger.info("No metrics file found")
@@ -115,11 +125,6 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
     if rts == "all":
         xwalk = pd.read_parquet("data/rt_to_pid.parquet")
         rts = xwalk["rt"].unique().tolist()
-
-    # for each route
-
-    all_routes_stops_actual = []
-    all_routes_stops_schedule = []
 
     rts_count = 0
 
@@ -142,9 +147,6 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         # create the stop level data
         route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
         route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
-
-        # all_routes_stops_actual.append(route_metrics_actual)
-        # all_routes_stops_schedule.append(route_metrics_schedule)
 
         # write out to file
         route_metrics_actual.write_parquet(
@@ -172,9 +174,6 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 
     schedule_full_stops = duckdb.execute(s_command).pl()
 
-    # actual_full_stops = pl.concat(all_routes_stops_actual)
-    # schedule_full_stops = pl.concat(all_routes_stops_schedule)
-
     stop_metrics = create_combined_metrics_stop_df(
         actual_full_stops, schedule_full_stops
     )
@@ -192,11 +191,17 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         "period_value"
     ].nunique()
     max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
+    # max month of actual data
+    max_month_actual = mertics_df[
+        (mertics_df["period"] == "month_abs")
+        & (mertics_df["median_actual_time_till_next_bus"].notna())
+    ]["period_value"].max()
 
     metrics_logger.info(
         f"""After updating metrics, there were {total_rows:,} rows, 
         and {total_months:,} unique months. 
-        The max month is {max_month}."""
+        The max month is {max_month}.
+        The max actual month is {max_month_actual}"""
     )
 
     clear_staging(folders=["metrics/staging_actual", "metrics/staging_sched"])
