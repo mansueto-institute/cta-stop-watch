@@ -1,0 +1,147 @@
+{% extends "base.html" %} {% block content %}
+<div class="content-continer w-50">
+  <div class="body-container text-left">
+    <p>
+      Lorem ipsum dolor sit amet consectetur, adipisicing elit. Pariatur modi
+      eius, animi fugiat aut alias aspernatur laboriosam repudiandae. Quas rem
+      unde recusandae sapiente modi illum? Laboriosam, deserunt minima quisquam,
+      sed accusantium sunt laudantium quam ad debitis distinctio accusamus hic
+      incidunt, placeat assumenda voluptatem nostrum officia. Ipsam fugit
+      dignissimos sunt quasi.
+    </p>
+
+    <p></p>
+    <div>
+      Tooltip with hover. Using
+      <a href="https://getbootstrap.com/docs/5.3/components/tooltips/"
+        >bootstrap tooltip</a
+      >
+      <ul>
+        <li>
+          a button
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            data-bs-title="Tooltip on top"
+          >
+            Tooltip on top
+          </button>
+        </li>
+        <li>
+          Text with hover using a span tag such as
+          <span
+            class="dotted-under"
+            data-bs-placement="bottom"
+            data-bs-toggle="tooltip"
+            data-bs-title="Hooray!"
+            >here</span
+          >. Can style tooltip however we want want like
+          <span
+            class="dotted-under"
+            data-bs-custom-class="custom-tooltip"
+            data-bs-placement="bottom"
+            data-bs-toggle="tooltip"
+            data-bs-title="Hooray!"
+            >this</span
+          >
+        </li>
+        <li>
+          Could also do it with an icon over a word such as
+          <span data-bs-toggle="tooltip" data-bs-title="Hooray!"
+            ><i class="fa fa-question" aria-hidden="true"></i>
+          </span>
+        </li>
+      </ul>
+      Popup that appears when you click and stays until you click again. Using
+      <a href="https://getbootstrap.com/docs/5.3/components/popovers/"
+        >Popovers with Bootstrap</a
+      >.
+      <ul>
+        <li>
+          Same with a button
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            data-bs-toggle="popover"
+            data-bs-placement="top"
+            data-bs-content="Top popover"
+          >
+            Popover on top
+          </button>
+        </li>
+        <li>
+          Can make it fancier with a title
+          <button
+            type="button"
+            class="btn btn-danger btn-sm"
+            data-bs-toggle="popover"
+            data-bs-title="Popover title"
+            data-bs-content="And here's some amazing content. It's very engaging. Right?"
+          >
+            Click to toggle popover
+          </button>
+        </li>
+        <li>
+          Or just with text like
+          <span
+            data-bs-toggle="popover"
+            data-bs-title="Popover title"
+            data-bs-content="And here's some amazing content. It's very engaging. Right?"
+            class="dotted-under"
+            >this</span
+          >
+        </li>
+      </ul>
+      And here is some collapsable stuff using
+      <a href="https://getbootstrap.com/docs/5.3/components/collapse/"
+        >bootstrap collapse</a
+      >
+      <ul>
+        <li>
+          Here is a button
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapseExample"
+            aria-expanded="false"
+            aria-controls="collapseExample"
+          >
+            Button
+          </button>
+          <div class="collapse" id="collapseExample">
+            <div class="card card-body">
+              Some placeholder content for the collapse component. This panel is
+              hidden by default but revealed when the user activates the
+              relevant trigger.
+            </div>
+          </div>
+        </li>
+        <li>
+          Or just with text such as
+          <a
+            class="dotted-under"
+            data-bs-toggle="collapse"
+            href="#collapseExampleATag"
+            role="button"
+            aria-expanded="false"
+            aria-controls="collapseExample"
+          >
+            click here
+          </a>
+          <div class="collapse" id="collapseExampleATag">
+            <div class="card card-body">
+              Some placeholder content for the collapse component. This panel is
+              hidden by default but revealed when the user activates the
+              relevant trigger.
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

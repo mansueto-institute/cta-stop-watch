@@ -36,3 +36,8 @@ async def methods(request: Request):
 @app.get("/report", response_class=HTMLResponse)
 async def report(request: Request):
     return templates.TemplateResponse("report.html", {"request": request})
+
+
+@app.get("/assets", response_class=HTMLResponse)
+async def assets(request: Request):
+    return templates.TemplateResponse("assets.html", {"request": request})
