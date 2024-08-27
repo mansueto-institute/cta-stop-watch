@@ -1,0 +1,84 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="content-continer w-50">
+  <h1 class="text-center">Meet the Team</h1>
+  <hr />
+  <div class="people-container">
+    <div class="card mb-3">
+      <div class="row no-gutters">
+        <div class="col-md-4">
+          <img
+            src="{{ url_for('static', path='img/cta-bus.jpg') }}"
+            class="card-img"
+            alt="..."
+          />
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h4 class="card-title">
+              <a href="link">Regina I. Medina</a>
+            </h4>
+            <h6 class="card-position">Data Journalism Fellow</h6>
+            <p class="card-text text-muted small">
+              This is info about Regina. Lorem ipsum dolor sit amet consectetur
+              adipisicing elit. Atque quae iure nisi totam repellat soluta
+              ipsam, repellendus voluptate porro rem possimus commodi numquam
+              provident veritatis deleniti fuga tempora? Ipsa, assumenda!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="row no-gutters">
+        <div class="col-md-4">
+          <img
+            src="{{ url_for('static', path='img/cta-bus.jpg') }}"
+            class="card-img"
+            alt="..."
+          />
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h4 class="card-title">
+              <a href="link">Austin Steinhart</a>
+            </h4>
+            <h6 class="card-position">Data Journalism Fellow</h6>
+            <p class="card-text text-muted small">
+              This is info about Austin. Lorem ipsum dolor sit amet consectetur
+              adipisicing elit. Atque quae iure nisi totam repellat soluta
+              ipsam, repellendus voluptate porro rem possimus commodi numquam
+              provident veritatis deleniti fuga tempora? Ipsa, assumenda!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="row no-gutters">
+        <div class="col-md-4">
+          <img
+            src="{{ url_for('static', path='img/cta-bus.jpg') }}"
+            class="card-img"
+            alt="..."
+          />
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h4 class="card-title">
+              <a href="link">Joseph De Leon</a>
+            </h4>
+            <h6 class="card-position">Data Journalism Fellow</h6>
+            <p class="card-text text-muted small">
+              This is info about Austin. Lorem ipsum dolor sit amet consectetur
+              adipisicing elit. Atque quae iure nisi totam repellat soluta
+              ipsam, repellendus voluptate porro rem possimus commodi numquam
+              provident veritatis deleniti fuga tempora? Ipsa, assumenda!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

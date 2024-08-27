@@ -20,19 +20,31 @@
 <body>
     <div id="app">
         <div id="nav">
-            <div id="nav-title"><span class = 'sw-title'>Stop</span>Watch</div>
+            
+            <div id="nav-title">
+                <img
+                src="{{ url_for('static', path='img/mansueto.svg') }}"
+                alt="Manseuto Institute Logo"
+              />  
+                <span class = 'sw-title'>Stop</span>Watch
+             
+                
+            </div>
             <div id="nav-buttons">
-                <a class="nav-button" href ="{{ url_for('home') }}" class="">
+                <a class="nav-button" href ="{{ url_for('home') }}">
                     <div>Home</div>
                 </a>
-                <a class="nav-button" href ="{{ url_for('report') }}" class="">
+                <a class="nav-button" href ="{{ url_for('report') }}" >
                     <div>Bus Report Cards</div>
                 </a>
-                <a class="nav-button" href ="{{ url_for('methods') }}" class="">
-                    <div>Data and Methods</div>
+                <a class="nav-button" href ="{{ url_for('analysis') }}" >
+                    <div>Analysis</div>
                 </a>
-                <a class="nav-button" href ="{{ url_for('assets') }}" class="">
-                    <div>Assets</div>
+                <a class="nav-button" href ="{{ url_for('people') }}" >
+                    <div>People</div>
+                </a>
+                <a class="nav-button" href ="{{ url_for('methods') }}" >
+                    <div>Data and Methods</div>
                 </a>
             </div>
         </div>

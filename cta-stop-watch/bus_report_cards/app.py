@@ -38,6 +38,16 @@ async def report(request: Request):
     return templates.TemplateResponse("report.html", {"request": request})
 
 
+@app.get("/people", response_class=HTMLResponse)
+async def people(request: Request):
+    return templates.TemplateResponse("people.html", {"request": request})
+
+
+@app.get("/analysis", response_class=HTMLResponse)
+async def analysis(request: Request):
+    return templates.TemplateResponse("analysis.html", {"request": request})
+
+
 @app.get("/assets", response_class=HTMLResponse)
 async def assets(request: Request):
     return templates.TemplateResponse("assets.html", {"request": request})

@@ -1,0 +1,86 @@
+<body>
+    <div id="app">
+        <div id="nav">
+            <div id="nav-title"><span class = 'sw-title'>Stop</span>Watch</div>
+            <div id="nav-buttons">
+                <a class="nav-button" href ="{{ url_for('home') }}" class="">
+                    <div>Home</div>
+                </a>
+                <a class="nav-button" href ="{{ url_for('report') }}" class="">
+                    <div>Bus Report Cards</div>
+                </a>
+                <a class="nav-button" href ="{{ url_for('methods') }}" class="">
+                    <div>Data and Methods</div>
+                </a>
+                <a class="nav-button" href ="{{ url_for('assets') }}" class="">
+                    <div>Assets</div>
+                </a>
+            </div>
+        </div>
+      
+
+        <div class="content-continer w-50">
+            <img
+              src="{{ url_for('static', path='img/mansueto.svg') }}"
+              alt="Manseuto Institute Logo"
+            />
+            <div class="header-container position-relative text-center">
+              <h2>
+                <span class="sw-title">Stop</span
+                ><span style="font-weight: 600">Watch</span>: Exploring Bus Service in
+                Chicago
+              </h2>
+            </div>
+            <hr />
+            <div class="body-container text-left">
+              <p>
+                The Mansueto StopWatch — part of the
+                <a
+                  href="https://miurban.uchicago.edu/opportunities/local-data-journalism-initiative/"
+                  >2024 Mansueto Data Journalism Initiative</a
+                > — investigates Chicago Transit Authority (CTA) bus service after the COVID-19 
+                pandemic disruptions. The StopWatch analyzes historic real time bus location 
+                data as collected
+                by <a href="https://ghostbuses.com/">Chi Hack Night Ghost Bus</a> since May 2022 to date.
+                The goal was to understand how bus service changed in the city of Chicago over
+                time and across the city’s community areas.
+              </p>
+              <p>
+                As part of the StopWatch, the 
+                <a href="{{ url_for('report') }}">Bus Report Cards</a> — an interactive
+                platform with indicators at the community, route and bus stop level x— 
+                allow riders to explore relevant metrics about the stops and routes that
+                they use. The report cards will update monthly with up to date metrics.
+              </p>
+              <p>
+                Reviewing the real time bus locations as compared to the schedule, we
+                found that the CTA initially opted to decrease scheduled service to match
+                performance and then increased it, but these changes were
+                disproportionately felt across Chicago’s community areas. Read our
+                <a href="link">full report</a> to explore our methodology and additional
+                findings in depth.
+              </p>
+              <p>
+                Read more about our
+                <a href="{{ url_for('methods') }}">methodology and download the data</a>
+                in order to make your own findings.
+              </p>
+              <p>Credits / created by ...</p>
+            </div>
+          </div>
+          
+
+
+    <div id="footer">
+        <div id="footer-text">
+            <p><a target = "_blank" href="https://miurban.uchicago.edu/">Mansueto Institute for Urban Innovation</a></p>
+        </div>
+    </div>  
+
+   
+    <!-- js for bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" ></script>
+
+    <script src="{{ url_for('static', path='main.js') }}"></script>
+    </body>
+    </html>
