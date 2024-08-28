@@ -21,7 +21,6 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100%;
 }
 
 #nav {
@@ -69,12 +68,16 @@ button {
 
 #map-system,
 #methods-img,
-#analysis-img {
+#analysis-header-img {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: auto;
   width: 25%;
+}
+
+.analysis-img {
+  width: 100%;
 }
 
 #methods-img {

@@ -4,11 +4,43 @@
   <img
     src="{{ url_for('static', path='img/analysis.png') }}"
     alt="Manseuto Institute Logo"
-    id="analysis-img"
+    id="analysis-header-img"
   />
   <h1 class="text-center">Our Findings</h1>
 
   <hr />
-  <div class="body-container text-left"></div>
+  <div class="body-container text-left">
+    <p class="mb-5">
+      In out analysis, we found that the CTA has reduced scheduled service to
+      better align with actual service and that improvements to service were
+      disproportionately felt across Chicago’s community areas. Read the full
+      report
+      <a href="http://" target="_blank">here</a>. See below for some of the main
+      finding.
+    </p>
+
+    <h5 class="mb-3">
+      In 2023, schedules were <span style="color: #800000">reduced</span> to
+      match actual service which gives the appearance of
+      <span style="color: #38761d">improved</span> service.
+    </h5>
+    <div>
+      <img
+        src="{{ url_for('static', path='img/analysis1.png') }}"
+        alt=""
+        class="analysis-img"
+      />
+      <img
+        src="{{ url_for('static', path='img/analysis2.png') }}"
+        alt=""
+        class="analysis-img"
+      />
+    </div>
+    <h5 class="mb-3">
+      Improvements to service were disproportionately felt across Chicago’s
+      community areas.
+    </h5>
+    <p>TK</p>
+  </div>
 </div>
 {% endblock %}
