@@ -1,6 +1,6 @@
 {% extends "base.html" %} {% block content %}
 
-<div class="content-continer w-50">
+<div class="content-continer w-75">
   <img
     src="{{ url_for('static', path='img/analysis.png') }}"
     alt="Manseuto Institute Logo"
@@ -36,11 +36,79 @@
         class="analysis-img"
       />
     </div>
-    <h5 class="mb-3">
-      Improvements to service were disproportionately felt across Chicago’s
-      community areas.
+    <h5 class="mt-3 mb-3">
+      Scheduled service changes were not felt evenly across the city.
     </h5>
-    <p>TK</p>
+    <img
+      src="{{ url_for('static', path='img/analysis3.png') }}"
+      alt=""
+      class="analysis-img"
+    />
+
+    <div class="row">
+      <h5 class="col-sm align-middle m-auto">
+        Service decreased citywide from Nov 2022 to June 2023.
+      </h5>
+      <div class="col-sm">
+        <img
+          src="{{ url_for('static', path='img/analysis-map1.png') }}"
+          alt=""
+          class="analysis-img"
+        />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm">
+        <img
+          src="{{ url_for('static', path='img/analysis-map2.png') }}"
+          alt=""
+          class="analysis-img"
+        />
+      </div>
+      <h5 class="col-sm align-middle m-auto">
+        Service did not return citywide during schedules changes in March 2024.
+      </h5>
+    </div>
+
+    <hr />
+    <h3 class="mt-4 mb-3 text-center">Summary Metrics</h3>
+    '
+    <h5 class="mt-3 mb-3">Median Time Until Next Bus in 2024</h5>
+    <div class="row">
+      <div class="col-sm m-auto">
+        <img
+          src="{{ url_for('static', path='img/analysis-metric1.png') }}"
+          alt=""
+          class="analysis-img"
+        />
+      </div>
+      <div class="col-sm">
+        <img
+          src="{{ url_for('static', path='img/analysis-metric2.png') }}"
+          alt=""
+          class="analysis-img"
+        />
+      </div>
+    </div>
+
+    <h5 class="mt-3 mb-3">Buses Per Capita in 2024</h5>
+    <div class="row mb-3">
+      <div class="col-sm m-auto">
+        <img
+          src="{{ url_for('static', path='img/analysis-metric4.png') }}"
+          alt=""
+          class="analysis-img"
+        />
+      </div>
+      <div class="col-sm m-auto">
+        <img
+          src="{{ url_for('static', path='img/analysis-metric3.png') }}"
+          alt=""
+          class="analysis-img"
+        />
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

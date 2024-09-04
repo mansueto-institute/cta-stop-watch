@@ -51,5 +51,10 @@
     <p>Credits / created by ...</p>
   </div>
 </div>
-
+{% endblock %} {% block underlay %}
+<img
+  src="{{ url_for('static', path='img/phoenix.svg') }}"
+  alt="uchi phoenix"
+  id="underlay"
+/>
 {% endblock %}

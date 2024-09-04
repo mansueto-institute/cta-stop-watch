@@ -129,3 +129,13 @@ a:hover {
   --bs-tooltip-bg: red;
   --bs-tooltip-color: white;
 }
+
+#underlay {
+  position: absolute;
+  bottom: -50%;
+  right: 0;
+  width: 50%;
+  height: 50%;
+  z-index: 1000;
+  opacity: 0.1;
+}
