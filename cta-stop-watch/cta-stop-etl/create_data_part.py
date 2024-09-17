@@ -1,8 +1,9 @@
-from datetime import timedelta, date
-import polars as pl
 import os
+from datetime import date, timedelta
 from pathlib import Path
+
 import duckdb
+import polars as pl
 
 dtype_map = {
     "vid": pl.UInt32,
@@ -36,7 +37,7 @@ def get_date_range(start: date, end: date, delta: timedelta):
 def download_full_day_csv_to_parquet(
     start: date, end: date, delta: timedelta, out_path: Path
 ):
-    URL_HEAD = "https://dmu5hq5f7fk32.cloudfront.net/bus_full_day_data_v2/"
+    URL_HEAD = "gs://miurban-dj-public/cta-stop-watch/full_day_data/"
     os.makedirs(out_path, exist_ok=True)
     for day in get_date_range(start, end, delta):
         day_f = day.strftime("%Y-%m-%d")
@@ -49,7 +50,7 @@ def download_full_day_csv_to_parquet(
         try:
             print(url_day)
             df = pl.read_csv(url_day, dtypes=dtype_map)
-        except Exception as e:
+        except Exception:
             print(f"No data for {day_f}")
         df.write_parquet(out_path / day_parquet)
 
@@ -68,13 +69,11 @@ def save_partitioned_parquet(out_file: str):
 
 
 def full_download(start: str = "2023-1-1", end: str = "2024-12-31"):
-    
-
-    start = start.split('-')
-    end = end.split('-')
+    start = start.split("-")
+    end = end.split("-")
     start = date(year=int(start[0]), month=int(start[1]), day=int(start[2]))
     end = date(year=int(end[0]), month=int(end[1]), day=int(end[2]))
- 
+
     delta = timedelta(days=1)
     folder_path = Path("out/parquets/")
     out_file = "out/cta_bus_full_day_data_v2.parquet"

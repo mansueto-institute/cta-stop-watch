@@ -4,7 +4,7 @@ from datetime import date
 # Contants --------------------------------------------------------------------
 
 # urls
-s3_path = "s3://cta-stop-watch-bucket-do/cta-stop-watch-files"
+s3_path = "gs://miurban-dj-private/cta-stop-watch"
 
 
 # delete everything in the folder and then upload the new files
@@ -20,10 +20,10 @@ def store_folder_data(
     """
 
     if delete:
-        command = f"s3cmd del {s3_path}/{s3_location} --recursive"
+        command = f"gsutil -m rm -r {s3_path}/{s3_location}"
         subprocess.run(command, shell=True)
 
-    command = f"s3cmd put {folder_path}/* {s3_path}/{s3_location} --recursive"
+    command = f"gsutil mv -m {folder_path}/* {s3_path}/{s3_location}"
     # print(command)
     subprocess.run(command, shell=True)
 
@@ -38,10 +38,10 @@ def store_file(
     """
 
     if delete:
-        command = f"s3cmd del {s3_path}/{s3_location}"
+        command = f"gsutil rm {s3_path}/{s3_location}"
         subprocess.run(command, shell=True)
 
-    command = f"s3cmd put {file_path} {s3_path}/{s3_location}"
+    command = f"gsutil mv {file_path} {s3_path}/{s3_location}"
     subprocess.run(command, shell=True)
 
     return True

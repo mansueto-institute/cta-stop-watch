@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 # BUCKET_PRIVATE = os.getenv("PRIVATE", "miurban-dj-private")
 BUCKET_PUBLIC = os.getenv("PUBLIC", "miurban-dj-public")
 
-logger = logging.getLogger()
+# logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
 
 
@@ -83,12 +83,10 @@ def combine_daily_files(date: str, save: Optional[str] = None):
 
     if len(errors) > 0:
         if save == "bucket":
-            error_key = f"bus_full_day_errors_v2/{date}.csv"
+            error_key = f"cta-stop-watch/bus_full_day_errors_v2/{date}.csv"
             logging.info(f"saving errors to {bucket}/{error_key}")
-            bucket.put_object(
-                Body=errors.to_csv(index=False),
-                Key=error_key,
-            )
+            blob = bucket.blob(error_key)
+            blob.upload_from_string(errors.to_csv(index=False))
         if save == "local":
             local_filename = (
                 f"ghost_buses_full_day_errors_from_{bucket.name}_{date}.csv"
@@ -105,7 +103,7 @@ def combine_daily_files(date: str, save: Optional[str] = None):
         data["data_hour"] = data.data_time.dt.hour
         data["data_date"] = data.data_time.dt.date
         if save == "bucket":
-            data_key = f"full_day_data/{date}.csv"
+            data_key = f"cta-stop-watch/full_day_data/{date}.csv"
             logging.info(f"saving data to {bucket}/{data_key}")
             blob = bucket.blob(data_key)
             blob.upload_from_string(data.to_csv(index=False))
@@ -119,6 +117,16 @@ def combine_daily_files(date: str, save: Optional[str] = None):
     return data, errors
 
 
-def lambda_handler(event, context):
+def lambda_handler():
     date = pendulum.yesterday("America/Chicago").to_date_string()
     data, errors = combine_daily_files(date, save="bucket")
+
+    # for i in range(1,12):
+    #     date = (
+    #         pendulum.yesterday("America/Chicago") - pendulum.duration(days=i)
+    #     ).to_date_string()
+    #     data, errors = combine_daily_files(date, save="bucket")
+
+
+if __name__ == "__main__":
+    lambda_handler()

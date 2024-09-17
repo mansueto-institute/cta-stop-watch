@@ -1,13 +1,14 @@
-from datetime import timedelta, date
-import polars as pl
-import os
-from pathlib import Path
-import duckdb
-import requests
 import json
+import os
+from datetime import date, timedelta
+from pathlib import Path
+
+import duckdb
 import pandas as pd
-from utils import process_logger
+import polars as pl
+import requests
 from dotenv import load_dotenv
+from utils import process_logger
 
 STAGING_PATH = "data/staging"
 RAW_PATH = "data/raw_trips/"
@@ -45,7 +46,7 @@ def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
     """
     Download full day data from the CTA API and save as parquet
     """
-    URL_HEAD = "https://dmu5hq5f7fk32.cloudfront.net/bus_full_day_data_v2/"
+    URL_HEAD = "gs://miurban-dj-public/cta-stop-watch/full_day_data/"
 
     # TODO update paths
     out_staging_path = f"{STAGING_PATH}/days/"
