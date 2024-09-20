@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /bin/bash
 
-cd ~/projects/cta-stop-watch/cta-stop-watch/report_automation
-poetry run python -m main -p process
+cd /home/divijs_uchicago_edu/cta-stop-watch/cta-stop-watch/report_automation
+/home/divijs_uchicago_edu/cta-stop-watch/.venv/bin/python -m main -p process
