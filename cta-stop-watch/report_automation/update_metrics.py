@@ -138,24 +138,44 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         # prep schedule and actual
         metrics_logger.debug(f"Processing route {rt}")
         try:
+            print(f"create_trips_df for actual {rt}")
             actual_df = create_trips_df(rt=rt, is_schedule=False)
+
+        except Exception as e:
+            metrics_logger.info(f"issue with rt {rt}: {e}")
+            continue
+
+        print(f"create_route_metrics_df for actual {rt}")
+        route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
+
+        # write out to file
+        print(f"write df for actual for {rt}")
+        route_metrics_actual.write_parquet(
+            f"{OUT_DIR}/staging_actual/route{rt}_metrics_actual.parquet"
+        )
+
+        print(f"delete df for actual for {rt}")
+        del route_metrics_actual
+
+        try:
+            print(f"create_trips_df for schedule {rt}")
             schedule_df = create_trips_df(rt=rt, is_schedule=True)
         except Exception as e:
             metrics_logger.info(f"issue with rt {rt}: {e}")
             continue
 
-        # create the stop level data
-        route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
+        print(f"create_route_metrics_df for schedule {rt}")
         route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
+        # create the stop level data
 
         # write out to file
-        route_metrics_actual.write_parquet(
-            f"{OUT_DIR}/staging_actual/route{rt}_metrics_actual.parquet"
-        )
-
+        print(f"write df for schedule for {rt}")
         route_metrics_schedule.write_parquet(
             f"{OUT_DIR}/staging_sched/route{rt}_metrics_schedule.parquet"
         )
+
+        print(f"delete df for schedule for {rt}")
+        del route_metrics_schedule
 
         rts_count += 1
         if rts_count % 40 == 0:
