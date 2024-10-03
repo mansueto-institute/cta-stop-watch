@@ -2043,6 +2043,20 @@ files = [
 ]
 
 [[package]]
+name = "memory-profiler"
+version = "0.61.0"
+description = "A module for monitoring memory usage of a python program"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "memory_profiler-0.61.0-py3-none-any.whl", hash = "sha256:400348e61031e3942ad4d4109d18753b2fb08c2f6fb8290671c5513a34182d84"},
+    {file = "memory_profiler-0.61.0.tar.gz", hash = "sha256:4e5b73d7864a1d1292fb76a03e82a3e78ef934d06828a698d9dada76da2067b0"},
+]
+
+[package.dependencies]
+psutil = "*"
+
+[[package]]
 name = "mercantile"
 version = "1.2.1"
 description = "Web mercator XYZ tile utilities"
@@ -4603,4 +4617,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "176f9b7ac337f7a32e87355c68ac1a26f18fd7ba5e268e33bff2c79940281dfd"
+content-hash = "0f2d98e42035d79226d80bf2006eb39a27a893fcf4375d302b96f6a70b0c3d0f"

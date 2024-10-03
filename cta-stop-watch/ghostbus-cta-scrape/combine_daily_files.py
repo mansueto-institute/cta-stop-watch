@@ -121,11 +121,11 @@ def lambda_handler():
     date = pendulum.yesterday("America/Chicago").to_date_string()
     data, errors = combine_daily_files(date, save="bucket")
 
-    # for i in range(1,12):
-    #     date = (
-    #         pendulum.yesterday("America/Chicago") - pendulum.duration(days=i)
-    #     ).to_date_string()
-    #     data, errors = combine_daily_files(date, save="bucket")
+    # for i in range(9):
+    #    date = (
+    #        pendulum.yesterday("America/Chicago") - pendulum.duration(days=i)
+    #    ).to_date_string()
+    #    data, errors = combine_daily_files(date, save="bucket")
 
 
 if __name__ == "__main__":
