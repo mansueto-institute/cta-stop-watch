@@ -139,3 +139,7 @@ a:hover {
   z-index: 1000;
   opacity: 0.1;
 }
+
+.people-container .card {
+  border-width: 0
+}
