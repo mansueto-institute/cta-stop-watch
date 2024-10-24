@@ -31,6 +31,12 @@ def time_to_next_stop(
         ).over(pl.col("trip_id").rle_id())
     )
 
+    # convert duration to seconds as in interger
+    trips_df = trips_df.with_columns(
+        time_to_previous_stop=pl.col("time_to_previous_stop").dt.total_seconds(),
+        time_till_next_bus=pl.col("time_till_next_bus").dt.total_seconds(),
+    )
+
     trips_df = trips_df.with_columns(
         pl.col("time_to_previous_stop").fill_null(strategy="zero")
     )
