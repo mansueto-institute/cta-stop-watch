@@ -5,7 +5,7 @@ import gtfs_kit as gk
 import os
 import duckdb
 import numpy as np
-import urllib.request
+import requests
 from datetime import date
 from utils import metrics_logger
 
@@ -22,7 +22,9 @@ def download_current_feed() -> bool:
     today = str(date.today())
 
     URL = "https://www.transitchicago.com/downloads/sch_data/google_transit.zip"
-    urllib.request.urlretrieve(URL, f"data/staging/timetables/feed_{today}.zip")
+
+    r = requests.get(URL, allow_redirects=True)
+    open(f'data/staging/timetables/feed_{today}.zip', 'wb').write(r.content)
 
     return True
 
