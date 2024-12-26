@@ -16,6 +16,7 @@ env.py
 */bus_report_cards/data/*
 domain.*
 nohup.out
+*/analysis/map_data/*
 
 
 

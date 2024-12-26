@@ -169,7 +169,6 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
             f"{OUT_DIR}/staging_sched/route{rt}_metrics_schedule.parquet"
         )
 
-
         del route_metrics_schedule
 
         rts_count += 1
@@ -195,9 +194,6 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
-
-    stop_metrics_pd = stop_metrics.to_pandas()
-    stop_metrics_pd.to_csv(f"{OUT_DIR}/stop_metrics_df.csv", index=False)
 
     # metric states after
     mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
