@@ -1,39 +1,56 @@
 .
-└── cta-stop-watch
-    ├── __pycache__
-    ├── analysis
-    │   └── data
-    ├── cta-stop-etl
-    │   ├── __pycache__
-    │   └── out
-    │       ├── clean_timetables
-    │       ├── parquets
-    │       ├── patterns_current
-    │       ├── patterns_historic
-    │       ├── patterns_raw
-    │       ├── pids
-    │       ├── qc
-    │       ├── timetables_raw
-    │       └── trips
-    ├── deck_viz
-    ├── scrapers
-    │   ├── inp
-    │   │   └── historic_gtfs
-    │   └── out
-    │       └── gtfs
-    ├── scratch
-    ├── shapefiles
-    │   └── CTA_BusStops
-    ├── spatial
-    └── visualizations
-        └── accessibility
-            ├── __pycache__
-            ├── maps
-            │   └── communities
-            │       ├── red_green
-            │       └── summer
-            └── out
-                ├── communities
-                └── stops_parquets
+├── cta-stop-watch
+│   ├── analysis
+│   │   ├── data
+│   │   └── map_data
+│   ├── archive
+│   │   ├── accessibility
+│   │   ├── analysis_archive
+│   │   ├── cta-stop-etl
+│   │   │   └── out
+│   │   │       ├── clean_timetables
+│   │   │       ├── parquets
+│   │   │       ├── patterns_current
+│   │   │       ├── patterns_historic
+│   │   │       ├── patterns_raw
+│   │   │       ├── pids
+│   │   │       ├── qc
+│   │   │       ├── timetables_raw
+│   │   │       └── trips
+│   │   ├── deck_viz
+│   │   ├── scrapers
+│   │   │   ├── inp
+│   │   │   │   └── historic_gtfs
+│   │   │   └── out
+│   │   │       └── gtfs
+│   │   ├── scratch
+│   │   ├── shapefiles
+│   │   │   └── CTA_BusStops
+│   │   └── spatial
+│   ├── bus_report_cards
+│   │   ├── static
+│   │   │   └── img
+│   │   └── templates
+│   ├── ghostbus-cta-scrape
+│   ├── git-issues-review
+│   └── report_automation
+│       └── data
+│           ├── clean_timetables
+│           ├── metrics
+│           │   ├── staging_actual
+│           │   └── staging_sched
+│           ├── patterns
+│           │   ├── patterns_current
+│           │   └── patterns_raw
+│           ├── processed_by_pid
+│           ├── qc
+│           ├── raw_trips
+│           └── staging
+│               ├── days
+│               ├── pids
+│               ├── timetables
+│               │   └── current_timetables
+│               └── trips
+└── scripts
 
-36 directories
+54 directories

@@ -1,5 +1,5 @@
-*/cta-stop-etl/out/*/*
-*/cta-stop-etl/out/*.parquet
+*/archive/cta-stop-etl/out/*/*
+*/archive/cta-stop-etl/out/*.parquet
 .env
 .DS_Store
 __pycache__/
@@ -8,9 +8,9 @@ env.py
 *.log
 */analysis/out/
 */analysis/data/*
-*/scrapers/inp/*/*
-*/scrapers/inp/*.zip
-*/scrapers/out/*/*
+*/archive/scrapers/inp/*/*
+*/archive/scrapers/inp/*.zip
+*/archive/scrapers/out/*/*
 */report_automation/data/*
 !.gitkeep
 */bus_report_cards/data/*
