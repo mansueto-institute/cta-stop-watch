@@ -81,7 +81,7 @@ To calculate the metrics, we:
 2. Calculated the median, mean, standard deviation, max, min, 25th quartile, and 75th quartile for each metric  
 3. Aggregated to the route and community area level for varying time periods by finding the weighted median value of the metric for each stop using the number of buses that pass each bus stop in the aggregation unit  
 
-For further details on the project data and methodology, consult the [full report](link) or the [code repo](link).
+For further details on the project data and methodology, consult the [full report](https://bit.ly/MansuetoStopWatch).
 
 See [project_history.md](project_history.md) for a history of the start of the project.
 
