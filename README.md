@@ -1,119 +1,86 @@
-# Measuring CTA bus service
- 
+# StopWatch
 
-## Background
+## Overview
 
-The goal for this project is to inform reporting on the quality of bus service across Chicago's neighborhoods over time in a way that is intuitive and captures the lived reality of people who regularly rely on the CTA. The ideal analysis will measure service quality at the bus-stop level and report the number of buses that pass within a 5 minute time frame as well as the amount of time that passed between each bus. 
+The goal of this project is to understand how bus service reliability changed over time in the city of Chicago after the disruptions of the COVID-19 pandemic and across the city’s community areas. To address our research questions, we built a novel, comprehensive data set showing the actual arrival time of each bus at every bus stop in Chicago from June 2022 to July 2024. In addition, we processed schedule data to compare actual performance to planned service. With this data, we computed several metrics to assess the reliability and accessibility of bus service. Our results showed that the CTA initially decreased scheduled service in early 2022 through 2023 to  match the slower real-time performance and later increased it in early 2024. However, these changes were not uniformly felt across Chicago’s community areas. Along with our analysis, we published the bus data sets and created Bus Report Cards — an interactive platform with indicators at the community, route, and bus stop level. These products will be updated through an automated pipeline, which can be consulted in the open-source code repository of this project.
 
-The research should incorporate analytics for different time windows (weekdays, weekends, rush hour, month, day of week, month, season, year) and geographic groupings such as community area, ward, Census tract / block group, citywide, and groupings based on demographics (i.e, plurality race / ethnicity, median household income buckets, fraction of residents who commute to work on public transit). 
+View the project online at https://ctastopwatch.miurban-dashboards.org/
 
-### Potential research questions
-* How does bus service vary across community areas, demographic groupings, and socioeconomic levels? Do more well-off neighborhoods get better service? Are neighborhoods most reliant on the CTA most likely to get lower quality service (use Census ACS commuter data)?
-* Has service improved or worsened in different parts of the city? What is the most reliable and least reliable area for CTA service? When CTA is needed most (during rush hour), does it deliver?
-* How does actual service compare to the scheduled level of service available in the GTFS? Have service cuts (reflected in newer versions of the GTFS) created the appearance of improved performance? Where does the CTA over or under-perform relative to the scheduled times?
-* Some other questions:
-	* What is the effect of dedicated bus lanes on CTA bus reliability? 
-	* Is there a relationship between bus service quality and ridership level? How well does supply of buses align with demand in terms of [daily route ridership](https://data.cityofchicago.org/Transportation/CTA-Ridership-Bus-Routes-Daily-Totals-by-Route/jyb9-n7fm/about_data)?
-	* Are traffic conditions to blame for suboptimal CTA performance? 
-	* How realistic are the CTA schedules (are time estimates in the GTFS too optimistic)?
-	* How significant is bus bunching as a source of delays?
- 	* Does [Uber and Lyft traffic](https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Trips-2023-/n26f-ihde/about_data) correlate with slower bus times?
-  	* Some research shows that CTA has shorter [bus stop spacing](https://findingspress.org/article/27373-distributions-of-bus-stop-spacings-in-the-united-states) compared to most other cities. Does the shorter distance between bus stops correlate with reduced bus service quality?
-	
-## Methodology and data overview
+## Techincal Details
 
-### CTA bus data engineering
-* **Download all data from Ghost Buses S3 bucket:** Daily snapshots of the CTA vehicles feed are available from S3 from 2022-05-20 to current. Please refer to the [ChiHackNight Ghost Buses repo](https://github.com/chihacknight/chn-ghost-buses/blob/main/data_analysis/README.md#accessing-data-in-s3) for more information about accessing the files. When developing the workflow be sure to make the process repeatable since future collaborators may want to periodically run the pipeline to update the analysis with more recent data. To combine and store the daily snapshots use Python `polars` [scan_csv()](https://docs.pola.rs/py-polars/html/reference/api/polars.scan_csv.html) and [sink_parquet](https://docs.pola.rs/py-polars/html/reference/api/polars.LazyFrame.sink_parquet.html) operations to write the files. The original source of the S3 is the [CTA Bus Tracker API feed](https://www.transitchicago.com/developers/bustracker/).
-* **Transform S3 data from vehicle position level to the bus stop level:** @divij-sinha is currently developing a process to convert the raw S3 data to a more analysis-ready format in the folder [cta-stop-etl](https://github.com/mansueto-institute/cta-stop-watch/cta-stop-etl). This process involves transforming the raw S3 data which represents 5 minute snapshots of every bus in the CTA system to a target format that will consist of one row for every time a bus passes a bus stop with columns representing the time since the last bus passed. So for instance, if two buses pass a stop within a 5 minute snapshot, there will be two rows, each listing the estimated time the first bus passed and the estimated time since the last bus. There are several reasons why this transformation is necessary, namely it will allow us to report wait times and number of buses per 5 minutes. Performance metrics derived from this format will be easier for the layperson to understand and easier to localize than bus positions.
+This project contains: 
 
-### GTFS data engineering
-* **Compile archival GTFS feeds:** A General Transit Feed Specification (GTFS) is an open data standard used to distribute relevant information about transit systems. GTFS feeds contain information about routes, schedules, fares, and geographic transit details, and it is presented in simple text files. When CTA changes their schedule,they push updates to the GTFS feed so its important to incorporate these changes when comparing GTFS data with the real time CTA API data. There are a number of sources for GTFS data, including: [official CTA developer page](https://www.transitchicago.com/developers/gtfs/) / [CTA FTP](https://www.transitchicago.com/downloads/sch_data/),  [Transit Land](https://www.transit.land/feeds/f-dp3-cta#versions) archive, [Mobility Database](https://mobilitydatabase.org/), [Transit Feeds](https://transitfeeds.com/p/chicago-transit-authority/165) archive. Review these sources and compile all available feeds for the CTA since 2022-05-20. An alternative to GTFS data that may be useful is available via the CTA Bus Tracker APIs [getpatterns](https://www.transitchicago.com/assets/1/6/cta_Bus_Tracker_API_Developer_Guide_and_Documentation_20160929.pdf#page=20) request which returns geo-positional points and stops that when connected can be used to construct the geo-positional layout of a pattern for each route. However these patterns only represent the current snapshot of routes.
-* **Develop benchmarks based on GTFS schedules:** The CTA data provides estimates of actual bus times and number of trips. However, it may be useful to compare the actual times to the official expected times in the CTA schedule via the published GTFS feed. To compare performance to these time benchmarks it is necessary to process the GTFS data. There are two options. First, there is a chihacknight repo with a script [static_gtfs_analysis.py](https://github.com/chihacknight/chn-ghost-buses/blob/main/data_analysis/static_gtfs_analysis.py) to calculate the scheduled number of current active trips given a date, time, and route. The second option is more advanced and uses the R⁵ (Rapid Realistic Routing on Real-world and Reimagined networks) routing engine to build detailed itineraries or travel time matrices between any set of origin and destination points following the GTFS feed parameters. There is an R wrapper for r5 called [r5r](https://ipeagit.github.io/r5r/) and a Python wrapper called [r5py](https://r5py.readthedocs.io/en/stable/).
+1. Building upon the work of [Chi Hack Night Ghost Bus project](https://github.com/chihacknight/chn-ghost-buses), the Manseuto Institute has taken over the implementation of maintenance of the data and data pipelines created by Ghost Buses. The code for this pipeline can be found in `ghostbus-cta-scrape/`
 
+1. **Processed Actual Bus Service Data Set** - Using real time bus location scrapped every 5 minutes from the [CTA bus tracker API](https://www.transitchicago.com/developers/bustracker/), we have created a bus stop level dataset of actual service for the CTA starting June 2022 building off the work of [Chi Hack Night Ghost Bus project](https://github.com/chihacknight/chn-ghost-buses). This pipeline currenly runs daily and the processsed data can be found [here for download](link). The code for this pipeline code can be found in `report_automation/`. See [methods] for more information.
 
-### Links to Data
+1. **Summary Metrics** - Using both the historic real-time bus location and the historic schedule data bus stop level, we calculated the a set of metrics for different time periods, including hour of the day, day of the week, week of the year, month of the year, year, week for each given year and month for each given year. These summary metrics are used for the Bus Report Cards on the web app. Download the most recently metrics [here](). The code for the metrics creation can be found in `report_automation/`. See [methods] for more information.
 
- - `2023_cta_bus_full_day_v2.parquet` - The combined raw chi-hack-knight data for 2023 full year
- - [`pids/`](https://uchicago.box.com/s/sa4ofy1l2ainrzk635p0mk8dwkxg7p9v) - Folder with one parquet file for each "pattern" route. A pattern is a specific route configuration (e.g. "Southbound 6 2022 August onwards" etc.)
+1. **Bus Stop Report Cards Web App** - A FastAPI app that includes an interactive Tableau dashboard with indicators at the community, route and bus stop level to allow riders to explore relevant metrics about the stops and routes that they use. The report cards will update monthly with up to date metrics. Access the web app [here](https://ctastopwatch.miurban-dashboards.org/). The code for the web app can be found in `bus_report_cards/`.
 
-### Analysis and reporting
-* **Create time interval columns:** Once the analytical tables are ready add categorical time windows to group the data for different reporting periods and to enable time series analysis. These might consist of weekdays, weekends, rush hour, month, day of week, month, season, year.
+1. **Bus Service Analysis** - A first analysis found that the CTA initially decreased scheduled service in early 2022 through 2023 to  match the slower real-time performance and later increased it in early 2024. However, these changes were not uniformly felt across Chicago’s community areas. Notebooks for the analysis can be found in `analysis/`
 
-* **Spatially join geographic boundaries:** As part of the analysis it is necessary to add different geographic units for reporting aggregate measures. This requires downloading spatial boundaries from various sources such as the Chicago Data Portal or the Census, and using R [sf](https://r-spatial.github.io/sf/) or Python [geopandas](https://geopandas.org/en/stable/) to spatially join the files to the bus stop or vehicle positions by encoding those latitudes and longitudes as point geometries. Here are links to relevant spatial boundaries to incorporate into the analysis: [community areas](https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Community-Areas-current-/cauq-8yn6), [downtown CBD](https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Central-Business-District/tksj-nvsw), [wards](https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Wards-2023-Map/cdf7-bgn3), [ward-precincts](https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Ward-Precincts-2023-/6piy-vbxa/about_data), [CTA statutory service area](https://data.cityofchicago.org/Facilities-Geographic-Boundaries/CTA-Statutory-Service-Area/duu3-nb8k). 
+Lastly, `git-issues-review/` contains exploratory analysis of bugs and improvement for the projects as documented [here](https://github.com/mansueto-institute/cta-stop-watch/issues).
 
-* **Join Census ACS data:** The [tidycensus R package](https://walker-data.com/tidycensus/index.html) is a relatively easy way to retrieve ACS data for 'block group' or 'tract' geometries in Cook County. After downloading the data, construct labels for each 'block group' or 'tract' for concepts like plurality race; majority Black, Latino, white, Asian, or other; buckets for different median household income levels, and a categorical grouping for what proportion of the tract's commuter population relies on public transit. Below is code snippet for downloading 'block group' spatial boundaries and population, median household income, housing value, housing cost, owner-occupancy, fraction of residents that use public transit, and race / ethnicity. A more extensive example of downloading and processing Census data then joining it to community areas is available in [this script](https://github.com/mansueto-institute/housing-transit-patterns/blob/main/iso-dev-viz.R).
-	```
-	library(tidyverse)
-	library(tidycensus)
-	# List of ACS relevant data series
-	data_series <- c('B01003_001', 'B25001_001', 'B25071_001', 'B25077_001', 'B19013_001', 'B25106_001', 'B25106_002', 'B25106_024', 'B03002_003', 'B03002_004', 'B03002_005', 'B03002_006', 'B03002_007', 'B03002_008', 'B03002_009', 'B03002_012', 'B08301_001', 'B08301_010', 'B08301_011')
-	# Data dictionary
-	census_data_dict <- load_variables(year = 2022, dataset = c('acs5'), cache = FALSE)
-	# Download data
-	data <- get_acs(year = 2022, geography = "block group", survey = 'acs5', variables = data_series, cache_table = TRUE, state = '17', county = '031', geometry = FALSE)
-	# Download boundaries
-	boundaries <- get_acs(year = 2022, geography = "block group", survey = 'acs5', variables = 'B01003_001', cache_table = TRUE, state = '17', county = '031', geometry = TRUE)
-	```
+### Methods
 
-## Workflow diagram
-```mermaid
-graph LR
-A(Ghost Buses S3 data directory)
-B(Combined S3 data as Parquet)
-A -- Combine files --> B
-C(Bus stop Parquet)
-B -- cta-stop-etl --> C
-C -- Encode to point geometries --> D(Bus stop GeoParquet)
-J(GTFS archival feeds)
-K(Schedule for all stops)
-J -- extract with static_gtfs_analysis.py or run r5 --> K
-K --> D 
-R(Community areas)
-S(Downtown CBD)
-T(Wards)
-U(CTA statutory service area)
-V(Census ACS data)
-W(Spatial join)
-R --> W
-S --> W
-T --> W
-U --> W
-V --> W
-W --> D
-D --> Z
-Z(Analytical dataframe)
-style A fill:#eba8d3
-style B fill:#eba8d3
-style C fill:#eba8d3
-style J fill:#f7f5eb
-style K fill:#f7f5eb
-style Z fill:#ADD8E6
-style D fill:#b1d8b7
-style R fill:#FF9671
-style S fill:#FF9671
-style T fill:#FF9671
-style U fill:#FF9671
-style V fill:#FF9671
-style W fill:#00C2A8
-```
+The Mansueto StopWatch is centered around the bus stop. We picked this unit of analysis since it constitutes the main point of contact between users and bus service: the stop is where users wait for the bus and it determines how close the service is from their trip origin and destination. Since there is no public data that precisely shows when a bus stopped at a bus stop, our first and major technical challenge was to build such a dataset. This would then be the building block for the aggregated metrics. To produce the dataset, we took a variety of steps to process and merge several data sources, such as community, bus stop and route shapefiles, historic bus location pings, and the historic bus schedule data.
 
-## Caveats and disclaimers
+For the breakdown of how we process these inputs, we follow the terminology used by the [CTA API documentation](https://www.transitchicago.com/assets/1/6/cta_Bus_Tracker_API_Developer_Guide_and_Documentation_20160929.pdf):
 
-#### **Ghost Buses background:** 
-[Project website](https://ghostbuses.com/methods) and background on methods, the [repo](https://github.com/chihacknight/chn-ghost-buses), and see this [Git Issue](https://github.com/chihacknight/breakout-groups/issues/217) about the state of development on the project. ChiHackNight presentations on Jan 16, 2024  and on Nov 13, 2022. 
-#### **Caveats from the developers of Ghost Buses:**
-* Universe of routes was last updated in Spring 2022 so new route IDs might not be in the data.
-* Data for the 74 Fullerton route is unreliable and should be dropped.
-* Recommend dropping data for days when the schedule changes (so the day a new GTFS feed is switched over).
-* Because the data is based on GPS devices, which can fail or break, consider adding data checks to exclude unrealistic results that do not comport with expectations.
-* Develop automated checks to reconcile that all bus IDs are accounted for, for instance,  the trip ID was missing for a small number of trips on the 66 Chicago Bus. This was only listed as a series of asterisks like ********. 
-#### **CTA 'L' data:**
-A separate project that tracks the CTA ‘L’ data is from Brian McFadden. Here is his [API](https://brandonmcfadden.com/transit-api) and [dashboard](https://brandonmcfadden.com/cta-reliability). 
+- **Route**: A collection of patterns  
+- **Pattern**: One possible set of stops that a bus can travel on  
+- **Trip**: For a given pattern, a bus's journey from the first stop to the last stop  
 
-## Prior articles
-* [CTA FOIA Archive](https://github.com/nikhunder/CTA-FOIA) and [more FOIA data here](https://www.moomers.org/foia/)
-* [CTA said more train service would be coming. Most riders will have to wait longer for that to happen.](https://web.archive.org/web/20240410014605/https://www.chicagotribune.com/2024/04/08/cta-new-train-schedules/)
-* [After pandemic cuts, CTA will start running more buses on some routes](https://web.archive.org/web/20240410171716/https://www.chicagotribune.com/2024/03/20/cta-bus-service/)
-* [CTA unveils $2 billion budget that aims to draw back riders, address employee shortages](https://web.archive.org/web/20240307171109/https://www.chicagotribune.com/2023/10/19/cta-unveils-2-billion-budget-that-aims-to-draw-back-riders-address-employee-shortages/)
-* [CTA Brown, Orange Line schedules down more than 25%, even as other cities rebuild transit levels](https://web.archive.org/web/20240410171656/https://www.chicagotribune.com/2023/10/10/cta-brown-orange-line-schedules-down-more-than-25-even-as-other-cities-rebuild-transit-levels/)
-* [Unreliable CTA service is a frustration for riders. It’s also costing Chicago.](https://web.archive.org/web/20240307172959/https://www.chicagotribune.com/2023/04/24/unreliable-cta-service-is-a-frustration-for-riders-its-also-costing-chicago/)
+We began with over 110 million real-time bus locations from June 1, 2022, to July 28, 2024, as provided by the [Chi Hack Night Ghost Bus](https://github.com/chihacknight/chn-ghost-buses) project. These bus locations are real-time data from the [CTA bus tracker API](https://www.transitchicago.com/developers/bustracker/) `get vehicles` feed, which stores real-time data queried every five minutes. Each bus location ping includes metadata such as vehicle number, route, pattern ID, and a trip ID. Due to the lack of uniqueness of the existing trip ID provided, we created a unique trip ID to group a collection of bus locations together. Each trip represents a specific bus on a specific pattern and route at a certain time of the day (e.g., bus with vehicle ID 4654 traveling northbound on pattern 1456 on route 6 on June 30, 2023). While this method is not perfect, this new trip ID allows us to group bus pings into one trip, facilitating analysis of service reliability. Using this method, we identified 10,235,984 unique trips in the original dataset. For our analysis, it was necessary to transform the raw bus location data into the desired bus stop view. The original data represents 5-minute snapshots of every bus in the CTA system, which was converted to the times that each bus passes a bus stop using imputation. For example, if two buses pass a stop within a 5-minute snapshot, there will be two rows, each listing the estimated time the first bus passed a stop and the estimated time since the last bus. This transformation is necessary as it allows us to derive performance metrics that are more interpretable and easier to localize than bus positions.
+
+To do this, we:  
+
+1. Determined the bus stops for a particular trip by using the pattern ID and bus stop locations as provided by the CTA  
+2. Combined bus locations and stop locations for a trip spatially  
+3. Removed bus locations that were not on route  
+4. Interpolated the time a bus arrived at a bus stop by using the time and distance between bus locations and the distance from bus stops between the bus locations  
+
+We then processed historic schedules of bus service to contrast it with the actual service provided. For this purpose, we used [General Transit Feed Specification (GTFS)](https://gtfs.org/) data. The CTA only allows for the download of the current schedule, which was an obstacle considering that we planned to evaluate bus service going back to June 2022. However, [Transit.land](https://www.transit.land/feeds/f-dp3-cta), an open data platform that collects GTFS data, maintains a historic archive of all feeds. Historic feeds back to May 2022 were downloaded. Schedules were recreated from this historic GTFS data using [GTFS Kit](https://github.com/mrcagney/gtfs_kit), an open-source Python library to work with GTFS data.
+
+In addition to bus pings and schedules, the analysis relies on shapefiles of three main units of analysis: community areas, bus stops, and routes. These shapefiles are mainly used for visualizations and for spatial operations. More specifically, we performed point-in-polygon operations to aggregate service performance metrics at the community level—by identifying the bus stops that serve each of the 77 community areas. Up-to-date shapefiles are available at the [Chicago Data Portal](https://data.cityofchicago.org/) for the following spatial units:  
+
+- [Routes](https://data.cityofchicago.org/Transportation/CTA-Bus-Routes-Shapefile/d5bx-dr8z)  
+- [Bus stops](https://data.cityofchicago.org/Transportation/CTA-Bus-Stops-Shapefile/pxug-u72f/about_data)  
+- [Community areas](https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Community-Areas-current-/cauq-8yn6)  
+
+Using both the historic real-time bus location and the historic schedule data at the bus stop level, we calculated the following metrics for different time periods (including hour of the day, day of the week, week of the year, month of the year, year, week for each given year, and month for each given year).  
+
+#### Metrics include:  
+
+- **Time to next bus stop**  
+  - Given a bus is at a bus stop, the time until the next bus on the same route arrives.  
+
+- **Excess Time to Next Bus**  
+  - The actual time to next bus minus the scheduled time to next bus.  
+
+- **Trip Duration**  
+  - The time difference between the first and last stop.  
+
+- **Trip Delay**  
+  - The actual trip duration minus the scheduled trip duration.  
+
+- **Number of buses**  
+  - How many buses passed a bus stop in each time interval.  
+
+- **Excess number of buses**  
+  - Actual number of buses in each time interval minus scheduled number of buses.  
+
+To calculate the metrics, we:  
+
+1. Filtered to only trips with stops between 6am and 8pm  
+2. Calculated the median, mean, standard deviation, max, min, 25th quartile, and 75th quartile for each metric  
+3. Aggregated to the route and community area level for varying time periods by finding the weighted median value of the metric for each stop using the number of buses that pass each bus stop in the aggregation unit  
+
+For further details on the project data and methodology, consult the [full report](link) or the [code repo](link).
+
+See [project_history.md](project_history.md) for a history of the start of the project.
+
+### Implementation Details
+
+We recommend installing poetry https://python-poetry.org and then running `poetry install` to install the dependencies for the project
