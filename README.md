@@ -10,7 +10,7 @@ View the project online at https://ctastopwatch.miurban-dashboards.org/
 
 This project contains: 
 
-1. **Scrapping Realtime Bus Locations** Building upon the work of [Chi Hack Night Ghost Bus project](https://github.com/chihacknight/chn-ghost-buses), the Manseuto Institute has taken over the implementation of maintenance of the data and data pipelines created by Ghost Buses which scrapes real-time bus location data from the CTA bus tracker API get vehicles feed every five minutes. Files of daily locations can be found [here](link). The code for this pipeline can be found in `ghostbus-cta-scrape/`. 
+1. **Scrapping Realtime Bus Locations** - Building upon the work of [Chi Hack Night Ghost Bus project](https://github.com/chihacknight/chn-ghost-buses), the Manseuto Institute has taken over the implementation of maintenance of the data and data pipelines created by Ghost Buses which scrapes real-time bus location data from the CTA bus tracker API get vehicles feed every five minutes. Files of daily locations can be found [here](link). The code for this pipeline can be found in `ghostbus-cta-scrape/`. 
 
 2. **Processed Actual Bus Service Data Set** - Using real time bus location scrapped every 5 minutes from the [CTA bus tracker API](https://www.transitchicago.com/developers/bustracker/), we have created a bus stop level dataset of actual service for the CTA starting June 2022 building off the work of [Chi Hack Night Ghost Bus project](https://github.com/chihacknight/chn-ghost-buses). This pipeline currenly runs daily and the processsed data can be found [here for download](link). The code for this pipeline code can be found in `report_automation/`. See [methods] for more information.
 
