@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Steinhart"
+    given-names: "Austin"
+  - family-names: "Medina Rosales"
+    given-names: "Regina Isabel"
+  - family-names: "De Leon"
+    given-names: "Joseph"
+  - family-names: "Sinha"
+    given-names: "Divij"
+title: "Mansueto StopWatch"
+version: 1.0.0
+identifiers:
+  - type: doi
+    value: 
+date-released: 2025-01-01
+url: https://github.com/mansueto-institute/cta-stop-watch/tree/main
