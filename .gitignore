@@ -17,7 +17,7 @@ env.py
 domain.*
 nohup.out
 */analysis/map_data/*
-
+*/report_automation/config.json
 
 
 # R files ---------------------------------------------------------------------
@@ -71,3 +71,4 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
