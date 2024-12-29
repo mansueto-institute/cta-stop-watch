@@ -74,6 +74,7 @@ button {
   align-items: center;
   margin: auto;
   width: 25%;
+  margin-bottom: 10px;
 }
 
 .analysis-img {
@@ -141,5 +142,5 @@ a:hover {
 }
 
 .people-container .card {
-  border-width: 0
+  border-width: 0;
 }

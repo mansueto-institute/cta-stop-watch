@@ -9,52 +9,29 @@
   <div class="header-container position-relative text-center">
     <h2>
       <span class="sw-title">Stop</span
-      ><span style="font-weight: 600">Watch</span>: Exploring Bus Service in
+      ><span style="font-weight: 600">Watch</span>: <br>Exploring Bus Service in
       Chicago
     </h2>
   </div>
   <hr />
   <div class="body-container text-left">
     <p>
-      The Mansueto StopWatch — part of the
-      <a
-        href="https://miurban.uchicago.edu/opportunities/local-data-journalism-initiative/"
-        >2024 Mansueto Data Journalism Initiative</a
-      >
-      — investigates Chicago Transit Authority (CTA) bus service after the
-      COVID-19 pandemic disruptions. The StopWatch analyzes historic real time
-      bus location data as collected by
-      <a href="https://ghostbuses.com/">Chi Hack Night Ghost Bus</a> since May
-      2022 to date. The goal was to understand how bus service changed in the
-      city of Chicago over time and across the city’s community areas.
-    </p>
-    <p>
-      As part of the StopWatch, the
-      <a href="{{ url_for('report') }}">Bus Report Cards</a> — an interactive
-      platform with indicators at the community, route and bus stop level x—
-      allow riders to explore relevant metrics about the stops and routes that
-      they use. The report cards will update monthly with up to date metrics.
-    </p>
-    <p>
-      Reviewing the real time bus locations as compared to the schedule, we
-      found that the CTA initially opted to decrease scheduled service to match
-      performance and then increased it, but these changes were
-      disproportionately felt across Chicago’s community areas. Read our
-      <a href="link">full report</a> to explore our methodology and additional
-      findings in depth.
-    </p>
-    <p>
-      Read more about our
-      <a href="{{ url_for('methods') }}">methodology and download the data</a>
-      in order to make your own findings.
-    </p>
-    <p>Credits / created by ...</p>
+      The Mansueto Institute's StopWatch tracks how bus service has changed in the city of Chicago after the COVID-19 pandemic. It includes <a href="{{ url_for('report') }}">Bus Report Cards</a>, an interactive platform that allows riders to compare bus service, including wait time and number of routes, across different neighborhoods. The key findings include: 
+      </p> 
+      
+      <ul>
+      <li>In 2023, the Chicago Transit Authority (CTA) decreased scheduled service to match actual service, giving the appearance of improved bus service.</li>
+      <li>At the start of 2024, the CTA increased service but these changes were disproportionately felt across Chicago’s community areas.
+      </li>
+      </ul>
+      </p>
+      <p>
+        Part of the <a target= "_blank" href="https://miurban.uchicago.edu/local-data-journalism_2024/">2024 Local Data Journalism Initiative</a>, this project is a collaboration between the University of Chicago's Mansueto Institute for Urban Innovation and the Chicago Tribune. The StopWatch analyzes a unique dataset of over 100 million real time bus location collected by <a target= "_blank" href = "https://ghostbuses.com/">Chi Hack Night Ghost Bus</a>. 
+      </p>
+       <p>
+      Visit the <a href="{{ url_for('methods') }}">data and methods </a> or read the <a href="link">full report</a> to learn more about the project.
+      </p>
+      
   </div>
 </div>
-{% endblock %} {% block underlay %}
-<img
-  src="{{ url_for('static', path='img/phoenix.svg') }}"
-  alt="uchi phoenix"
-  id="underlay"
-/>
 {% endblock %}
