@@ -8,6 +8,8 @@ The goal of this project is to understand how bus service reliability changed ov
 
 View the project online at https://ctastopwatch.miurban-dashboards.org.
 
+Read the project's report at https://bit.ly/MansuetoStopWatch.
+
 Learn more about the [Mansueto Institute of Urban Innovation](https://miurban.uchicago.edu/).
 
 ## Techincal Details
