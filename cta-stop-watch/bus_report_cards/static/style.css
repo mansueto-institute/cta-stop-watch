@@ -61,6 +61,10 @@ button {
   display: flex;
 }
 
+#nav-title img {
+  max-height: 50px;
+}
+
 .sw-title {
   color: var(--primary-color);
   font-weight: 700;
