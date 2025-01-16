@@ -1,23 +1,19 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-  - family-names: Berry
-    given-names: Christopher R. 
-  - family-names:Langowski
-    given-names: Eric
-  - family-names: Sinha
-    given-names: Divij
-  - family-names: Steinhart
-    given-names: Austin
-  - family-names: Medina Rosales
-    given-names: Regina Isabel
-  - family-names: De Leon
-    given-names: Joseph
+- family-names: "Berry"
+  given-names: "Christopher R." 
+- family-names: "Langowski"
+  given-names: "Eric"
+- family-names: "Sinha"
+  given-names: "Divij"
+- family-names: "Steinhart"
+  given-names: "Austin"
+- family-names: "Medina Rosales"
+  given-names: "Regina Isabel"
+- family-names: "De Leon"
+  given-names: "Joseph"
 title: "Mansueto Institute's StopWatch"
 version: 1.0.0
-identifiers:
-  - type: doi
-    value: 
-  - type: url 
-    value: https://github.com/mansueto-institute/cta-stop-watch
 date-released: 2025-01-16
+url: "https://github.com/mansueto-institute/cta-stop-watch"
