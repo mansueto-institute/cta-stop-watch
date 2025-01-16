@@ -87,6 +87,9 @@ For further details on the project data and methodology, consult the [full repor
 
 See [project_history.md](project_history.md) for a history of the start of the project.
 
-### Implementation Details
+## Implementation Details
 
 We recommend installing poetry https://python-poetry.org and then running `poetry install` to install the dependencies for the project
+
+## Suggested citation
+Berry, Christopher R., Eric Langowski, Divij Sinha, Austin Steinhart, Regina Isabel Medina Rosales, and Joseph De Leon. _Mansueto Institute’s StopWatch_. V. 1.0.0, January 2025. https://github.com/mansueto-institute/cta-stop-watch
