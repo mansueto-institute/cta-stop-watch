@@ -1,11 +1,15 @@
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+import logfire
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+
+logfire.configure()
+logfire.instrument_fastapi(app)
 
 app.mount(
     "/static",
