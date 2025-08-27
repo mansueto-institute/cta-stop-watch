@@ -3,10 +3,10 @@
 A pipeline to continuously process ghost bus data. Trips are currently being processed daily and metrics are recalculated at the beginning of the month.
 
 ### Recommended Setup
-1. Clone repo
-1. Install poetry 
-1. cd into repo and run `poetry install`
-1. cd to cta-stop-watch/cta-stop-watch/report_automation
+1. [Clone repo](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
+1. [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+1. `cd` into repo and run `uv sync`
+1. `cd` to `cta-stop-watch/cta-stop-watch/report_automation`
 1. Create an CTA Bus Tracker API Key [here](https://www.ctabustracker.com/home). Add the key as a variable in a `.env` file locally named in the format `BUS_API_KEY="[key]"`
 1. Add any raw pattern data already downloaded to `data/patterns_raw/`. 
     * Download our archive [here](https://cta-stop-watch-bucket-do.nyc3.cdn.digitaloceanspaces.com/cta-stop-watch-files/public/patterns_raw.zip).
