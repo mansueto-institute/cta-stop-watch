@@ -1,3 +1,4 @@
+# Imports ---------------------------------------------------------------------
 import json
 import logging
 import math
@@ -13,14 +14,32 @@ from google.cloud import storage
 # from dotenv import load_dotenv
 # load_dotenv()
 
+# Logger ----------------------------------------------------------------------
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Constants -------------------------------------------------------------------
+
 BUCKET_PUBLIC = "miurban-test-bucket"
+API_KEY = os.environ.get("CHN_GHOST_BUS_CTA_BUS_TRACKER_API_KEY")
 
+# Functions -------------------------------------------------------------------
 
-def scrape(routes_df, url):
+def scrape(routes_df: pd.DataFrame, url:str) -> dict:
+    """
+    Query CTA API for location of buses of specified routes.
+
+    Args:
+        routes_df (df): Pandas DataFrame containing routes data
+        url (str): API endpoint URL
+
+    Returns:
+        A dictionary containing buses data
+    """
+
     bus_routes = routes_df  # [routes_df.route_type == 3]
+
     response_json = json.loads("{}")
     for chunk in range(math.ceil(len(bus_routes) / 10)):
         chunk_routes = routes_df.iloc[
@@ -41,18 +60,23 @@ def scrape(routes_df, url):
 
 
 @functions_framework.cloud_event
-def lambda_handler(event):
-    API_KEY = os.environ.get("CHN_GHOST_BUS_CTA_BUS_TRACKER_API_KEY")
+def lambda_handler() -> None:
+    """
+    Handle bucket connections and requests for CTA API.
+    """
+
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_PUBLIC)
-    logger.info("Hitting API")
     api_url = (
         f"http://www.ctabustracker.com/bustime/api" f"/v2/getvehicles?key={API_KEY}"
     )
 
     routes_df = pd.read_csv("gs://miurban-test-bucket/routes.csv")
     logger.info("Loaded routes df")
+
+    logger.info("Hitting API")
     data = json.dumps(scrape(routes_df, api_url))
+
     logger.info("Saving data")
     t = pendulum.now("America/Chicago")
     key = f"bus_data/{t.to_date_string()}/{t.to_time_string()}.json"
@@ -60,6 +84,9 @@ def lambda_handler(event):
     blob = bucket.blob(key)
     blob.upload_from_string(data)
 
+# Implementation --------------------------------------------------------------
 
 if __name__ == "__main__":
     lambda_handler(None)
+
+# EOF. ------------------------------------------------------------------------

@@ -1,3 +1,5 @@
+# Imports ---------------------------------------------------------------------
+
 import json
 import logging
 import os
@@ -11,22 +13,29 @@ from google.cloud import storage
 # from dotenv import load_dotenv
 # load_dotenv()
 
+# Logger ----------------------------------------------------------------------
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+# logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
+
+# Constants -------------------------------------------------------------------
 
 # BUCKET_PRIVATE = os.getenv("PRIVATE", "miurban-dj-private")
 BUCKET_PUBLIC = os.getenv("PUBLIC", "miurban-dj-public")
 
-# logger = logging.getLogger()
-logging.basicConfig(level=logging.INFO)
+# Functions -------------------------------------------------------------------
 
 
-def combine_daily_files(date: str, save: Optional[str] = None):
+def combine_daily_files(date: str, save: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Combine raw JSON files returned by API into daily CSVs.
 
     Args:
         date: Date string for which raw JSON files should be combined into CSVs. Format: YYYY-MM-DD.
+        save: Desired location for storing files, valid values are "local" or "bucket"
     """
+
     storage_client = storage.Client()
     bucket = storage_client.bucket(BUCKET_PUBLIC)
 
@@ -117,7 +126,8 @@ def combine_daily_files(date: str, save: Optional[str] = None):
     return data, errors
 
 
-def lambda_handler():
+def lambda_handler() -> None:
+    """Wrapper function for combining files from previous day"""
     date = pendulum.yesterday("America/Chicago").to_date_string()
     data, errors = combine_daily_files(date, save="bucket")
 
@@ -127,6 +137,9 @@ def lambda_handler():
     #    ).to_date_string()
     #    data, errors = combine_daily_files(date, save="bucket")
 
+# Implementation --------------------------------------------------------------
 
 if __name__ == "__main__":
     lambda_handler()
+
+# EOF. ------------------------------------------------------------------------
