@@ -6,11 +6,9 @@ Part of the [2024 Local Data Journalism Initiative](https://miurban.uchicago.edu
 
 The goal of this project is to understand how bus service reliability changed over time in the city of Chicago after the disruptions of the COVID-19 pandemic and across the city’s community areas. To address our research questions, we built a novel, comprehensive data set showing the actual arrival time of each bus at every bus stop in Chicago from June 2022 to July 2024. In addition, we processed schedule data to compare actual performance to planned service. With this data, we computed several metrics to assess the reliability and accessibility of bus service. Our results showed that the CTA initially decreased scheduled service in early 2022 through 2023 to  match the slower real-time performance and later increased it in early 2024. However, these changes were not uniformly felt across Chicago’s community areas. Along with our analysis, we published the bus data sets and created Bus Report Cards — an interactive platform with indicators at the community, route, and bus stop level. These products will be updated through an automated pipeline, which can be consulted in the open-source code repository of this project.
 
-View the project online at https://ctastopwatch.miurban-dashboards.org.
-
-Read the project's report at https://bit.ly/MansuetoStopWatch.
-
-Learn more about the [Mansueto Institute of Urban Innovation](https://miurban.uchicago.edu/).
+- View the project online at https://ctastopwatch.miurban-dashboards.org.
+- Read the project's report at https://bit.ly/MansuetoStopWatch.
+- Learn more about the [Mansueto Institute of Urban Innovation](https://miurban.uchicago.edu/).
 
 ## Techincal Details
 
