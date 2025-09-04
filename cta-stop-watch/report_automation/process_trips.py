@@ -1,3 +1,5 @@
+# Imports ---------------------------------------------------------------------
+
 from download import full_download, extract_routes, query_cta_api
 from process_patterns import process_patterns
 from calculate_stop_time import calculate_patterns

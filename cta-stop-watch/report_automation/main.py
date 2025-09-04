@@ -1,15 +1,16 @@
+# Imports ---------------------------------------------------------------------
+
 from process_metrics import process_metrics
 from process_trips import process_new_trips
 from utils import create_config, metrics_logger
 import argparse
-
 
 # Functions -------------------------------------------------------------------
 
 
 def parse_arguments() -> argparse.Namespace:
     """
-    parse terminal arguments into python objects needed for pipeline workflow.
+    Parse terminal arguments into python objects needed for pipeline workflow.
     """
 
     parser = argparse.ArgumentParser(description="Run the StopWatch pipeline.")
@@ -32,16 +33,32 @@ def parse_arguments() -> argparse.Namespace:
         help="Specify which part of the pipeline to run",
     )
 
-    args = parser.parse_args()
-    return args
+    pipelines_args = parser.parse_args()
+    return pipelines_args
 
 
-# Implementation --------------------------------------------------------------
+def run_main():
+    usage_specs = """
+        Incorrect program specification. 
 
+        Correct usage to set up piepeline config: 
+        -----------------------------------------
+        $ python -m main -c
 
-if __name__ == "__main__":
+        Correct usage to run pipeline:
+        ------------------------------
+        $ python -m main -p [pipeline_step] [machine]
+            Valid pipeline_step values: 'process' or 'metrics'
+            Valid machine values: 'local' (default) or 'remote'
+
+        """
 
     args = parse_arguments()
+
+    if args.pipeline_step is None and args.config is None:
+        print(usage_specs)
+        return
+
     if args.config == "config":
         create_config()
     elif args.pipeline_step[0] == "process":
@@ -55,5 +72,11 @@ if __name__ == "__main__":
                 process_metrics(local=False)
             except Exception as e:
                 metrics_logger.error(f"Error: {e}")
+
+
+# Implementation --------------------------------------------------------------
+
+if __name__ == "__main__":
+    run_main()
 
 # End -------------------------------------------------------------------------

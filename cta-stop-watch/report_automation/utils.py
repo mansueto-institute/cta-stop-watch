@@ -1,9 +1,11 @@
-import pathlib
+# Libraries -------------------------------------------------------------------
+
 import os
 import re
 import json
-from datetime import datetime, timedelta
+import pathlib
 import logging
+from datetime import datetime, timedelta
 import duckdb
 import polars as pl
 
@@ -19,7 +21,13 @@ DIR_b = DIR / "raw_trips"
 
 def create_config(test: bool = False) -> None:
     """
-    Create a configuration file from a dictionary
+    Create a configuration file from a dictionary.
+
+    Args:
+        test (bool): flag indicating if running as test
+
+    Returns:
+        None
     """
 
     config = {}
@@ -60,6 +68,13 @@ def create_config(test: bool = False) -> None:
 def clear_staging(folders: list = [], files: list = []) -> None:
     """
     Remove all files/ folders from the indicated directory
+
+    Args:
+        folders (list): Folders with staged files
+        files (list): Staged files to remove
+
+    Returns:
+        None
     """
 
     for folder in folders:
@@ -99,8 +114,16 @@ def create_rt_pid_xwalk() -> bool:
 
 def setup_logger(name: str, log_file: str, level=logging.DEBUG) -> logging.Logger:
     """
-    To setup as many loggers as you want
-    # from https://stackoverflow.com/questions/11232230/logging-to-two-files-with-different-settings
+    To setup as many loggers as you want.
+    Source: https://stackoverflow.com/questions/11232230/logging-to-two-files-with-different-settings
+
+    Args:
+        name (str): Name of logger (e.g. my_logger)
+        log_file (str): Name of logger file (includes file extension, e.g. my_logger.log)
+        level (logging levelname): Desired lowest log level to record
+
+    Returns:
+        logging.Logger
     """
 
     handler = logging.FileHandler(log_file)
