@@ -2,7 +2,7 @@
 
 A pipeline to continuously process ghost bus data. Trips are currently being processed daily and metrics are recalculated at the beginning of the month.
 
-### Recommended Setup
+um### Recommended Setup
 1. [Clone repo](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
 1. [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
 1. `cd` into repo and run `uv sync`
@@ -17,10 +17,10 @@ A pipeline to continuously process ghost bus data. Trips are currently being pro
 1. Add any timetable data already downloaded to `data/clean_timetables/`. 
     * Download our archive [here](https://cta-stop-watch-bucket-do.nyc3.cdn.digitaloceanspaces.com/cta-stop-watch-files/public/clean_timetables.zip).
 
-1. Run `python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`. When prompted, enter in date you want to start download. (for testing, put two days ago.)
+1. Run `uv run python -m main -c` to update config file after files have been added or manually update `config.json` file. `utils.create_config()`. When prompted, enter in date you want to start download. (for testing, put two days ago.)
 
 ### Processing Trips
-Run `python -m main -p process`
+Run `uv run python -m main -p process`
 
 This function runs the following:
 
@@ -38,7 +38,7 @@ See `process.log` for details of a run
 
 ### Metrics Creation
 
-Run `python -m main -p metrics local`.
+Run `uv run python -m main -p metrics local`.
 
 This function runs the following:
 
