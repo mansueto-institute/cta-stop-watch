@@ -1,0 +1,3 @@
+30 5 * * * /home/rmedina_uchicago_edu/cta-stop-watch/scripts/daily_combine.sh >> /home/rmedina_uchicago_edu/cta-stop-watch/scripts/cron_daily_combine.log
+35 5 * * * /home/rmedina_uchicago_edu/cta-stop-watch/scripts/process.sh >> /home/rmedina_uchicago_edu/cta-stop-watch/scripts/cron_process.log
+35 8 * * * /home/rmedina_uchicago_edu/cta-stop-watch/scripts/metrics.sh >> /home/rmedina_uchicago_edu/cta-stop-watch/scripts/cron_metrics.log
