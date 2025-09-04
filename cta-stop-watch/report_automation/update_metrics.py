@@ -1,7 +1,6 @@
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
 from metrics_utils import create_trips_df
 from utils import metrics_logger, clear_staging
-import polars as pl
 import pandas as pd
 import os
 import pathlib

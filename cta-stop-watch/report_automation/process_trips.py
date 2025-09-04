@@ -22,11 +22,17 @@ STAGING_PATH = "data/staging"
 
 def update_data(start_date: str, today: str) -> bool:
     """
-    download raw trip data and prepare to process
+    Download raw trip data and prepare to process
+
+    Args:
+        start_date (str): Starting date of period to be processed
+        today (str): Ending date of period to be processed (most correpond to today's date)
+
+    Returns:
+        bool
     """
 
     # TODO update file path
-
     check = full_download(start_date, today)
 
     if not check:
@@ -37,14 +43,18 @@ def update_data(start_date: str, today: str) -> bool:
     return True
 
 
-def update_patterns(EXISTING_PATTERNS: list) -> set[str]:
+def update_patterns(EXISTING_PATTERNS: list[str]) -> set[str]:
     """
-    check for new patterns in the data and download them from CTA API if doesnt exist.
+    Check for new patterns in the data and download them from CTA API if doesnt exist.
+
+    Args:
+        EXISTING_PATTERNS (list[str]): CTA's PID already processed in Mansueto StopWatch's history
+
+    Returns:
+        set[str]
     """
     # get all patterns in the database from new data
     new_trip_pids = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
-
-    # get all processed patterns (#EXISITNG_PATTERNS)
 
     # compare the two if there are new patterns, download from api and add them to the database
     new_patterns = list(
@@ -54,7 +64,6 @@ def update_patterns(EXISTING_PATTERNS: list) -> set[str]:
     found_pids = []
     if len(new_patterns) > 0:
         # for any new patterns, try to download from the api
-
         for pid in new_patterns:
             try:
                 query_cta_api(pid, "data/patterns/patterns_raw")
@@ -80,11 +89,16 @@ def update_patterns(EXISTING_PATTERNS: list) -> set[str]:
 
 def trip_to_day() -> None:
     """
-    convert the current trip data into day data
+    Convert the current trip data into day data
+
+    Args:
+        None
+
+    Returns:
+        None
     """
 
     # combine all the pattern trip files into one
-
     all_data = """COPY
     (SELECT
         *
@@ -131,15 +145,16 @@ def trip_to_day() -> None:
 
 def process_new_trips(test: bool = False) -> None:
     """
-    1. Download data
-    2. check for new patterns
-    3. calculate stop time for all trips
-    4. Make a new config file
-    5. create a new xwalk
-    6. Clear staging data
+    Run the process new trip pipeline by executing the following steps:
+        1. Download data
+        2. Check for new patterns
+        3. Calculate stop time for all trips
+        4. Make a new config file
+        5. Create a new xwalk
+        6. Clear staging data
     """
 
-    # 1 download data from ghost buses from max_date to today
+    # SETP 1. Download data from ghost buses from max_date to today
     # saves currently to data/raw_trips
     # also saves staging in staging/days, staging/pids
 
@@ -170,7 +185,7 @@ def process_new_trips(test: bool = False) -> None:
         create_config()
         return False
 
-    # 2 check if there are new patterns in the new data
+    # STEP 2. Check if there are new patterns in the new data
     # download raw patterns to data/patters/patterns_raw
     # process the raw patterns and save them to data/patterns/patterns_current
     process_logger.info(
@@ -182,18 +197,18 @@ def process_new_trips(test: bool = False) -> None:
 
     all_pids_df = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 
-    # 3 calculate the stop time for all the patterns
+    # STEP 3. Calculate the stop time for all the patterns
     # puts the processed trips by pattern in staging/trips
 
     calculate_patterns(all_pids_df["pid"].astype(str).tolist())
 
-    # recreate updated config file
+    # STEP 4. Recreate updated config file
     create_config()
 
-    # update crosswalk
+    # STEP 5. Update crosswalk
     create_rt_pid_xwalk()
 
-    # clear staging data (days and pids, and raw_trips)
+    # STEP 6. Clear staging data (days and pids, and raw_trips)
     clear_staging(
         folders=["staging/days", "staging/pids", "raw_trips"],
         files=["staging/current_days_download.parquet"],

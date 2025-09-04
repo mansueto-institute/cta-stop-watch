@@ -1,3 +1,4 @@
+# Import libraries ------------------------------------------------------------
 import json
 import os
 from datetime import date, timedelta
@@ -9,6 +10,8 @@ import polars as pl
 import requests
 from dotenv import load_dotenv
 from utils import process_logger
+
+# Constants -------------------------------------------------------------------
 
 STAGING_PATH = "data/staging"
 RAW_PATH = "data/raw_trips/"
@@ -35,17 +38,42 @@ dtype_map = {
 }
 
 
+# Functions --------------------------------------------------------------------
+
+
 def get_date_range(start: date, end: date, delta: timedelta):
+    """
+    Yielding function to loop over a desired range of days.
+
+    Args:
+        start (date): Desired start date of range
+        end (date): Desired end date of range
+        delta (timedelta): Delta for days included in range (i.e. 1 day)
+
+    Returns:
+        date
+    """
     cur_date = start
     while cur_date < end:
         yield cur_date
         cur_date += delta
 
 
-def download_full_day_csv_to_parquet(start: date, end: date, delta: timedelta):
+def download_full_day_csv_to_parquet(
+    start: date, end: date, delta: timedelta
+) -> tuple[bool, bool]:
     """
     Download full day data from the CTA API and save as parquet
+
+    Args:
+        start (date): Desired start date of time range for trips to be processed
+        end (date): Desired end date of range for trips to be processed
+        delta (timedelta): Delta for days included in range (i.e. 1 day)
+
+    Returns:
+        (bool, bool)
     """
+
     URL_HEAD = "gs://miurban-dj-public/cta-stop-watch/full_day_data/"
 
     # TODO update paths
@@ -155,17 +183,18 @@ def extract_routes():
         extract_pid(row["pid"])
 
 
-def query_cta_api(pid: str, out_path) -> bool | pd.DataFrame:
+def query_cta_api(pid: str, out_path) -> bool:
     """
     Takes a route pattern ID and queries the CTA API to get the raw pattern
     data (in lat, lon format) and returns a standardized data frame for further
     cleaning.
 
-    Input:
-        - pid (str): The pattern id to call from the CTA API
+    Args:
+        pid (str): The pattern id to call from the CTA API
+        out_path (str): Desired path to store downloaded data
 
-    Output:
-        - pattern (data frame): A data frame with standardized names
+    Returns:
+        pd.DataFrame: A data frame with standardized names
 
     """
     # Make call to API for given pid and obtain pattern point data

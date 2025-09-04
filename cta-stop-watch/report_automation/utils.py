@@ -1,11 +1,12 @@
 # Libraries -------------------------------------------------------------------
 
-import os
-import re
 import json
-import pathlib
 import logging
+import os
+import pathlib
+import re
 from datetime import datetime, timedelta
+
 import duckdb
 import polars as pl
 
@@ -13,8 +14,8 @@ import polars as pl
 
 # Paths
 DIR = pathlib.Path(__file__).parent / "data"
-DIR_p = DIR / "patterns/patterns_raw"
-DIR_b = DIR / "raw_trips"
+DIR_PATTERNS = DIR / "patterns/patterns_raw"
+DIR_TRIPS = DIR / "raw_trips"
 
 # Functions -------------------------------------------------------------------
 
@@ -33,7 +34,7 @@ def create_config(test: bool = False) -> None:
     config = {}
     pids = []
 
-    for pid_file in os.listdir(DIR_p):
+    for pid_file in os.listdir(DIR_PATTERNS):
         if not pid_file.endswith(".parquet"):
             continue
 
@@ -41,8 +42,9 @@ def create_config(test: bool = False) -> None:
         pid = numbers[0]
         pids.append(pid)
 
-    dates_file = [x.split(".")[0] for x in os.listdir(DIR_b) if x.endswith(".parquet")]
-
+    dates_file = [
+        x.split(".")[0] for x in os.listdir(DIR_TRIPS) if x.endswith(".parquet")
+    ]
     dates_file.sort(key=lambda date: datetime.strptime(date, "%Y-%m-%d"))
 
     try:
