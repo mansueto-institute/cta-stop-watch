@@ -2,7 +2,7 @@
 
 from process_metrics import process_metrics
 from process_trips import process_new_trips
-from utils import create_config, metrics_logger
+from utils import create_config, process_logger, metrics_logger
 import argparse
 
 # Functions -------------------------------------------------------------------
@@ -49,7 +49,7 @@ def run_main():
         ------------------------------
         $ python -m main -p [pipeline_step] [machine]
             Valid pipeline_step values: 'process' or 'metrics'
-            Valid machine values: 'local' (default) or 'remote'
+            Valid machine values: 'local' (default), or 'remote'
 
         """
 
@@ -60,11 +60,16 @@ def run_main():
         return
 
     if args.config == "config":
+        print("Creating config")
         create_config()
     elif args.pipeline_step[0] == "process":
-        print("Processing new trips")
+        print("Processing new trips...")
+        process_logger.info(
+            f"\n{'-'*80}\n\n STARTING PROCESSING PIPELINE STEP FOR STOPWATCH"
+        )
         process_new_trips()
     elif args.pipeline_step[0] == "metrics":
+        print("Updating metrics...")
         if args.pipeline_step[1] == "local":
             process_metrics(local=True)
         elif args.pipeline_step[1] == "remote":
