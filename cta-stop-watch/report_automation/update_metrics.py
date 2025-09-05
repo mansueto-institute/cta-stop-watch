@@ -1,3 +1,5 @@
+# Libraries -------------------------------------------------------------------
+
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
 from metrics_utils import create_trips_df
 from utils import metrics_logger, clear_staging
@@ -18,11 +20,16 @@ OUT_DIR = DIR / "data" / "metrics"
 
 def combine_recent_trips() -> None:
     """
-    take whats in staging/trips combine it with processes_by_pid
+    Take what's in staging/trips combine it with processes_by_pid
+
+    Args:
+        None
+    Returns:
+        None
     """
 
-    # get all the pids in the staging/trips
-    # make sure folder id not empty
+    # Get all the pids in the staging/trips
+    # Make sure folder id not empty
     pids = []
     for folder in os.listdir(f"{DIR}/data/staging/trips"):
         if folder != ".gitkeep":
@@ -38,7 +45,10 @@ def combine_recent_trips() -> None:
            max(CAST(bus_stop_time AS DATE)) as max_date
     from read_parquet('data/processed_by_pid/*.parquet')"""
 
-    stats_before = duckdb.execute(stats_command).df()
+    try:
+        stats_before = duckdb.execute(stats_command).df()
+    except Exception as e:
+        metrics_logger.error(f"Failed to read processed stats. See full error:\n{e}")
 
     metrics_logger.info(
         f"""Before merging, there were {stats_before['total_rows'].to_list()[0]:,} rows, 

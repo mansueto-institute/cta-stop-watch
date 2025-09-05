@@ -9,26 +9,32 @@ from update_schedule import update_schedule
 def process_metrics(local: bool = True) -> None:
     """
     Implement workflow to process metrics data
+
+    Args:
+        local (bool): Flag indicating if the metrics are being run on a local machine
+
+    Returns:
+        None
     """
 
-    # combine recent trips
+    # Combine recent trips
     metrics_logger.info("Combining trips")
     combine_recent_trips()
     metrics_logger.info("Done combining trips")
     clear_staging(folders=["staging/trips"])
 
-    # update schedule
+    # Update schedule
     metrics_logger.info("Updating schedule")
     update_schedule()
     metrics_logger.info("Done updating schedule")
     clear_staging(folders=["staging/timetables/current_timetables"])
 
-    # update metrics
+    # Update metrics
     metrics_logger.info("Updating metrics")
     update_metrics("all")
     metrics_logger.info("Done updating metrics")
 
-    # push all date to s3
+    # Push all date to s3
     if not local:
         metrics_logger.info("Pushing data to s3")
         store_all_data()
