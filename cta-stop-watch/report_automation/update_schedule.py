@@ -14,6 +14,10 @@ from utils import metrics_logger
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+# Constants -------------------------------------------------------------------
+
+URL = "https://www.transitchicago.com/downloads/sch_data/google_transit.zip"
+
 # Functions -------------------------------------------------------------------
 
 
@@ -23,26 +27,34 @@ def download_current_feed() -> bool:
     """
 
     today = str(date.today())
+    download_path = f"data/staging/timetables/feed_{today}.zip"
 
-    URL = "https://www.transitchicago.com/downloads/sch_data/google_transit.zip"
+    # Ensure path exists
+    os.makedirs(os.path.dirname(download_path), exist_ok=True)
 
+    # Note: This approach reaad 8kb (8192b) at a time to avoid
+    # facing the IncompleteRead error.
     try:
-        r = requests.get(URL, allow_redirects=True)
-        open(f"data/staging/timetables/feed_{today}.zip", "wb").write(r.content)
+        with requests.get(URL, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            with open(download_path, "wb") as f:
+                for chunck in r.iter_content(chunck_size=8192):
+                    if chunck:
+                        f.write(chunck)
+            return True
     except requests.exceptions.HTTPError as e:
         metrics_logger.error(
             f"Failed to download current schedules due to connection error. See full error: \n{e}"
         )
-        return False
+        raise e
     except http.client.IncompleteRead as e:
         metrics_logger.error(
             f"Failed to read current schedules file. See full error: \n{e}"
         )
-        return False
+        raise e
     except Exception as e:
         metrics_logger.error(f"Failed to get current schedules. See full error:\n{e}")
-
-    return True
+        raise e
 
 
 def process_route_timetable(

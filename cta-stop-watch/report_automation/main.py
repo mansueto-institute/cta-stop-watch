@@ -70,6 +70,9 @@ def run_main():
         process_new_trips()
     elif args.pipeline_step[0] == "metrics":
         print("Updating metrics...")
+        process_logger.info(
+            f"\n{'-'*80}\n\n STARTING METRICS PIPELINE STEP FOR STOPWATCH"
+        )
         if args.pipeline_step[1] == "local":
             process_metrics(local=True)
         elif args.pipeline_step[1] == "remote":
