@@ -1,5 +1,8 @@
+# Libraries -------------------------------------------------------------------
+
 import pathlib
 import warnings
+import http
 import pandas as pd
 import gtfs_kit as gk
 import os
@@ -23,8 +26,21 @@ def download_current_feed() -> bool:
 
     URL = "https://www.transitchicago.com/downloads/sch_data/google_transit.zip"
 
-    r = requests.get(URL, allow_redirects=True)
-    open(f'data/staging/timetables/feed_{today}.zip', 'wb').write(r.content)
+    try:
+        r = requests.get(URL, allow_redirects=True)
+        open(f"data/staging/timetables/feed_{today}.zip", "wb").write(r.content)
+    except requests.exceptions.HTTPError as e:
+        metrics_logger.error(
+            f"Failed to download current schedules due to connection error. See full error: \n{e}"
+        )
+        return False
+    except http.client.IncompleteRead as e:
+        metrics_logger.error(
+            f"Failed to read current schedules file. See full error: \n{e}"
+        )
+        return False
+    except Exception as e:
+        metrics_logger.error(f"Failed to get current schedules. See full error:\n{e}")
 
     return True
 
@@ -248,13 +264,13 @@ def dedupe_schedules() -> None:
 
 def update_schedule() -> None:
     """
-    full process to update schedule
-        1. download the current schedule
-        2. create timetables
-        3. dedupe and combine with historic
+    Handle full process to update schedule
+        1. Download the current schedule
+        2. Create timetables
+        3. Dedupe and combine with historic
     """
-    # download current schedule
 
+    # download current schedule
     metrics_logger.info("Downloading current feed")
     download_current_feed()
 
