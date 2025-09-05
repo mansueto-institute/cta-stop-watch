@@ -38,7 +38,7 @@ def download_current_feed() -> bool:
         with requests.get(URL, stream=True, timeout=60 * 15) as r:
             r.raise_for_status()
             with open(download_path, "wb") as f:
-                for chunck in r.iter_content(chunck_size=8192):
+                for chunck in r.iter_content(chunk_size=8192):
                     if chunck:
                         f.write(chunck)
             return True
