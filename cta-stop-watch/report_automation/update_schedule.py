@@ -35,7 +35,7 @@ def download_current_feed() -> bool:
     # Note: This approach reaad 8kb (8192b) at a time to avoid
     # facing the IncompleteRead error.
     try:
-        with requests.get(URL, stream=True, timeout=60) as r:
+        with requests.get(URL, stream=True, timeout=60 * 15) as r:
             r.raise_for_status()
             with open(download_path, "wb") as f:
                 for chunck in r.iter_content(chunck_size=8192):
