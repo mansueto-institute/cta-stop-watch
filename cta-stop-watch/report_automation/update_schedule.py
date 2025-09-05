@@ -1,15 +1,16 @@
 # Libraries -------------------------------------------------------------------
 
+import http
+import os
 import pathlib
 import warnings
-import http
-import pandas as pd
-import gtfs_kit as gk
-import os
-import duckdb
-import numpy as np
-import requests
 from datetime import date
+
+import duckdb
+import gtfs_kit as gk
+import numpy as np
+import pandas as pd
+import requests
 from utils import metrics_logger
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -258,11 +259,12 @@ def dedupe_schedules() -> None:
         deduped_timetable["stop_sequence"] = deduped_timetable["stop_sequence"].astype(
             str
         )
+        metrics_logger.info(f"Writing de-duped timetable for {rt}")
 
         deduped_timetable.to_parquet(f"data/clean_timetables/rt{rt}_timetable.parquet")
 
         if rts_count % 40 == 0:
-            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
+            metrics_logger.info(f"{round((rts_count/len(rts)) * 100, 3)} complete")
         rts_count += 1
 
     stats_after = duckdb.execute(command).df()
