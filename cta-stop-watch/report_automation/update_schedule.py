@@ -150,7 +150,9 @@ def create_timetables() -> bool:
         rts_count += 1
 
         if rts_count % 40 == 0:
-            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
+            metrics_logger.info(
+                f"{round((rts_count/len(rts)) * 100,3)} timetables created"
+            )
 
         if not os.path.exists("data/staging/timetables/current_timetables"):
             os.makedirs("data/staging/timetables/current_timetables")
@@ -187,7 +189,8 @@ def dedupe_schedules() -> None:
     stats_before = duckdb.execute(command).df()
 
     metrics_logger.info(
-        f"""Before updating schedule, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
+        f"""
+        Before updating schedule, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
         and {stats_before['total_months'].to_list()[0]:,} unique days. 
         The max month is {stats_before['max_month'].to_list()[0]}."""
     )
@@ -198,7 +201,7 @@ def dedupe_schedules() -> None:
 
     for rt in rts:
 
-        metrics_logger.debug(f"De-duping timetable for route {rt}")
+        metrics_logger.info(f"De-duping timetable for route {rt}")
 
         # find min date of current schedule
         current = pd.read_parquet(
@@ -261,18 +264,20 @@ def dedupe_schedules() -> None:
         deduped_timetable["stop_sequence"] = deduped_timetable["stop_sequence"].astype(
             str
         )
-        metrics_logger.info(f"Writing de-duped timetable for {rt}")
 
         deduped_timetable.to_parquet(f"data/clean_timetables/rt{rt}_timetable.parquet")
 
         if rts_count % 40 == 0:
-            metrics_logger.info(f"{round((rts_count/len(rts)) * 100, 3)} complete")
+            metrics_logger.info(
+                f"{round((rts_count/len(rts)) * 100, 3)} routes de-duped"
+            )
         rts_count += 1
 
     stats_after = duckdb.execute(command).df()
 
     metrics_logger.info(
-        f"""After updating schedule, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
+        f"""
+        After updating schedule, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
         and {stats_after['total_months'].to_list()[0]:,} unique days. 
         The max month is {stats_after['max_month'].to_list()[0]}."""
     )

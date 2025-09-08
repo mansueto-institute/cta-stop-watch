@@ -141,7 +141,7 @@ def setup_logger(name: str, log_file: str, level=logging.DEBUG) -> logging.Logge
 # Loggers ---------------------------------------------------------------------
 
 formatter = logging.Formatter(
-    "%(asctime)s [%(levelname)s, %(filename)s] %(message)s", "%Y-%m-%d %H:%M:%S"
+    "%(asctime)s [%(levelname)s] (%(filename)s): %(message)s", "%Y-%m-%d %H:%M:%S"
 )
 
 # first file logger
