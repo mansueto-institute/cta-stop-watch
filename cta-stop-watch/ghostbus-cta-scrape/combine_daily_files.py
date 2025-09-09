@@ -28,7 +28,9 @@ BUCKET_PUBLIC = os.getenv("PUBLIC", "miurban-dj-public")
 # Functions -------------------------------------------------------------------
 
 
-def combine_daily_files(date: str, save: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def combine_daily_files(
+    date: str, save: Optional[str] = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Combine raw JSON files returned by API into daily CSVs.
 
     Args:
@@ -136,6 +138,7 @@ def lambda_handler() -> None:
     #        pendulum.yesterday("America/Chicago") - pendulum.duration(days=i)
     #    ).to_date_string()
     #    data, errors = combine_daily_files(date, save="bucket")
+
 
 # Implementation --------------------------------------------------------------
 
