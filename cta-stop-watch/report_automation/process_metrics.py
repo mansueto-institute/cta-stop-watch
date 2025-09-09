@@ -34,11 +34,11 @@ def process_metrics(local: bool = True) -> None:
     update_metrics("all")
     metrics_logger.info("Done updating metrics")
 
-    # Push all date to s3
+    # Push all date to bucket
     if not local:
-        metrics_logger.info("Storing metrics in S3")
-        metrics_logger.info("Pushing data to s3")
-        metrics_logger.info("Done storing metrics in S3")
+        metrics_logger.info("Storing metrics in bucket")
+        metrics_logger.info("Pushing data to bucket")
+        metrics_logger.info("Done storing metrics in bucket")
         store_all_data()
 
 

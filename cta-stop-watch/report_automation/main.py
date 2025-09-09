@@ -5,6 +5,10 @@ from process_trips import process_new_trips
 from utils import create_config, process_logger, metrics_logger
 import argparse
 
+# Constants -------------------------------------------------------------------
+
+DIV_LINE = f"\n{'-'*80}\n"
+
 # Functions -------------------------------------------------------------------
 
 
@@ -65,13 +69,16 @@ def run_main():
     elif args.pipeline_step[0] == "process":
         print("Processing new trips...")
         process_logger.info(
-            f"\n{'-'*80}\n\n STARTING PROCESSING PIPELINE STEP FOR STOPWATCH"
+            f"{DIV_LINE}\n STARTING PROCESSING PIPELINE STEP FOR STOPWATCH"
         )
         process_new_trips()
     elif args.pipeline_step[0] == "metrics":
         print("Updating metrics...")
         process_logger.info(
-            f"\n{'-'*80}\n\n STARTING METRICS PIPELINE STEP FOR STOPWATCH"
+            f"{DIV_LINE}\n STARTING METRICS PIPELINE STEP FOR STOPWATCH"
+        )
+        metrics_logger.info(
+            f"{DIV_LINE}\n STARTING METRICS PIPELINE STEP FOR STOPWATCH"
         )
         if args.pipeline_step[1] == "local":
             process_metrics(local=True)
