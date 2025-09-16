@@ -288,7 +288,7 @@ def update_schedule() -> None:
     Handle full process to update schedule
         1. Download the current schedule
         2. Create timetables
-        3. Dedupe and combine with historic
+        3. Combine with historic schedules and deduplicate repeated data
     """
 
     # download current schedule

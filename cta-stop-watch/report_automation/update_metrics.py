@@ -97,7 +97,7 @@ def combine_recent_trips() -> None:
 @profile
 def update_metrics(rts: list[str] | str = "all") -> bool:
     """
-    combine new trips and then calculate new metrics
+    Combine new trips and then calculate new metrics
 
     Arguments:
         - rts: Can either be a list with the specific routes to be processed

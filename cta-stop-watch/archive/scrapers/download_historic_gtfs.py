@@ -1,3 +1,4 @@
+# Libraries -------------------------------------------------------------------
 import requests
 
 # from env import TRANSIT_LAND_API_KEY
@@ -8,14 +9,22 @@ import pathlib
 from dotenv import load_dotenv
 
 
+# Constants -------------------------------------------------------------------
+
 # Load environment variables
 load_dotenv()
 TRANSIT_LAND_API_KEY = os.getenv("TRANSIT_LAND_API_KEY")
-
 DIR = pathlib.Path(__file__).parent
 
 
-def get_feeds():
+# Functions -------------------------------------------------------------------
+
+
+def get_feeds() -> pd.DataFrame:
+    """
+    Query Transit Land Archive to get all available historic feeds for CTA's
+    buses.
+    """
     URL = "https://transit.land/api/v2/rest/"
     response = requests.get(
         URL + "feeds?api_key=" + TRANSIT_LAND_API_KEY + "&onestop_id=f-dp3-cta"
@@ -30,7 +39,15 @@ def get_feeds():
     return historic_feeds
 
 
-def download_historic_feed(sha1: str):
+def download_historic_feed(sha1: str) -> bool:
+    """
+    Query Transit Land Archive to dowload copy of every static feed stored in
+    their archive.
+
+    Args:
+        sha1 (str): sha string that TransitLand uses to identify
+                    the specific feed
+    """
     URL = "https://transit.land/api/v2/rest/feed_versions/"
     FULL_URL = URL + sha1 + "/download" + "?api_key=" + TRANSIT_LAND_API_KEY
     filename = f"inp/historic_gtfs/{sha1}.zip"
@@ -44,6 +61,10 @@ def download_historic_feed(sha1: str):
 
 
 def main():
+    """
+    Execute pipeline for downloading all available GTFS feeds for
+    CTA Buses stored in TransitLand.
+    """
     historic_feeds = get_feeds()
 
     for feed in historic_feeds:
@@ -53,5 +74,10 @@ def main():
     return True
 
 
+# Implementation --------------------------------------------------------------
+
 if __name__ == "__main__":
+    print("Retrieveing hitoric GTFS feeds from TransitLand")
     main()
+
+# End -------------------------------------------------------------------------
