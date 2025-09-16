@@ -30,6 +30,9 @@ def download_current_feed() -> bool:
     today = str(date.today())
     download_path = f"data/staging/timetables/feed_{today}.zip"
 
+    if pathlib.Path(download_path).exists():
+        return True
+
     # Ensure path exists
     os.makedirs(os.path.dirname(download_path), exist_ok=True)
 
@@ -288,7 +291,7 @@ def update_schedule() -> None:
     Handle full process to update schedule
         1. Download the current schedule
         2. Create timetables
-        3. Combine with historic schedules and deduplicate repeated data
+        3. Combine with historic
     """
 
     # download current schedule
