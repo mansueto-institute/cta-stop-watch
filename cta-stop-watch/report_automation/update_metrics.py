@@ -51,7 +51,8 @@ def combine_recent_trips() -> None:
         metrics_logger.error(f"Failed to read processed stats. See full error:\n{e}")
 
     metrics_logger.info(
-        f"""Before merging, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
+        f"""
+        Before merging, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
         {stats_before['total_trips'].to_list()[0]:,} trips, 
         {stats_before['total_pids'].to_list()[0]:,} pids, 
         and {stats_before['total_days'].to_list()[0]:,} unique days. 
@@ -86,7 +87,8 @@ def combine_recent_trips() -> None:
     stats_after = duckdb.execute(stats_command).df()
 
     metrics_logger.info(
-        f"""After merging, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
+        f"""
+        After merging, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
         {stats_after['total_trips'].to_list()[0]:,} trips, 
         {stats_after['total_pids'].to_list()[0]:,} pids, 
         and {stats_after['total_days'].to_list()[0]:,} unique days. 
