@@ -1,8 +1,14 @@
+# TODO:
+# - Refactor into smaller functions to make debugging easier
+# - Create special log file for this debuggin process
+# - Pinpoint why monthly metrics are not being aggreaged
+# - Maybe do it using tests?
+
 # Libraries -------------------------------------------------------------------
 
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
 from metrics_utils import create_trips_df
-from utils import metrics_logger, clear_staging
+from utils import metrics_logger, clear_staging, update_logger
 import pandas as pd
 import os
 import pathlib
@@ -16,6 +22,8 @@ DIR = pathlib.Path(__file__).parent
 OUT_DIR = DIR / "data" / "metrics"
 
 # Functions -------------------------------------------------------------------
+
+# Combine recent trips step ---------------------------------------------------
 
 
 def combine_recent_trips() -> None:
@@ -96,19 +104,13 @@ def combine_recent_trips() -> None:
     )
 
 
-@profile
-def update_metrics(rts: list[str] | str = "all") -> bool:
+# Update metrics setp ----------------------------------------------------------
+
+
+def log_metrics_before_status() -> None:
     """
-    Combine new trips and then calculate new metrics
-
-    Arguments:
-        - rts: Can either be a list with the specific routes to be processed
-        (represented as strings) or the string value "all" for processing
-        all available routes.
-
-    Returns: a boolean to confirm execution and writes data sets
+    Log status of metrics before executing the metrics pipeline step
     """
-
     # metric states before
     if os.path.exists(f"{OUT_DIR}/stop_metrics_df.parquet"):
         mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
@@ -138,67 +140,77 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
     else:
         metrics_logger.info("No metrics file found")
 
-    if rts == "all":
-        xwalk = pd.read_parquet("data/rt_to_pid.parquet")
-        rts = xwalk["rt"].unique().tolist()
-        print(f"\nRoutes to proces for new metrics: {rts}")
 
-    rts_count = 0
+def log_metrics_after_status() -> None:
+    # metric states after
+    mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    total_rows = mertics_df.shape[0]
+    total_months = mertics_df[mertics_df["period"] == "month_abs"][
+        "period_value"
+    ].nunique()
+    max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
+    # max month of actual data
+    max_month_actual = mertics_df[
+        (mertics_df["period"] == "month_abs")
+        & (mertics_df["median_actual_time_till_next_bus"].notna())
+    ]["period_value"].max()
 
+    metrics_logger.info(
+        f"""
+        After updating metrics, there were {total_rows:,} rows, 
+        and {total_months:,} unique months. 
+        The max month is {max_month}.
+        The max actual month is {max_month_actual}"""
+    )
+
+
+def check_staging_dirs() -> None:
+    """
+    Check if staging directories exist and create if not
+    """
     # create staging folders
     if not os.path.exists(OUT_DIR / "staging_actual"):
         os.mkdir(OUT_DIR / "staging_actual")
     if not os.path.exists(OUT_DIR / "staging_sched"):
         os.mkdir(OUT_DIR / "staging_sched")
 
-    for rt in rts:
-        print(f"Processing route {rt}")
-        # prep schedule and actual
-        metrics_logger.debug(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
-        try:
-            actual_df = create_trips_df(rt=rt, is_schedule=False)
-            metrics_logger.debug("Actual DataFrame:")
-            metrics_logger.debug(actual_df.head(5))
 
-        except Exception as e:
-            metrics_logger.info(f"issue with rt {rt}: {e}")
-            continue
+def compute_route_actual_metrics(rt: str) -> None:
+    actual_df = create_trips_df(rt=rt, is_schedule=False)
+    metrics_logger.debug("Actual DataFrame:")
+    metrics_logger.debug(actual_df.head(5))
 
-        route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
-        metrics_logger.debug("Actual performance DataFrame:")
-        metrics_logger.debug(actual_df.head(5))
+    route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
+    metrics_logger.debug("Actual performance DataFrame:")
+    metrics_logger.debug(actual_df.head(5))
 
-        # write out to file
-        route_metrics_actual.write_parquet(
-            f"{OUT_DIR}/staging_actual/route{rt}_metrics_actual.parquet"
-        )
+    # write out to file
+    route_metrics_actual.write_parquet(
+        f"{OUT_DIR}/staging_actual/route{rt}_metrics_actual.parquet"
+    )
 
-        del route_metrics_actual
+    del route_metrics_actual
 
-        try:
-            schedule_df = create_trips_df(rt=rt, is_schedule=True)
-        except Exception as e:
-            metrics_logger.info(f"issue with rt {rt}: {e}")
-            continue
 
-        route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
-        metrics_logger.debug("Scheduled performance DataFrame:")
-        metrics_logger.debug(route_metrics_schedule.head(3))
+def compute_route_schedule_metrics(rt: str) -> None:
+    schedule_df = create_trips_df(rt=rt, is_schedule=True)
 
-        # create the stop level data
+    route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
+    metrics_logger.debug("Scheduled performance DataFrame:")
+    metrics_logger.debug(route_metrics_schedule.head(3))
 
-        # write out to file
-        route_metrics_schedule.write_parquet(
-            f"{OUT_DIR}/staging_sched/route{rt}_metrics_schedule.parquet"
-        )
+    # write out to file
+    route_metrics_schedule.write_parquet(
+        f"{OUT_DIR}/staging_sched/route{rt}_metrics_schedule.parquet"
+    )
 
-        del route_metrics_schedule
+    del route_metrics_schedule
 
-        rts_count += 1
-        if rts_count % 40 == 0:
-            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
 
-    # combine stop level at routes
+def compute_stop_metrics() -> None:
+    """
+    Combine stop level at routes
+    """
     a_command = f""" select *
                     from read_parquet('{OUT_DIR}/staging_actual/*.parquet')
                     """
@@ -221,27 +233,62 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
-    # metric states after
-    mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
-    total_rows = mertics_df.shape[0]
-    total_months = mertics_df[mertics_df["period"] == "month_abs"][
-        "period_value"
-    ].nunique()
-    max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
-    # max month of actual data
-    max_month_actual = mertics_df[
-        (mertics_df["period"] == "month_abs")
-        & (mertics_df["median_actual_time_till_next_bus"].notna())
-    ]["period_value"].max()
 
-    metrics_logger.info(
-        f"""
-        After updating metrics, there were {total_rows:,} rows, 
-        and {total_months:,} unique months. 
-        The max month is {max_month}.
-        The max actual month is {max_month_actual}"""
-    )
+@profile
+def update_metrics(rts: list[str] | str = "all") -> bool:
+    """
+    Combine new trips and then calculate new metrics
 
+    Arguments:
+        - rts: Can either be a list with the specific routes to be processed
+        (represented as strings) or the string value "all" for processing
+        all available routes.
+
+    Returns: a boolean to confirm execution and writes data sets
+    """
+
+    log_metrics_before_status()
+
+    if rts == "all":
+        xwalk = pd.read_parquet("data/rt_to_pid.parquet")
+        rts = xwalk["rt"].unique().tolist()
+
+    print(f"\nRoutes to proces for new metrics: {rts}")
+
+    check_staging_dirs()
+
+    # Compute route metrics
+    rts_count = 0
+    for rt in rts:
+        print(f"Processing route {rt}")
+        # prep schedule and actual
+        metrics_logger.debug(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
+
+        try:
+            compute_route_actual_metrics(rt)
+        except Exception as e:
+            metrics_logger.error(
+                f"Issue computing actual performance metrics for {rt}: \n{e}"
+            )
+            continue
+
+        try:
+            compute_route_schedule_metrics(rt)
+        except Exception as e:
+            metrics_logger.error(
+                f"Issue computing scheduled performance metrics for {rt}: \n{e}"
+            )
+            continue
+
+        rts_count += 1
+        if rts_count % 40 == 0:
+            metrics_logger.info(f"{round((rts_count/len(rts)) * 100,3)} complete")
+
+    # Compute stop metrics
+    compute_stop_metrics()
+
+    # Clean and exit
+    log_metrics_after_status()
     clear_staging(folders=["metrics/staging_actual", "metrics/staging_sched"])
 
     return True
@@ -250,6 +297,8 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 # Implementation --------------------------------------------------------------
 
 if __name__ == "__main__":
+    update_logger.info(f"{'-'*80}\n START METRICS UPDATE {'-'*80}")
+
     update_metrics("all")
 
 # End -------------------------------------------------------------------------
