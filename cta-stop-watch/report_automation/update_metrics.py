@@ -126,10 +126,13 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         ]["period_value"].max()
 
         metrics_logger.info(
-            f"""Before updating metrics, there were {total_rows:,} rows, 
+            f"""
+
+            Before updating metrics, there were {total_rows:,} rows, 
             and {total_months:,} unique months. 
             The max month is {max_month}.
             The max actual month is {max_month_actual}
+            
             """
         )
     else:
@@ -138,6 +141,7 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
     if rts == "all":
         xwalk = pd.read_parquet("data/rt_to_pid.parquet")
         rts = xwalk["rt"].unique().tolist()
+        print(f"\nRoutes to proces for new metrics: {rts}")
 
     rts_count = 0
 
@@ -148,16 +152,21 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         os.mkdir(OUT_DIR / "staging_sched")
 
     for rt in rts:
+        print(f"Processing route {rt}")
         # prep schedule and actual
-        metrics_logger.debug(f"Processing route {rt}")
+        metrics_logger.debug(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
         try:
             actual_df = create_trips_df(rt=rt, is_schedule=False)
+            metrics_logger.debug("Actual DataFrame:")
+            metrics_logger.debug(actual_df.head(5))
 
         except Exception as e:
             metrics_logger.info(f"issue with rt {rt}: {e}")
             continue
 
         route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
+        metrics_logger.debug("Actual performance DataFrame:")
+        metrics_logger.debug(actual_df.head(5))
 
         # write out to file
         route_metrics_actual.write_parquet(
@@ -173,6 +182,9 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
             continue
 
         route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
+        metrics_logger.debug("Scheduled performance DataFrame:")
+        metrics_logger.debug(route_metrics_schedule.head(3))
+
         # create the stop level data
 
         # write out to file
@@ -203,6 +215,9 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         actual_full_stops, schedule_full_stops
     )
 
+    metrics_logger.debug("Bus stop performance")
+    metrics_logger.debug(stop_metrics.head(5))
+
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
@@ -220,7 +235,8 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
     ]["period_value"].max()
 
     metrics_logger.info(
-        f"""After updating metrics, there were {total_rows:,} rows, 
+        f"""
+        After updating metrics, there were {total_rows:,} rows, 
         and {total_months:,} unique months. 
         The max month is {max_month}.
         The max actual month is {max_month_actual}"""

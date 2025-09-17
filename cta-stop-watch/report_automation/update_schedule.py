@@ -200,8 +200,6 @@ def dedupe_schedules() -> None:
 
     rts_count = 0
 
-    print(f"De-duping tables for routes: {rts}")
-
     for rt in rts:
 
         metrics_logger.info(f"De-duping timetable for route {rt}")
