@@ -238,7 +238,10 @@ def compute_stop_metrics() -> None:
     )
 
     metrics_logger.debug("Bus stop performance")
-    metrics_logger.debug(stop_metrics.head(15))
+
+    null_rows = pd.isnull(stop_metrics["median_actual_time_till_next_bus"])
+    null_data = stop_metrics[null_rows]
+    metrics_logger.debug(null_data.head(20))
 
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")

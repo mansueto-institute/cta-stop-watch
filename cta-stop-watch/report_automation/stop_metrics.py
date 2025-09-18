@@ -62,8 +62,10 @@ def time_to_next_stop(
         (pl.col("bus_stop_time").dt.day()).alias("day"),
     )
 
-    missing_df = trips_df.null_count().unpivot(
-        index="rt", variable_name="metric", value_name="missing_count"
+    missing_df = (
+        trips_df.null_count()
+        .unpivot(index="rt", variable_name="metric", value_name="missing_count")
+        .filter(pl.col("missing_count") != 0)
     )
     with pl.Config(tbl_rows=20):
         metrics_logger.debug(f"Missing values:\n{missing_df}")
