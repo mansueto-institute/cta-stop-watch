@@ -92,6 +92,7 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
     create stop metrics for one route
     """
 
+    metrics_logger.debug("\n\nCompute metrics")
     trips_df = time_to_next_stop(route_df)
 
     if is_schedule:
@@ -114,6 +115,7 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
         )
 
     # find grouped metrics for depending on actual or schedule
+    metrics_logger.debug("\n\nJoin route metrics")
     all_metrics = []
     metrics = [
         "time_till_next_bus",
@@ -128,6 +130,12 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
         all_metrics.append(grouped)
 
     one_route = join_metrics(all_metrics)
+
+    missing_df = one_route.null_count().unpivot(
+        index="rt", variable_name="metric", value_name="missing_count"
+    )
+    with pl.Config(tbl_rows=20):
+        metrics_logger.debug(f"Missing values on route metrics:\n{missing_df}")
 
     return one_route
 
