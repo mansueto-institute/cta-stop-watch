@@ -13,6 +13,8 @@ def time_to_next_stop(
     calculate time to next stop and other metrics for each bus stop
     """
 
+    metrics_logger.debug("Computing time to next stop")
+
     if is_daytime:
         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
 
@@ -56,6 +58,10 @@ def time_to_next_stop(
         (pl.col("bus_stop_time").dt.day()).alias("day"),
     )
 
+    metrics_logger.debug(
+        f"Missing values:\n{trips_df.select(pl.col("time_till_next_bus").is_null())}"
+    )
+
     return trips_df
 
 
@@ -84,9 +90,10 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
     create stop metrics for one route
     """
 
-    metrics_logger.debug("Creating route metrics DataFrame")
     trips_df = time_to_next_stop(route_df)
+
     if is_schedule:
+        metrics_logger.debug("\nCreating route SCHEDULE metrics DataFrame")
         trips_df = trips_df.rename(
             {
                 "time_till_next_bus": "schedule_time_till_next_bus",
@@ -95,6 +102,7 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
             }
         )
     else:
+        metrics_logger.debug("\nCreating route ACTUAL metrics DataFrame")
         trips_df = trips_df.rename(
             {
                 "time_till_next_bus": "actual_time_till_next_bus",
