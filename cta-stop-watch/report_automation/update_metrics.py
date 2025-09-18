@@ -1,5 +1,4 @@
 # TODO:
-# - Create special log file for this debuggin process
 # - Pinpoint why monthly metrics are not being aggreaged
 # - Maybe do it using tests?
 
@@ -7,7 +6,7 @@
 
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
 from metrics_utils import create_trips_df
-from utils import metrics_logger, clear_staging, update_logger
+from utils import metrics_logger, clear_staging
 import pandas as pd
 import os
 import pathlib
@@ -59,11 +58,14 @@ def combine_recent_trips() -> None:
 
     metrics_logger.info(
         f"""
+        
         Before merging, there were {stats_before['total_rows'].to_list()[0]:,} rows, 
         {stats_before['total_trips'].to_list()[0]:,} trips, 
         {stats_before['total_pids'].to_list()[0]:,} pids, 
         and {stats_before['total_days'].to_list()[0]:,} unique days. 
-        The max date is {stats_before['max_date'].to_list()[0]}."""
+        The max date is {stats_before['max_date'].to_list()[0]}.
+
+        """
     )
 
     for pid in pids:
@@ -95,11 +97,14 @@ def combine_recent_trips() -> None:
 
     metrics_logger.info(
         f"""
+
         After merging, there were {stats_after['total_rows'].to_list()[0]:,} rows, 
         {stats_after['total_trips'].to_list()[0]:,} trips, 
         {stats_after['total_pids'].to_list()[0]:,} pids, 
         and {stats_after['total_days'].to_list()[0]:,} unique days. 
-        The max date is {stats_after['max_date'].to_list()[0]}."""
+        The max date is {stats_after['max_date'].to_list()[0]}.
+
+        """
     )
 
 
@@ -156,10 +161,13 @@ def log_metrics_after_status() -> None:
 
     metrics_logger.info(
         f"""
+
         After updating metrics, there were {total_rows:,} rows, 
         and {total_months:,} unique months. 
         The max month is {max_month}.
-        The max actual month is {max_month_actual}"""
+        The max actual month is {max_month_actual}
+       
+       """
     )
 
 
@@ -176,12 +184,12 @@ def check_staging_dirs() -> None:
 
 def compute_route_actual_metrics(rt: str) -> None:
     actual_df = create_trips_df(rt=rt, is_schedule=False)
-    update_logger.debug("Actual DataFrame:")
-    update_logger.debug(actual_df.head(2))
+    metrics_logger.debug("Actual trips DataFrame:")
+    metrics_logger.debut(actual_df.columns)
 
     route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
-    update_logger.debug("Actual performance DataFrame:")
-    update_logger.debug(actual_df.head(2))
+    metrics_logger.debug("Actual performance DataFrame:")
+    metrics_logger.debut(route_metrics_actual.columns)
 
     # write out to file
     route_metrics_actual.write_parquet(
@@ -193,10 +201,13 @@ def compute_route_actual_metrics(rt: str) -> None:
 
 def compute_route_schedule_metrics(rt: str) -> None:
     schedule_df = create_trips_df(rt=rt, is_schedule=True)
+    metrics_logger.debug(
+        f"Scheduled trips DataFrame columns: columns:  \n{schedule_df.columns}"
+    )
 
     route_metrics_schedule = create_route_metrics_df(schedule_df, is_schedule=True)
     metrics_logger.debug("Scheduled performance DataFrame:")
-    metrics_logger.debug(route_metrics_schedule.head(3))
+    metrics_logger.debug(route_metrics_schedule.columns)
 
     # write out to file
     route_metrics_schedule.write_parquet(
@@ -226,15 +237,15 @@ def compute_stop_metrics() -> None:
         actual_full_stops, schedule_full_stops
     )
 
-    update_logger.debug("Bus stop performance")
-    update_logger.debug(stop_metrics.head(2))
+    metrics_logger.debug("Bus stop performance")
+    metrics_logger.debug(stop_metrics.head(2))
 
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
 
 @profile
-def update_metrics(rts: list[str] | str = "all") -> bool:
+def metrics_metrics(rts: list[str] | str = "all") -> bool:
     """
     Combine new trips and then calculate new metrics
 
@@ -262,7 +273,7 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         print(f"Processing route {rt}")
         # prep schedule and actual
         metrics_logger.debug(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
-        update_logger.info(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
+        metrics_logger.info(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
 
         try:
             compute_route_actual_metrics(rt)
@@ -270,7 +281,7 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
             metrics_logger.error(
                 f"Issue computing actual performance metrics for {rt}: \n{e}"
             )
-            update_logger.error(
+            metrics_logger.error(
                 f"Issue computing actual performance metrics for {rt}: \n{e}"
             )
             continue
@@ -281,7 +292,7 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
             metrics_logger.error(
                 f"Issue computing scheduled performance metrics for {rt}: \n{e}"
             )
-            update_logger.error(
+            metrics_logger.error(
                 f"Issue computing scheduled performance metrics for {rt}: \n{e}"
             )
             continue
@@ -303,8 +314,8 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 # Implementation --------------------------------------------------------------
 
 if __name__ == "__main__":
-    update_logger.info(f"{'-'*80}\n START METRICS UPDATE {'-'*80}")
+    metrics_logger.info(f"{'-'*80}\n START METRICS UPDATE {'-'*80}")
 
-    update_metrics("all")
+    metrics_metrics("all")
 
 # End -------------------------------------------------------------------------

@@ -141,7 +141,8 @@ def setup_logger(name: str, log_file: str, level=logging.DEBUG) -> logging.Logge
 # Loggers ---------------------------------------------------------------------
 
 formatter = logging.Formatter(
-    "%(asctime)s [%(levelname)s] (%(filename)s): %(message)s", "%Y-%m-%d %H:%M:%S"
+    "[%(asctime)s] (%(levelname)-8s: %(filename)s, %(lineno)-4d: %(message)s",
+    "%Y-%m-%d %H:%M:%S",
 )
 
 # first file logger
@@ -149,8 +150,5 @@ process_logger = setup_logger("process", "process.log")
 
 # second file logger
 metrics_logger = setup_logger("metrics", "metrics.log")
-
-# third file logger
-update_logger = setup_logger("debugging", "debugging.log")
 
 # End -------------------------------------------------------------------------

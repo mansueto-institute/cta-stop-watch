@@ -1,5 +1,6 @@
 import polars as pl
 from metrics_utils import group_metrics
+from utils import metrics_logger
 
 # Functions -------------------------------------------------------------------
 
@@ -83,6 +84,7 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
     create stop metrics for one route
     """
 
+    metrics_logger.debug("Creating route metrics DataFrame")
     trips_df = time_to_next_stop(route_df)
     if is_schedule:
         trips_df = trips_df.rename(
