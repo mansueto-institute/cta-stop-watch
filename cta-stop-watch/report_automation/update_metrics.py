@@ -1,5 +1,4 @@
 # TODO:
-# - Refactor into smaller functions to make debugging easier
 # - Create special log file for this debuggin process
 # - Pinpoint why monthly metrics are not being aggreaged
 # - Maybe do it using tests?
@@ -104,7 +103,7 @@ def combine_recent_trips() -> None:
     )
 
 
-# Update metrics setp ----------------------------------------------------------
+# Update metrics step ----------------------------------------------------------
 
 
 def log_metrics_before_status() -> None:
@@ -113,18 +112,18 @@ def log_metrics_before_status() -> None:
     """
     # metric states before
     if os.path.exists(f"{OUT_DIR}/stop_metrics_df.parquet"):
-        mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
-        total_rows = mertics_df.shape[0]
-        total_months = mertics_df[mertics_df["period"] == "month_abs"][
+        metrics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+        total_rows = metrics_df.shape[0]
+        total_months = metrics_df[metrics_df["period"] == "month_abs"][
             "period_value"
         ].nunique()
-        max_month = mertics_df[mertics_df["period"] == "month_abs"][
+        max_month = metrics_df[metrics_df["period"] == "month_abs"][
             "period_value"
         ].max()
         # max month of actual data
-        max_month_actual = mertics_df[
-            (mertics_df["period"] == "month_abs")
-            & (mertics_df["median_actual_time_till_next_bus"].notna())
+        max_month_actual = metrics_df[
+            (metrics_df["period"] == "month_abs")
+            & (metrics_df["median_actual_time_till_next_bus"].notna())
         ]["period_value"].max()
 
         metrics_logger.info(
@@ -143,16 +142,16 @@ def log_metrics_before_status() -> None:
 
 def log_metrics_after_status() -> None:
     # metric states after
-    mertics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
-    total_rows = mertics_df.shape[0]
-    total_months = mertics_df[mertics_df["period"] == "month_abs"][
+    metrics_df = pd.read_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
+    total_rows = metrics_df.shape[0]
+    total_months = metrics_df[metrics_df["period"] == "month_abs"][
         "period_value"
     ].nunique()
-    max_month = mertics_df[mertics_df["period"] == "month_abs"]["period_value"].max()
+    max_month = metrics_df[metrics_df["period"] == "month_abs"]["period_value"].max()
     # max month of actual data
-    max_month_actual = mertics_df[
-        (mertics_df["period"] == "month_abs")
-        & (mertics_df["median_actual_time_till_next_bus"].notna())
+    max_month_actual = metrics_df[
+        (metrics_df["period"] == "month_abs")
+        & (metrics_df["median_actual_time_till_next_bus"].notna())
     ]["period_value"].max()
 
     metrics_logger.info(
@@ -177,12 +176,12 @@ def check_staging_dirs() -> None:
 
 def compute_route_actual_metrics(rt: str) -> None:
     actual_df = create_trips_df(rt=rt, is_schedule=False)
-    metrics_logger.debug("Actual DataFrame:")
-    metrics_logger.debug(actual_df.head(5))
+    update_logger.debug("Actual DataFrame:")
+    update_logger.debug(actual_df.head(2))
 
     route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
-    metrics_logger.debug("Actual performance DataFrame:")
-    metrics_logger.debug(actual_df.head(5))
+    update_logger.debug("Actual performance DataFrame:")
+    update_logger.debug(actual_df.head(2))
 
     # write out to file
     route_metrics_actual.write_parquet(
@@ -227,8 +226,8 @@ def compute_stop_metrics() -> None:
         actual_full_stops, schedule_full_stops
     )
 
-    metrics_logger.debug("Bus stop performance")
-    metrics_logger.debug(stop_metrics.head(5))
+    update_logger.debug("Bus stop performance")
+    update_logger.debug(stop_metrics.head(2))
 
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
@@ -263,11 +262,15 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
         print(f"Processing route {rt}")
         # prep schedule and actual
         metrics_logger.debug(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
+        update_logger.info(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
 
         try:
             compute_route_actual_metrics(rt)
         except Exception as e:
             metrics_logger.error(
+                f"Issue computing actual performance metrics for {rt}: \n{e}"
+            )
+            update_logger.error(
                 f"Issue computing actual performance metrics for {rt}: \n{e}"
             )
             continue
@@ -276,6 +279,9 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
             compute_route_schedule_metrics(rt)
         except Exception as e:
             metrics_logger.error(
+                f"Issue computing scheduled performance metrics for {rt}: \n{e}"
+            )
+            update_logger.error(
                 f"Issue computing scheduled performance metrics for {rt}: \n{e}"
             )
             continue
