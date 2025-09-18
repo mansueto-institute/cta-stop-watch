@@ -185,11 +185,11 @@ def check_staging_dirs() -> None:
 def compute_route_actual_metrics(rt: str) -> None:
     actual_df = create_trips_df(rt=rt, is_schedule=False)
     metrics_logger.debug("Actual trips DataFrame:")
-    metrics_logger.debut(actual_df.columns)
+    metrics_logger.debug(actual_df.columns)
 
     route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
     metrics_logger.debug("Actual performance DataFrame:")
-    metrics_logger.debut(route_metrics_actual.columns)
+    metrics_logger.debug(route_metrics_actual.columns)
 
     # write out to file
     route_metrics_actual.write_parquet(
