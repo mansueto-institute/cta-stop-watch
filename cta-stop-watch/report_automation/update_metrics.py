@@ -272,8 +272,8 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
     for rt in rts:
         print(f"Processing route {rt}")
         # prep schedule and actual
-        metrics_logger.debug(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
-        metrics_logger.info(f"\n{'-'*10}\nProcessing route {rt}\n{'-'*10}")
+        metrics_logger.debug(f"\n\n{'-'*30}\nProcessing route {rt}\n{'-'*30}")
+        metrics_logger.info(f"\n\n{'-'*30}\nProcessing route {rt}\n{'-'*30}")
 
         try:
             compute_route_actual_metrics(rt)
@@ -306,7 +306,7 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 
     # Clean and exit
     log_metrics_after_status()
-    clear_staging(folders=["metrics/staging_actual", "metrics/staging_sched"])
+    # clear_staging(folders=["metrics/staging_actual", "metrics/staging_sched"])
 
     return True
 
