@@ -14,6 +14,10 @@ def time_to_next_stop(
     """
 
     metrics_logger.debug("Computing time to next stop")
+    min_date = trips_df.select(pl.min("bus_stop_time"))[0, 0]
+    max_date = trips_df.select(pl.max("bus_stop_time"))[0, 0]
+
+    metrics_logger.debug(f"Found bus trips ranging from {min_date} to {max_date}")
 
     if is_daytime:
         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
@@ -131,11 +135,19 @@ def create_route_metrics_df(route_df: pl.DataFrame, is_schedule: bool) -> pl.Dat
 
     one_route = join_metrics(all_metrics)
 
-    missing_df = one_route.null_count().unpivot(
-        index="rt", variable_name="metric", value_name="missing_count"
+    missing_df = (
+        one_route.null_count()
+        .unpivot(index="rt", variable_name="metric", value_name="missing_count")
+        .filter(pl.col("missing_count") != 0)
     )
+
+    rows, cols = missing_df.shape
+
     with pl.Config(tbl_rows=20):
         metrics_logger.debug(f"Missing values on route metrics:\n{missing_df}")
+
+    if rows > 0:
+        metrics_logger.warning("MISSING METRICS")
 
     return one_route
 
