@@ -238,7 +238,7 @@ def compute_stop_metrics() -> None:
     )
 
     metrics_logger.debug("Bus stop performance")
-    metrics_logger.debug(stop_metrics.head(2))
+    metrics_logger.debug(stop_metrics.head(15))
 
     # export
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
@@ -314,7 +314,7 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 # Implementation --------------------------------------------------------------
 
 if __name__ == "__main__":
-    metrics_logger.info(f"{'-'*80}\n START METRICS UPDATE {'-'*80}")
+    metrics_logger.info(f"\n{'-'*80}\n START METRICS UPDATE {'-'*80}")
 
     update_metrics("all")
 
