@@ -61,7 +61,8 @@ def time_to_next_stop(
     missing_df = trips_df.null_count().unpivot(
         index="rt", variable_name="metric", value_name="missing_count"
     )
-    metrics_logger.debug(f"Missing values:\n{missing_df}")
+    with pl.Config(tbl_rows=20):
+        metrics_logger.debug(f"Missing values:\n{missing_df}")
 
     return trips_df
 
