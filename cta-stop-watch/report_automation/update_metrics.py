@@ -239,7 +239,8 @@ def compute_stop_metrics() -> None:
 
     metrics_logger.debug("Bus stop performance")
 
-    null_data = pd.isnull(stop_metrics["count_schedule_time_till_next_bus"])
+    null_rows = pd.isnull(stop_metrics["count_schedule_time_till_next_bus"])
+    null_data = stop_metrics[null_rows]
     metrics_logger.debug(null_data)
 
     # export
