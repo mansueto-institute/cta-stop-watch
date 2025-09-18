@@ -58,9 +58,7 @@ def time_to_next_stop(
         (pl.col("bus_stop_time").dt.day()).alias("day"),
     )
 
-    metrics_logger.debug(
-        f"Missing values:\n{trips_df.select(pl.col("time_till_next_bus").is_null())}"
-    )
+    metrics_logger.debug(f"Missing values:\n{trips_df.null_count()}")
 
     return trips_df
 
