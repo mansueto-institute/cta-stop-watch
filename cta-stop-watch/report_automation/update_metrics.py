@@ -245,7 +245,7 @@ def compute_stop_metrics() -> None:
 
 
 @profile
-def metrics_metrics(rts: list[str] | str = "all") -> bool:
+def update_metrics(rts: list[str] | str = "all") -> bool:
     """
     Combine new trips and then calculate new metrics
 
@@ -316,6 +316,6 @@ def metrics_metrics(rts: list[str] | str = "all") -> bool:
 if __name__ == "__main__":
     metrics_logger.info(f"{'-'*80}\n START METRICS UPDATE {'-'*80}")
 
-    metrics_metrics("all")
+    update_metrics("all")
 
 # End -------------------------------------------------------------------------
