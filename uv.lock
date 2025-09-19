@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 
 [[package]]
@@ -319,6 +319,7 @@ dependencies = [
     { name = "pendulum" },
     { name = "plotly" },
     { name = "polars" },
+    { name = "psutil" },
     { name = "pyarrow" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -348,6 +349,7 @@ requires-dist = [
     { name = "pendulum", specifier = ">=3.1.0" },
     { name = "plotly", specifier = ">=6.3.0" },
     { name = "polars", specifier = ">=1.32.3" },
+    { name = "psutil", specifier = ">=7.0.0" },
     { name = "pyarrow", specifier = ">=21.0.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "requests", specifier = ">=2.32.5" },

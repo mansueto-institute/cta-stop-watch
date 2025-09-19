@@ -4,12 +4,32 @@ from process_metrics import process_metrics
 from process_trips import process_new_trips
 from utils import create_config, process_logger, metrics_logger
 import argparse
+import psutil
+import resource
 
 # Constants -------------------------------------------------------------------
 
 DIV_LINE = f"\n{'-'*80}\n"
 
 # Functions -------------------------------------------------------------------
+
+
+def limit_memory(memory_usage=0.8):
+    """
+    Limit the program's usage of RAM to prevent the program from crashing.
+    Ref: https://stackoverflow.com/questions/41105733/limit-ram-usage-to-python-program
+
+    Args:
+        memory_usage (float): percentage of available memory to be used
+    """
+
+    # Get current memory limits (in bytes)
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+
+    # Set new memory limit based on available memory
+    memory = psutil.virtual_memory()
+    new_limit = int(memory.available * memory_usage)
+    resource.setrlimit(resource.RLIMIT_AS, new_limit, hard)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -84,6 +104,7 @@ def run_main():
             process_metrics(local=True)
         elif args.pipeline_step[1] == "remote":
             try:
+                limit_memory()
                 process_metrics(local=False)
             except Exception as e:
                 metrics_logger.error(f"Error: {e}")
