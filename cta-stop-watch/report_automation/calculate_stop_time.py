@@ -233,6 +233,7 @@ def calculate_pattern(
     Process all the trips for one pattern to return a df with the time a bus is at each stop for every trip.
     """
     start_tmstm = time.time()
+
     # prepare the segments
     segments_gdf = prepare_segment(pid)
 
