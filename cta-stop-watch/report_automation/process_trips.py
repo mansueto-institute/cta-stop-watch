@@ -16,6 +16,7 @@ import os
 
 # Paths
 STAGING_PATH = "data/staging"
+DIV_LINE = f"\n{'-'*80}\n"
 
 # Functions -------------------------------------------------------------------
 
@@ -78,9 +79,10 @@ def update_patterns(EXISTING_PATTERNS: list[str]) -> set[str]:
     process_patterns(list(all_patterns))
 
     process_logger.info(
-        f""" Found {len(new_patterns)} new pattern(s) in data \n
-             Downloaded {len(found_pids)} new patterns \n
-             Issues with {len(bad_pids)} pattern(s): {bad_pids}
+        f""" 
+        Found {len(new_patterns)} new pattern(s) in data \n
+        Downloaded {len(found_pids)} new patterns \n 
+        Issues with {len(bad_pids)} pattern(s): {bad_pids}
         """
     )
 
@@ -177,7 +179,7 @@ def process_new_trips(test: bool = False) -> None:
     start_date = datetime.strftime(modified_date, "%Y-%m-%d")
 
     process_logger.info(
-        f"Trying to download ghost bus data from data from {start_date} to {today_minus_one}"
+        f"{DIV_LINE}DOWNLOAD DATA: \n   Trying to download ghost bus data from data from {start_date} to {today_minus_one}"
     )
     check = update_data(start_date, today)
 
@@ -193,26 +195,32 @@ def process_new_trips(test: bool = False) -> None:
     )
     update_patterns(EXISTING_PATTERNS)
 
-    process_logger.info("Processing new trips")
+    process_logger.info(f"{DIV_LINE}PROCESS NEW TRIPS\n")
 
     all_pids_df = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
 
     # STEP 3. Calculate the stop time for all the patterns
     # puts the processed trips by pattern in staging/trips
-
+    process_logger.info(f"{DIV_LINE}CALCULATE STOP TIME FOR ALL PATTERNS\n")
     calculate_patterns(all_pids_df["pid"].astype(str).tolist())
 
     # STEP 4. Recreate updated config file
+    process_logger.info(f"{DIV_LINE}UPDATE CONFIG FILE AND CROSSWALK\n")
     create_config()
 
     # STEP 5. Update crosswalk
     create_rt_pid_xwalk()
 
     # STEP 6. Clear staging data (days and pids, and raw_trips)
-    clear_staging(
-        folders=["staging/days", "staging/pids", "raw_trips"],
-        files=["staging/current_days_download.parquet"],
-    )
+    # TODO: Remove flags after succesfully updating data
+    debug = True
+    if not debug:
+        process_logger.info(f"{DIV_LINE}CLEAR STAGING\n")
+        clear_staging(
+            folders=["staging/days", "staging/pids", "raw_trips"],
+            files=["staging/current_days_download.parquet"],
+        )
+        process_logger.info(f"\n FINISHED PROCESS PIPELINE {DIV_LINE}")
 
 
-# End ------------------------------------------------------------------------
+# End -------------------------------------------------------------------------
