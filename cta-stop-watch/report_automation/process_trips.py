@@ -71,6 +71,7 @@ def update_patterns(EXISTING_PATTERNS: list[str]) -> set[str]:
                 found_pids.append(pid)
             except Exception as e:
                 print(f"Error downloading pattern {pid}: {e}")
+                process_logger.error(f"Error downloading pattern {pid}: {e}")
                 bad_pids.append(pid)
 
     # process all patterns
@@ -220,7 +221,7 @@ def process_new_trips(test: bool = False) -> None:
             folders=["staging/days", "staging/pids", "raw_trips"],
             files=["staging/current_days_download.parquet"],
         )
-        process_logger.info(f"\n FINISHED PROCESS PIPELINE {DIV_LINE}")
+    process_logger.info(f"\n FINISHED PROCESS PIPELINE \n{DIV_LINE}")
 
 
 # End -------------------------------------------------------------------------

@@ -263,7 +263,7 @@ def calculate_pattern(
             )
 
         except Exception as e:
-            logging.debug(
+            logging.error(
                 f"Error processing trip {trip_id} for Pattern {pid}. Error: {e}"
             )
             bad_trips.append(trip_id)
@@ -287,7 +287,7 @@ def calculate_pattern(
     formatted_time = time.strftime("%H hours %M minutes %S", time.gmtime(diff))
 
     logging.debug(
-        f"Processed {processed_trips_count} trips for Pattern {pid}. There was {len(bad_trips)} trip(s) with errors. Time elapsed: {formatted_time}"
+        f"Processed {processed_trips_count} trips for Pattern {pid}. There were {len(bad_trips)} ({format(processed_trips_count/bad_trips, ".0%")}) trip(s) with errors. Time elapsed: {formatted_time}\n"
     )
 
     # return 4 empty dataframes for unpacking in calculate_patterns

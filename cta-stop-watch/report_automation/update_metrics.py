@@ -1,7 +1,3 @@
-# TODO:
-# - Pinpoint why monthly metrics are not being aggreaged
-# - Maybe do it using tests?
-
 # Libraries -------------------------------------------------------------------
 
 from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_df
