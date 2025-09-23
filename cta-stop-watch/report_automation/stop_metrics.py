@@ -14,11 +14,6 @@ def time_to_next_stop(
     """
 
     metrics_logger.debug("Computing time to next stop")
-    min_date = trips_df.select(pl.min("bus_stop_time"))[0, 0]
-    max_date = trips_df.select(pl.max("bus_stop_time"))[0, 0]
-
-    metrics_logger.debug(f"Found bus trips ranging from {min_date} to {max_date}")
-
     if is_daytime:
         trips_df = trips_df.filter(pl.col("bus_stop_time").dt.hour().is_between(6, 20))
 

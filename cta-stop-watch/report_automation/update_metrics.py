@@ -4,6 +4,7 @@ from stop_metrics import create_route_metrics_df, create_combined_metrics_stop_d
 from metrics_utils import create_trips_df
 from utils import metrics_logger, clear_staging
 import pandas as pd
+import polars as pl
 import os
 import pathlib
 import duckdb
@@ -179,9 +180,19 @@ def check_staging_dirs() -> None:
 
 
 def compute_route_actual_metrics(rt: str) -> None:
+    print(f"Compute actual metrics for {rt=}")
+    metrics_logger.debug(f"Compute actual metrics for {rt=}")
+
     actual_df = create_trips_df(rt=rt, is_schedule=False)
     metrics_logger.debug("Actual trips DataFrame:")
     metrics_logger.debug(actual_df.columns)
+
+    # TODO: Remove timestamps loggings to see range of datesee
+    min_date = actual_df.select(pl.min("bus_stop_time"))[0, 0].strftime("%Y-%m-%d")
+    max_date = actual_df.select(pl.max("bus_stop_time"))[0, 0].strftime("%Y-%m-%d")
+    metrics_logger.debug(
+        f"After processing, there were bus trips ranging from {min_date} to {max_date}"
+    )
 
     route_metrics_actual = create_route_metrics_df(actual_df, is_schedule=False)
     metrics_logger.debug("Actual performance DataFrame:")

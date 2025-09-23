@@ -44,6 +44,17 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
 
         try:
             df_trips = pl.read_parquet(file_DIR.format(**template_values))
+            min_date = df_trips.select(pl.min("bus_stop_time"))[0, 0].strftime(
+                "%Y-%m-%d"
+            )
+            max_date = df_trips.select(pl.max("bus_stop_time"))[0, 0].strftime(
+                "%Y-%m-%d"
+            )
+            metrics_logger.debug(
+                f"Loaded bus trips ranging from {min_date} to {max_date}"
+            )
+            print(f"Loaded bus trips ranging from {min_date} to {max_date}")
+
         except FileNotFoundError:
             metrics_logger.debug(error.format(**template_values))
             continue
