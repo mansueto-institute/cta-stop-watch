@@ -17,6 +17,9 @@ DIR = pathlib.Path(__file__).parent / "data"
 DIR_PATTERNS = DIR / "patterns/patterns_raw"
 DIR_TRIPS = DIR / "raw_trips"
 
+# Debug
+TEST_PID = "4110"  # Pattern from route 6
+
 # Functions -------------------------------------------------------------------
 
 

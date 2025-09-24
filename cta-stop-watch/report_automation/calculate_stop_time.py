@@ -8,7 +8,9 @@ import pickle
 import os
 import time
 from datetime import date
-from utils import process_logger
+
+# TODO: Remove debugging objects
+from utils import process_logger, TEST_PID, debug_logger
 from interpolation import interpolate_stoptime
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -22,6 +24,7 @@ logging = process_logger
 
 DIR = pathlib.Path(__file__).parent / "data"
 
+
 # Functions -------------------------------------------------------------------
 
 
@@ -29,6 +32,9 @@ def prepare_segment(pid: str) -> gpd.GeoDataFrame:
     """
     prepares the created segments from a pattern (pid) for use with the bus location.
     """
+    if pid == TEST_PID:
+        debug_logger.info(f"Preparing segments for {pid}")
+
     # load segment
     # try current and then historicgit
     segments_gdf = pattern_opener(pid, "segment")
@@ -45,6 +51,9 @@ def prepare_trips(pid: str) -> tuple[GeoDataFrame, int]:
     """
     prepare the real trips from a pattern (pid) for use with the segments
     """
+
+    if pid == TEST_PID:
+        debug_logger.info(f"Preparing trips for {pid}")
 
     # load trips for a pattern
     trips_df = pd.read_parquet(f"{DIR}/staging/pids/{pid}.parquet")
@@ -114,6 +123,8 @@ def prepare_stops(pid: str) -> GeoDataFrame:
     """
     Prepares the stops from a pattern (pid) for use with the bus location
     """
+    if pid == TEST_PID:
+        debug_logger.info(f"Preparing stops for {pid}")
 
     stops_gdf = pattern_opener(pid, "stop")
 
@@ -320,6 +331,8 @@ def calculate_patterns(pids: list) -> bool:
     today_date = str(date.today())
 
     for pid in pids:
+        if pid == TEST_PID:
+            debug_logger.info("PROCESSING FOR TEST PID")
         try:
             result, og_trips_count, processed_trips_count, bad_trips_count = (
                 calculate_pattern(pid)
@@ -334,6 +347,11 @@ def calculate_patterns(pids: list) -> bool:
         # check if file exist and create if not
         if not os.path.exists(f"{DIR}/staging/trips/{pid}"):
             os.makedirs(f"{DIR}/staging/trips/{pid}")
+
+            if pid == TEST_PID:
+                debug_logger.debug(
+                    f"PID {TEST_PID} did not have any staging trips before"
+                )
 
         result.to_parquet(
             f"{DIR}/staging/trips/{pid}/trips_{pid}_{today_date}.parquet",

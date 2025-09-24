@@ -3,7 +3,13 @@
 from download import full_download, extract_routes, query_cta_api
 from process_patterns import process_patterns
 from calculate_stop_time import calculate_patterns
-from utils import create_config, clear_staging, process_logger, create_rt_pid_xwalk
+from utils import (
+    create_config,
+    clear_staging,
+    process_logger,
+    create_rt_pid_xwalk,
+    debug_logger,
+)
 
 from datetime import date, timedelta, datetime
 import polars as pl
@@ -16,7 +22,10 @@ import os
 
 # Paths
 STAGING_PATH = "data/staging"
+
+# Debug and logging
 DIV_LINE = f"\n{'-'*80}\n"
+TEST_PID = "4110"  # Pattern from route 6
 
 # Functions -------------------------------------------------------------------
 
@@ -66,12 +75,18 @@ def update_patterns(EXISTING_PATTERNS: list[str]) -> set[str]:
     if len(new_patterns) > 0:
         # for any new patterns, try to download from the api
         for pid in new_patterns:
+            # TODO: Remove this printing
+            if pid == TEST_PID:
+                debug_logger.debug(
+                    f"Trying to update pattern {TEST_PID}, querying CTA API..."
+                )
             try:
                 query_cta_api(pid, "data/patterns/patterns_raw")
                 found_pids.append(pid)
             except Exception as e:
                 print(f"Error downloading pattern {pid}: {e}")
                 process_logger.error(f"Error downloading pattern {pid}: {e}")
+                debug_logger.error(f"Error downloading pattern {pid}: {e}")
                 bad_pids.append(pid)
 
     # process all patterns
@@ -221,7 +236,7 @@ def process_new_trips(test: bool = False) -> None:
             folders=["staging/days", "staging/pids", "raw_trips"],
             files=["staging/current_days_download.parquet"],
         )
-    process_logger.info(f"\n FINISHED PROCESS PIPELINE \n{DIV_LINE}")
+    process_logger.info(f"\n FINISHED PROCESS PIPELINE {DIV_LINE}")
 
 
 # End -------------------------------------------------------------------------
