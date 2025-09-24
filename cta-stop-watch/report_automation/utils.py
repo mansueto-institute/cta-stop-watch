@@ -151,4 +151,6 @@ process_logger = setup_logger("process", "process.log")
 # second file logger
 metrics_logger = setup_logger("metrics", "metrics.log")
 
+debug_logger = setup_logger("debug", "debug.log")
+
 # End -------------------------------------------------------------------------

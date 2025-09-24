@@ -53,7 +53,9 @@ def create_trips_df(rt: str, is_schedule: bool = False) -> pl.DataFrame:
             metrics_logger.debug(
                 f"Loaded bus trips ranging from {min_date} to {max_date}"
             )
-            print(f"Loaded bus trips ranging from {min_date} to {max_date}")
+            print(
+                f"Loaded bus trips for pid of {rt=} ranging from {min_date} to {max_date}"
+            )
 
         except FileNotFoundError:
             metrics_logger.debug(error.format(**template_values))
