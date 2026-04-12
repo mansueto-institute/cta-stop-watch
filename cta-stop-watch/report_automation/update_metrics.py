@@ -246,8 +246,7 @@ def compute_stop_metrics() -> None:
 
     metrics_logger.debug("Bus stop performance")
 
-    null_rows = pd.isnull(stop_metrics["count_schedule_time_till_next_bus"])
-    null_data = stop_metrics[null_rows]
+    null_data = stop_metrics.filter(pl.any_horizontal(pl.all().is_null()))
     metrics_logger.debug(null_data)
 
     # export
@@ -325,7 +324,9 @@ def update_metrics(rts: list[str] | str = "all") -> bool:
 
 if __name__ == "__main__":
     metrics_logger.info(f"\n{'-'*80}\n START METRICS UPDATE {'-'*80}")
-
+    
+    #update_metrics(["152"])
     update_metrics("all")
+
 
 # End -------------------------------------------------------------------------

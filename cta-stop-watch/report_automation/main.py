@@ -29,7 +29,7 @@ def limit_memory(memory_usage=0.8):
     # Set new memory limit based on available memory
     memory = psutil.virtual_memory()
     new_limit = int(memory.available * memory_usage)
-    resource.setrlimit(resource.RLIMIT_AS, new_limit, hard)
+    resource.setrlimit(resource.RLIMIT_AS, (new_limit, hard))
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -104,7 +104,7 @@ def run_main():
             process_metrics(local=True)
         elif args.pipeline_step[1] == "remote":
             try:
-                limit_memory()
+                #limit_memory()
                 process_metrics(local=False)
             except Exception as e:
                 metrics_logger.error(f"Error: {e}")
