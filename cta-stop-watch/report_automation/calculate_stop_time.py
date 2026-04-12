@@ -297,8 +297,10 @@ def calculate_pattern(
     diff = end_tmstmp - start_tmstm
     formatted_time = time.strftime("%H hours %M minutes %S", time.gmtime(diff))
 
+    total_trips = processed_trips_count + len(bad_trips)
+    error_pct = format(len(bad_trips) / total_trips, '.0%') if total_trips > 0 else 'N/A'
     logging.debug(
-        f"Processed {processed_trips_count} trips for Pattern {pid}. There were {len(bad_trips)} ({format(processed_trips_count/bad_trips, ".0%")}) trip(s) with errors. Time elapsed: {formatted_time}\n"
+        f"Processed {processed_trips_count} trips for Pattern {pid}. There were {len(bad_trips)} ({error_pct}) trip(s) with errors. Time elapsed: {formatted_time}"
     )
 
     # return 4 empty dataframes for unpacking in calculate_patterns
