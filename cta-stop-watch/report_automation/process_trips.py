@@ -53,52 +53,57 @@ def update_data(start_date: str, today: str) -> bool:
     return True
 
 
-def update_patterns(EXISTING_PATTERNS: list[str]) -> set[str]:
+def update_patterns(EXISTING_PATTERNS: list[str]) -> pd.DataFrame:
     """
-    Check for new patterns in the data and download them from CTA API if doesnt exist.
+    For every PID active in today's GPS data, query the CTA API to ensure the
+    stored pattern is current. New PIDs are downloaded fresh; existing PIDs are
+    compared against the live API and archived if they have changed.
 
     Args:
-        EXISTING_PATTERNS (list[str]): CTA's PID already processed in Mansueto StopWatch's history
+        EXISTING_PATTERNS (list[str]): PIDs already in StopWatch history
 
     Returns:
-        set[str]
+        pd.DataFrame: all_pids_list for today's data
     """
-    # get all patterns in the database from new data
     new_trip_pids = pd.read_parquet(f"{STAGING_PATH}/all_pids_list.parquet")
+    today_pids = new_trip_pids["pid"].dropna().astype(str).tolist()
 
-    # compare the two if there are new patterns, download from api and add them to the database
-    new_patterns = list(
-        set(new_trip_pids["pid"].astype(str).tolist()) - set(EXISTING_PATTERNS)
+    new_pids = set(today_pids) - set(EXISTING_PATTERNS)
+    existing_pids = set(today_pids) & set(EXISTING_PATTERNS)
+
+    process_logger.info(
+        f"Checking {len(today_pids)} active PIDs: "
+        f"{len(new_pids)} new, {len(existing_pids)} existing"
     )
+
     bad_pids = []
     found_pids = []
-    if len(new_patterns) > 0:
-        # for any new patterns, try to download from the api
-        for pid in new_patterns:
-            # TODO: Remove this printing
-            if pid == TEST_PID:
-                debug_logger.debug(
-                    f"Trying to update pattern {TEST_PID}, querying CTA API..."
-                )
-            try:
-                query_cta_api(pid, "data/patterns/patterns_raw")
-                found_pids.append(pid)
-            except Exception as e:
-                print(f"Error downloading pattern {pid}: {e}")
-                process_logger.error(f"Error downloading pattern {pid}: {e}")
-                debug_logger.error(f"Error downloading pattern {pid}: {e}")
-                bad_pids.append(pid)
 
-    # process all patterns
-    all_patterns = set(found_pids + EXISTING_PATTERNS)
+    for pid in today_pids:
+        if pid == TEST_PID:
+            debug_logger.debug(f"Trying to update pattern {TEST_PID}, querying CTA API...")
+        try:
+            result = query_cta_api(pid, "data/patterns/patterns_raw")
+            if result:
+                found_pids.append(pid)
+            else:
+                bad_pids.append(pid)
+        except Exception as e:
+            print(f"Error downloading pattern {pid}: {e}")
+            process_logger.error(f"Error downloading pattern {pid}: {e}")
+            debug_logger.error(f"Error downloading pattern {pid}: {e}")
+            bad_pids.append(pid)
+
+    # Re-process patterns for any that were successfully fetched (new or updated)
+    all_patterns = set(found_pids) | set(EXISTING_PATTERNS)
     process_logger.info(f"Processing {len(all_patterns)} patterns")
     process_patterns(list(all_patterns))
 
     process_logger.info(
-        f""" 
-        Found {len(new_patterns)} new pattern(s) in data \n
-        Downloaded {len(found_pids)} new patterns \n 
-        Issues with {len(bad_pids)} pattern(s): {bad_pids}
+        f"""
+        Active PIDs today: {len(today_pids)} ({len(new_pids)} new, {len(existing_pids)} existing)
+        Successfully fetched: {len(found_pids)}
+        Failed (no pattern from API): {len(bad_pids)} — {bad_pids}
         """
     )
 

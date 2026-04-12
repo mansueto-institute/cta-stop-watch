@@ -183,39 +183,55 @@ def extract_routes():
         extract_pid(row["pid"])
 
 
-def query_cta_api(pid: str, out_path) -> bool:
+def query_cta_api(pid: str, out_path: str) -> bool:
     """
-    Takes a route pattern ID and queries the CTA API to get the raw pattern
-    data (in lat, lon format) and returns a standardized data frame for further
-    cleaning.
+    Query the CTA API for a route pattern and save it locally. If the pattern
+    already exists and has changed, the old version is archived to
+    patterns_historic/ before being overwritten.
 
     Args:
         pid (str): The pattern id to call from the CTA API
-        out_path (str): Desired path to store downloaded data
+        out_path (str): Path to the patterns_raw/ directory
 
     Returns:
-        pd.DataFrame: A data frame with standardized names
-
+        bool: True if a valid pattern was saved, False if the API returned an error
     """
-    # Make call to API for given pid and obtain pattern point data
-
     load_dotenv()
-
     BUS_API_KEY = os.environ["BUS_API_KEY"]
-
-    if os.path.exists(out_path + "/patterns_raw/pid_" + pid + "_raw.parquet"):
-        process_logger.info(f"Skipping PID {pid} as it already exists")
 
     url = f"http://www.ctabustracker.com/bustime/api/v2/getpatterns?format=json&key={BUS_API_KEY}&pid={pid}"
     response = requests.get(url)
     pattern = json.loads(response.content)
 
-    # if "error" in pattern["bustime-response"]:
-    #     logging.debug("\t\t\t Skiping PID {pid}")
-    #     return False
+    if "error" in pattern["bustime-response"] or "ptr" not in pattern["bustime-response"]:
+        process_logger.debug(
+            f"API returned no pattern for PID {pid}: "
+            f"{pattern['bustime-response'].get('error', 'no ptr key')}"
+        )
+        return False
 
-    df_pattern = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
+    df_new = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
 
-    df_pattern.to_parquet(f"{out_path}/pid_{pid}_raw.parquet")
+    raw_path = f"{out_path}/pid_{pid}_raw.parquet"
+    historic_dir = os.path.join(os.path.dirname(out_path), "patterns_historic")
 
+    if os.path.exists(raw_path):
+        df_existing = pd.read_parquet(raw_path)
+
+        def stop_sequence(df):
+            return df[df["typ"] == "S"]["stpid"].dropna().tolist()
+
+        if stop_sequence(df_existing) != stop_sequence(df_new):
+            os.makedirs(historic_dir, exist_ok=True)
+            today = date.today().strftime("%Y-%m-%d")
+            archive_path = f"{historic_dir}/pid_{pid}_raw_{today}.parquet"
+            df_existing.to_parquet(archive_path)
+            process_logger.info(
+                f"PID {pid} pattern changed — archived old version to {archive_path}"
+            )
+        else:
+            process_logger.debug(f"PID {pid} pattern unchanged")
+            return True
+
+    df_new.to_parquet(raw_path)
     return True
