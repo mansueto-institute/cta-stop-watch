@@ -210,9 +210,9 @@ def query_cta_api(pid: str, out_path) -> bool:
     response = requests.get(url)
     pattern = json.loads(response.content)
 
-    # if "error" in pattern["bustime-response"]:
-    #     logging.debug("\t\t\t Skiping PID {pid}")
-    #     return False
+    if "error" in pattern["bustime-response"]:
+        process_logger.debug(f"Skipping PID {pid}: API returned error")
+        return False
 
     df_pattern = pd.DataFrame(pattern["bustime-response"]["ptr"][0]["pt"])
 

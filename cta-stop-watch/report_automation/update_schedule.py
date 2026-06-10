@@ -149,6 +149,7 @@ def create_timetables() -> bool:
 
         timetables_df["sha1"] = None
         timetables_df["fetched_date"] = today
+        timetables_df["schd_trip_id"] = timetables_df["schd_trip_id"].astype(str)
 
         rts_count += 1
 

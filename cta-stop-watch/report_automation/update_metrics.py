@@ -8,7 +8,6 @@ import polars as pl
 import os
 import pathlib
 import duckdb
-from memory_profiler import profile
 
 # Contants --------------------------------------------------------------------
 
@@ -236,8 +235,6 @@ def compute_stop_metrics() -> None:
     s_command = f""" select *
                     from read_parquet('{OUT_DIR}/staging_sched/*.parquet')
                     """
-    actual_full_stops = duckdb.execute(a_command).pl()
-
     schedule_full_stops = duckdb.execute(s_command).pl()
 
     stop_metrics = create_combined_metrics_stop_df(
@@ -253,7 +250,6 @@ def compute_stop_metrics() -> None:
     stop_metrics.write_parquet(f"{OUT_DIR}/stop_metrics_df.parquet")
 
 
-@profile
 def update_metrics(rts: list[str] | str = "all") -> bool:
     """
     Combine new trips and then calculate new metrics

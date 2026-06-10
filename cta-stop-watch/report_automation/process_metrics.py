@@ -17,21 +17,17 @@ def process_metrics(local: bool = True) -> None:
         None
     """
 
-    skip = False 
+    # Combine recent trips
+    metrics_logger.info("Combining trips")
+    combine_recent_trips()
+    metrics_logger.info("Done combining trips")
+    clear_staging(folders=["staging/trips"])
 
-    if skip: 
-        # Flag to skip steps on the pipeline
-         # Combine recent trips
-        metrics_logger.info("Combining trips")
-        combine_recent_trips()
-        metrics_logger.info("Done combining trips")
-        clear_staging(folders=["staging/trips"])
-
-        # Update schedule
-        metrics_logger.info("Updating schedule")
-        update_schedule()
-        metrics_logger.info("Done updating schedule")
-        clear_staging(folders=["staging/timetables/current_timetables"])
+    # Update schedule
+    metrics_logger.info("Updating schedule")
+    update_schedule()
+    metrics_logger.info("Done updating schedule")
+    clear_staging(folders=["staging/timetables/current_timetables"])
 
     # Update metrics
     metrics_logger.info("Updating metrics")

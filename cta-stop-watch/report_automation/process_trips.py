@@ -233,7 +233,7 @@ def process_new_trips(test: bool = False) -> None:
     if not debug:
         process_logger.info(f"{DIV_LINE}CLEAR STAGING\n")
         clear_staging(
-            folders=["staging/days", "staging/pids", "raw_trips"],
+            folders=["staging/days", "staging/pids"],
             files=["staging/current_days_download.parquet"],
         )
     process_logger.info(f"\n FINISHED PROCESS PIPELINE {DIV_LINE}")
