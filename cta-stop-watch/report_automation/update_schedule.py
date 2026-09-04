@@ -4,7 +4,6 @@ import pandas as pd
 import gtfs_kit as gk
 import os
 import duckdb
-import numpy as np
 import requests
 from datetime import date
 from utils import metrics_logger
@@ -134,6 +133,21 @@ def create_timetables() -> bool:
     return True
 
 
+def build_bus_stop_time(dates: pd.Series, times: pd.Series) -> pd.Series:
+    """
+    Combine a GTFS service date (YYYYMMDD) and a GTFS stop time into a timestamp.
+
+    GTFS stop times keep counting past 24:00:00 for trips that belong to the
+    previous service day, so 24:06:24 is 00:06:24 the following morning and
+    25:08:00 is 01:08:00. Adding the stop time to the service date as an offset
+    rolls those hours into the date rather than rewriting the hour in place.
+    Times that cannot be parsed become NaT.
+    """
+    return pd.to_datetime(dates, format="%Y%m%d") + pd.to_timedelta(
+        times, errors="coerce"
+    )
+
+
 def dedupe_schedules() -> None:
     """
     given all the historic schedules, dedupe them by date and time by taking only
@@ -177,25 +191,9 @@ def dedupe_schedules() -> None:
         current["date_type"] = pd.to_datetime(current["date"])
         min_date = current["date_type"].min()
 
-        # issue with this documented in issue #21
         # create an actual bus_stop_time column using date and arrival_time
-        current["time_edit"] = np.where(
-            current["arrival_time"].str.slice(0, 2) == "24",
-            current["arrival_time"].str.replace("24", "00"),
-            current["arrival_time"],
-        )
-        current["date_edit"] = np.where(
-            current["arrival_time"].str.slice(0, 2) == "24",
-            (
-                pd.to_datetime(current["date"], format="%Y%m%d")
-                + 1 * pd.Timedelta(days=1)
-            ),
-            pd.to_datetime(current["date"]),
-        )
-        current["bus_stop_time"] = pd.to_datetime(
-            current["date_edit"].astype(str) + current["time_edit"],
-            format="%Y-%m-%d%H:%M:%S",
-            errors="coerce",
+        current["bus_stop_time"] = build_bus_stop_time(
+            current["date"], current["arrival_time"]
         )
 
         current.drop(
@@ -205,8 +203,6 @@ def dedupe_schedules() -> None:
                 "arrival_time",
                 "sha1",
                 "fetched_date",
-                "time_edit",
-                "date_edit",
                 "date",
             ],
             inplace=True,
